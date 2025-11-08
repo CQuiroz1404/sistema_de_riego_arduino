@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../config/supabaseClient';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './HistoricoChart.css';
@@ -10,17 +10,7 @@ function HistoricoChart({ zoneId }) {
   const [dateRange, setDateRange] = useState('24h'); // 24h, 7d, 30d
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSensors();
-  }, [zoneId]);
-
-  useEffect(() => {
-    if (selectedSensor) {
-      fetchHistoricData();
-    }
-  }, [selectedSensor, dateRange]);
-
-  const fetchSensors = async () => {
+  const fetchSensors = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('sensors')
@@ -35,9 +25,9 @@ function HistoricoChart({ zoneId }) {
     } catch (error) {
       console.error('Error fetching sensors:', error);
     }
-  };
+  }, [zoneId]);
 
-  const fetchHistoricData = async () => {
+  const fetchHistoricData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -82,7 +72,17 @@ function HistoricoChart({ zoneId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedSensor, dateRange]);
+
+  useEffect(() => {
+    fetchSensors();
+  }, [fetchSensors]);
+
+  useEffect(() => {
+    if (selectedSensor) {
+      fetchHistoricData();
+    }
+  }, [selectedSensor, fetchHistoricData]);
 
   const selectedSensorData = sensors.find(s => s.id === selectedSensor);
 

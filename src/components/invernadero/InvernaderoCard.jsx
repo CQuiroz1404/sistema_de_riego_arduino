@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../config/supabaseClient';
 import ZonaDetalle from '../zona/ZonaDetalle';
@@ -10,13 +10,7 @@ function InvernaderoCard({ greenhouse }) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (expanded) {
-      fetchZones();
-    }
-  }, [expanded, greenhouse.id]);
-
-  const fetchZones = async () => {
+  const fetchZones = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -32,7 +26,13 @@ function InvernaderoCard({ greenhouse }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [greenhouse.id]);
+
+  useEffect(() => {
+    if (expanded) {
+      fetchZones();
+    }
+  }, [expanded, fetchZones]);
 
   const handleZoneClick = (zone) => {
     setSelectedZone(zone);

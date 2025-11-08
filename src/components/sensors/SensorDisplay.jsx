@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../config/supabaseClient';
 import './SensorDisplay.css';
 
@@ -6,16 +6,7 @@ function SensorDisplay({ sensor }) {
   const [latestReading, setLatestReading] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLatestReading();
-    
-    // Actualizar cada 30 segundos
-    const interval = setInterval(fetchLatestReading, 30000);
-    
-    return () => clearInterval(interval);
-  }, [sensor.id]);
-
-  const fetchLatestReading = async () => {
+  const fetchLatestReading = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('Readings')
@@ -32,7 +23,16 @@ function SensorDisplay({ sensor }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sensor.id]);
+
+  useEffect(() => {
+    fetchLatestReading();
+    
+    // Actualizar cada 30 segundos
+    const interval = setInterval(fetchLatestReading, 30000);
+    
+    return () => clearInterval(interval);
+  }, [fetchLatestReading]);
 
   const getSensorIcon = (type) => {
     switch (type?.toLowerCase()) {

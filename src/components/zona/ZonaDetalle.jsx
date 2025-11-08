@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../config/supabaseClient';
 import SensorDisplay from '../sensors/SensorDisplay';
 import ActuadorBoton from '../actuators/ActuadorBoton';
@@ -11,6 +11,58 @@ function ZonaDetalle({ zona, onClose }) {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sensores'); // sensores, actuadores, plantas, historico
+
+  const fetchSensors = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sensors')
+        .select('*')
+        .eq('zoneid', zona.id);
+
+      if (error) throw error;
+      setSensors(data || []);
+    } catch (error) {
+      console.error('Error fetching sensors:', error);
+    }
+  }, [zona.id]);
+
+  const fetchActuators = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Actuators')
+        .select('*')
+        .eq('zoneid', zona.id);
+
+      if (error) throw error;
+      setActuators(data || []);
+    } catch (error) {
+      console.error('Error fetching actuators:', error);
+    }
+  }, [zona.id]);
+
+  const fetchPlants = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('plants')
+        .select('*')
+        .eq('zoneid', zona.id);
+
+      if (error) throw error;
+      setPlants(data || []);
+    } catch (error) {
+      console.error('Error fetching plants:', error);
+    }
+  }, [zona.id]);
+
+  const fetchZoneData = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchSensors(),
+      fetchActuators(),
+      fetchPlants()
+    ]);
+    setLoading(false);
+  }, [fetchSensors, fetchActuators, fetchPlants]);
 
   useEffect(() => {
     // Prevenir scroll del body cuando el modal está abierto
@@ -41,59 +93,7 @@ function ZonaDetalle({ zona, onClose }) {
       supabase.removeChannel(sensorsChannel);
       supabase.removeChannel(actuatorsChannel);
     };
-  }, [zona.id]);
-
-  const fetchZoneData = async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchSensors(),
-      fetchActuators(),
-      fetchPlants()
-    ]);
-    setLoading(false);
-  };
-
-  const fetchSensors = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sensors')
-        .select('*')
-        .eq('zoneid', zona.id);
-
-      if (error) throw error;
-      setSensors(data || []);
-    } catch (error) {
-      console.error('Error fetching sensors:', error);
-    }
-  };
-
-  const fetchActuators = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('Actuators')
-        .select('*')
-        .eq('zoneid', zona.id);
-
-      if (error) throw error;
-      setActuators(data || []);
-    } catch (error) {
-      console.error('Error fetching actuators:', error);
-    }
-  };
-
-  const fetchPlants = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('plants')
-        .select('*')
-        .eq('zoneid', zona.id);
-
-      if (error) throw error;
-      setPlants(data || []);
-    } catch (error) {
-      console.error('Error fetching plants:', error);
-    }
-  };
+  }, [zona.id, fetchZoneData, fetchSensors, fetchActuators]);
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
