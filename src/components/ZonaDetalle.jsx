@@ -13,13 +13,16 @@ function ZonaDetalle({ zona, onClose }) {
   const [activeTab, setActiveTab] = useState('sensores'); // sensores, actuadores, plantas, historico
 
   useEffect(() => {
+    // Prevenir scroll del body cuando el modal está abierto
+    document.body.style.overflow = 'hidden';
+    
     fetchZoneData();
     
     // Suscripción a cambios en tiempo real
     const sensorsChannel = supabase
       .channel('sensors-channel')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'sensors', filter: `zoneId=eq.${zona.id}` },
+        { event: '*', schema: 'public', table: 'sensors', filter: `zoneid=eq.${zona.id}` },
         () => fetchSensors()
       )
       .subscribe();
@@ -27,12 +30,14 @@ function ZonaDetalle({ zona, onClose }) {
     const actuatorsChannel = supabase
       .channel('actuators-channel')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'Actuators', filter: `zoneId=eq.${zona.id}` },
+        { event: '*', schema: 'public', table: 'Actuators', filter: `zoneid=eq.${zona.id}` },
         () => fetchActuators()
       )
       .subscribe();
 
     return () => {
+      // Restaurar scroll del body al cerrar
+      document.body.style.overflow = 'unset';
       supabase.removeChannel(sensorsChannel);
       supabase.removeChannel(actuatorsChannel);
     };
@@ -53,7 +58,7 @@ function ZonaDetalle({ zona, onClose }) {
       const { data, error } = await supabase
         .from('sensors')
         .select('*')
-        .eq('zoneId', zona.id);
+        .eq('zoneid', zona.id);
 
       if (error) throw error;
       setSensors(data || []);
@@ -67,7 +72,7 @@ function ZonaDetalle({ zona, onClose }) {
       const { data, error } = await supabase
         .from('Actuators')
         .select('*')
-        .eq('zoneId', zona.id);
+        .eq('zoneid', zona.id);
 
       if (error) throw error;
       setActuators(data || []);
@@ -81,7 +86,7 @@ function ZonaDetalle({ zona, onClose }) {
       const { data, error } = await supabase
         .from('plants')
         .select('*')
-        .eq('zoneId', zona.id);
+        .eq('zoneid', zona.id);
 
       if (error) throw error;
       setPlants(data || []);
@@ -90,9 +95,20 @@ function ZonaDetalle({ zona, onClose }) {
     }
   };
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleModalClick = (e) => {
+    // Prevenir que los clicks dentro del modal se propaguen al overlay
+    e.stopPropagation();
+  };
+
   return (
-    <div className="zona-detalle-overlay" onClick={onClose}>
-      <div className="zona-detalle-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="zona-detalle-overlay" onClick={handleOverlayClick}>
+      <div className="zona-detalle-modal" onClick={handleModalClick}>
         <div className="modal-header">
           <div>
             <h2>{zona.name}</h2>

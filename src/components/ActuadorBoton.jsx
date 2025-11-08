@@ -14,9 +14,9 @@ function ActuadorBoton({ actuator }) {
       const { error: historyError } = await supabase
         .from('HistoryIrrigation')
         .insert({
-          actuatorId: localActuator.id,
+          actuatorid: localActuator.id,
           dateTimeStart: new Date().toISOString(),
-          dateTimeEnd: null, // Se actualizará cuando se apague
+          dateTimeEnd: new Date().toISOString(), // Debe tener fecha de fin
           mode: 'manual'
         });
 

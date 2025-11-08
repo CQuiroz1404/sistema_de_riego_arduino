@@ -20,7 +20,7 @@ function SensorDisplay({ sensor }) {
       const { data, error } = await supabase
         .from('Readings')
         .select('*')
-        .eq('sensorId', sensor.id)
+        .eq('sensorid', sensor.id)
         .order('dateTime', { ascending: false })
         .limit(1)
         .single();

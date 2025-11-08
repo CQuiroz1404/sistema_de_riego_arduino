@@ -25,7 +25,7 @@ function HistoricoChart({ zoneId }) {
       const { data, error } = await supabase
         .from('sensors')
         .select('*')
-        .eq('zoneId', zoneId);
+        .eq('zoneid', zoneId);
 
       if (error) throw error;
       setSensors(data || []);
@@ -59,7 +59,7 @@ function HistoricoChart({ zoneId }) {
       const { data, error } = await supabase
         .from('Readings')
         .select('*')
-        .eq('sensorId', selectedSensor)
+        .eq('sensorid', selectedSensor)
         .gte('dateTime', startDate.toISOString())
         .order('dateTime', { ascending: true });
 

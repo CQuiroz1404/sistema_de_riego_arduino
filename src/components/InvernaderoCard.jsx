@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../config/supabaseClient';
 import ZonaDetalle from './ZonaDetalle';
 import './InvernaderoCard.css';
@@ -21,7 +22,7 @@ function InvernaderoCard({ greenhouse }) {
       const { data, error } = await supabase
         .from('zone')
         .select('*')
-        .eq('greenhouseId', greenhouse.id)
+        .eq('greenhouseid', greenhouse.id)
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -37,9 +38,14 @@ function InvernaderoCard({ greenhouse }) {
     setSelectedZone(zone);
   };
 
+  const toggleExpand = (e) => {
+    e.stopPropagation(); // Prevenir propagación del evento
+    setExpanded(!expanded);
+  };
+
   return (
-    <div className="invernadero-card">
-      <div className="invernadero-header" onClick={() => setExpanded(!expanded)}>
+    <div className={`invernadero-card ${expanded ? 'expanded' : ''}`} data-greenhouse-id={greenhouse.id}>
+      <div className="invernadero-header" onClick={toggleExpand}>
         <h3>🏠 {greenhouse.name}</h3>
         <span className="expand-icon">{expanded ? '▼' : '▶'}</span>
       </div>
@@ -75,11 +81,12 @@ function InvernaderoCard({ greenhouse }) {
         </div>
       )}
 
-      {selectedZone && (
+      {selectedZone && createPortal(
         <ZonaDetalle 
           zona={selectedZone} 
           onClose={() => setSelectedZone(null)} 
-        />
+        />,
+        document.body
       )}
     </div>
   );

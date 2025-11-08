@@ -1,0 +1,60 @@
+/* ==========================================
+   VARIABLES DE TEMA - Modo Claro y Oscuro
+   ========================================== */
+
+:root,
+html,
+body {
+  /* Modo Claro (por defecto) */
+  --bg-primary: #f7fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #edf2f7;
+  --bg-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-on-primary: #ffffff;
+  
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 8px 12px rgba(0, 0, 0, 0.15);
+  
+  --accent-primary: #4299e1;
+  --accent-hover: #3182ce;
+  --accent-success: #48bb78;
+  --accent-danger: #f56565;
+  --accent-warning: #ed8936;
+}
+
+:root[data-theme="dark"],
+html[data-theme="dark"],
+body[data-theme="dark"] {
+  /* Modo Oscuro */
+  --bg-primary: #1a202c;
+  --bg-secondary: #2d3748;
+  --bg-tertiary: #374151;
+  --bg-header: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+  
+  --text-primary: #f7fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #a0aec0;
+  --text-on-primary: #ffffff;
+  
+  --border-color: #4a5568;
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 12px rgba(0, 0, 0, 0.4);
+  
+  --accent-primary: #63b3ed;
+  --accent-hover: #4299e1;
+  --accent-success: #68d391;
+  --accent-danger: #fc8181;
+  --accent-warning: #f6ad55;
+}
+
+/* Transición suave entre temas */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}

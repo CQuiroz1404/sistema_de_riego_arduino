@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
 import InvernaderoCard from './InvernaderoCard';
 import SetupGuide from './SetupGuide';
+import { useTheme } from '../hooks/useTheme';
 import './Dashboard.css';
 
 function Dashboard() {
+  const { theme, toggleTheme } = useTheme();
   const [greenhouses, setGreenhouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -100,9 +102,14 @@ function Dashboard() {
       <h1>Sistema de Riego Arduino</h1>
       <div className="dashboard-header">
         <h2>Invernaderos</h2>
-        <button onClick={fetchGreenhouses} className="refresh-btn">
-          🔄 Actualizar
-        </button>
+        <div className="header-actions">
+          <button onClick={toggleTheme} className="theme-toggle-btn" title={`Cambiar a modo ${theme === 'light' ? 'oscuro' : 'claro'}`}>
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+          <button onClick={fetchGreenhouses} className="refresh-btn">
+            🔄 Actualizar
+          </button>
+        </div>
       </div>
       <div className="greenhouses-grid">
         {greenhouses.length === 0 ? (
