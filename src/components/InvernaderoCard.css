@@ -1,0 +1,77 @@
+.invernadero-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.invernadero-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.invernadero-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invernadero-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.expand-icon {
+  font-size: 1.2rem;
+  transition: transform 0.3s;
+}
+
+.invernadero-location {
+  padding: 1rem 1.5rem;
+  color: #718096;
+  margin: 0;
+  background: #f7fafc;
+}
+
+.invernadero-content {
+  padding: 1.5rem;
+}
+
+.invernadero-content h4 {
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.zones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zone-btn {
+  padding: 0.75rem 1rem;
+  background: #edf2f7;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.zone-btn:hover {
+  background: #4299e1;
+  color: white;
+  border-color: #3182ce;
+}
+
+.loading-text, .no-data {
+  text-align: center;
+  color: #a0aec0;
+  padding: 1rem;
+}

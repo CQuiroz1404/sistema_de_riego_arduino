@@ -1,0 +1,150 @@
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.dashboard h1 {
+  color: #2d3748;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-size: 2.5rem;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-header h2 {
+  color: #4a5568;
+  font-size: 1.8rem;
+}
+
+.refresh-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.refresh-btn:hover {
+  background-color: #3182ce;
+}
+
+.greenhouses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+}
+
+.error {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.error h2 {
+  color: #e53e3e;
+  margin-bottom: 1rem;
+}
+
+.error p {
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.error-help {
+  background: #fff5f5;
+  border-left: 4px solid #e53e3e;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border-radius: 4px;
+}
+
+.error-help h3 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.error-help ol {
+  color: #4a5568;
+  margin-left: 1.5rem;
+  line-height: 1.8;
+}
+
+.error-help code {
+  background: #2d3748;
+  color: #48bb78;
+  padding: 0.5rem;
+  border-radius: 4px;
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+.no-data-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.no-data-message h3 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.no-data-message p {
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.no-data-message code {
+  background: #edf2f7;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: #667eea;
+  font-family: 'Courier New', monospace;
+}
+
+.no-data-message details {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.no-data-message summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #4a5568;
+  user-select: none;
+}
+
+.no-data-message summary:hover {
+  color: #667eea;
+}
+
+.no-data-message details p {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}

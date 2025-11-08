@@ -1,0 +1,106 @@
+.setup-guide {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.setup-card {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem;
+  max-width: 800px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.setup-card h2 {
+  text-align: center;
+  color: #2d3748;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+}
+
+.setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.step {
+  display: flex;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.step-number {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h3 {
+  color: #2d3748;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.step-content p {
+  color: #4a5568;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.step-content code {
+  background: #f7fafc;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: #667eea;
+  font-family: 'Courier New', monospace;
+}
+
+.step-content pre {
+  background: #2d3748;
+  color: #48bb78;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.step-content a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.step-content a:hover {
+  text-decoration: underline;
+}
+
+.setup-help {
+  background: #edf2f7;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.setup-help p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 1.1rem;
+}
