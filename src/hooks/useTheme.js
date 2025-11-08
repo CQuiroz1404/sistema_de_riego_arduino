@@ -18,10 +18,17 @@ export function useTheme() {
 
   useEffect(() => {
     // Aplicar tema al document y body
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.setAttribute('data-theme', theme);
+    const html = document.documentElement;
+    const body = document.body;
+    
+    html.setAttribute('data-theme', theme);
+    body.setAttribute('data-theme', theme);
+    
+    // Forzar recálculo de estilos
+    html.style.backgroundColor = theme === 'dark' ? '#1a202c' : '#f7fafc';
+    body.style.backgroundColor = theme === 'dark' ? '#1a202c' : '#f7fafc';
+    
     localStorage.setItem('theme', theme);
-    console.log('🎨 Tema cambiado a:', theme);
   }, [theme]);
 
   const toggleTheme = () => {

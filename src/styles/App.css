@@ -1,0 +1,12 @@
+.app {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+html[data-theme="light"] .app {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+html[data-theme="dark"] .app {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+}

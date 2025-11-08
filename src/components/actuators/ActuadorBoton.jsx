@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../config/supabaseClient';
+import { supabase } from '../../config/supabaseClient';
 import './ActuadorBoton.css';
 
 function ActuadorBoton({ actuator }) {

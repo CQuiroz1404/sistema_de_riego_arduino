@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../config/supabaseClient';
-import SensorDisplay from './SensorDisplay';
-import ActuadorBoton from './ActuadorBoton';
-import HistoricoChart from './HistoricoChart';
+import { supabase } from '../../config/supabaseClient';
+import SensorDisplay from '../sensors/SensorDisplay';
+import ActuadorBoton from '../actuators/ActuadorBoton';
+import HistoricoChart from '../charts/HistoricoChart';
 import './ZonaDetalle.css';
 
 function ZonaDetalle({ zona, onClose }) {

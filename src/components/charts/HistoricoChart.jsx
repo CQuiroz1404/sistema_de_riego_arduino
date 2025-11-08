@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../config/supabaseClient';
+import { supabase } from '../../config/supabaseClient';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './HistoricoChart.css';
 

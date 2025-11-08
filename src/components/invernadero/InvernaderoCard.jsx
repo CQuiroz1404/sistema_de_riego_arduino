@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../config/supabaseClient';
-import ZonaDetalle from './ZonaDetalle';
+import { supabase } from '../../config/supabaseClient';
+import ZonaDetalle from '../zona/ZonaDetalle';
 import './InvernaderoCard.css';
 
 function InvernaderoCard({ greenhouse }) {

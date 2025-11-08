@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
-import InvernaderoCard from './InvernaderoCard';
-import SetupGuide from './SetupGuide';
-import { useTheme } from '../hooks/useTheme';
+import { supabase, isSupabaseConfigured } from '../../config/supabaseClient';
+import InvernaderoCard from '../invernadero/InvernaderoCard';
+import SetupGuide from '../common/SetupGuide';
+import { useTheme } from '../../hooks/useTheme';
 import './Dashboard.css';
 
 function Dashboard() {

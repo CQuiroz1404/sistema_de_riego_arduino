@@ -31,25 +31,37 @@ body {
 html[data-theme="dark"],
 body[data-theme="dark"] {
   /* Modo Oscuro */
-  --bg-primary: #1a202c;
-  --bg-secondary: #2d3748;
-  --bg-tertiary: #374151;
-  --bg-header: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+  --bg-primary: #1a202c !important;
+  --bg-secondary: #2d3748 !important;
+  --bg-tertiary: #374151 !important;
+  --bg-header: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%) !important;
   
-  --text-primary: #f7fafc;
-  --text-secondary: #e2e8f0;
-  --text-muted: #a0aec0;
-  --text-on-primary: #ffffff;
+  --text-primary: #f7fafc !important;
+  --text-secondary: #e2e8f0 !important;
+  --text-muted: #a0aec0 !important;
+  --text-on-primary: #ffffff !important;
   
-  --border-color: #4a5568;
-  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 12px rgba(0, 0, 0, 0.4);
+  --border-color: #4a5568 !important;
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+  --shadow-md: 0 8px 12px rgba(0, 0, 0, 0.4) !important;
   
-  --accent-primary: #63b3ed;
-  --accent-hover: #4299e1;
-  --accent-success: #68d391;
-  --accent-danger: #fc8181;
-  --accent-warning: #f6ad55;
+  --accent-primary: #63b3ed !important;
+  --accent-hover: #4299e1 !important;
+  --accent-success: #68d391 !important;
+  --accent-danger: #fc8181 !important;
+  --accent-warning: #f6ad55 !important;
+}
+
+/* Forzar fondo oscuro en modo dark */
+html[data-theme="dark"],
+body[data-theme="dark"] {
+  background-color: #1a202c !important;
+  color: #f7fafc !important;
+}
+
+html[data-theme="dark"] #root,
+body[data-theme="dark"] #root {
+  background-color: #1a202c !important;
 }
 
 /* Transición suave entre temas */
