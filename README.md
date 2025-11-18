@@ -1,0 +1,390 @@
+# 🌱 Sistema de Riego Arduino IoT
+
+Plataforma web completa para monitoreo y control de sistemas de riego automatizados con Arduino e IoT. Desarrollado con arquitectura MVC utilizando Node.js, Express, MySQL y JWT para autenticación segura.
+
+## 📋 Características
+
+- ✅ **Autenticación segura** con JWT y sesiones protegidas
+- 🔐 **Rutas protegidas** con middleware de autorización
+- 📊 **Dashboard en tiempo real** con estadísticas y gráficos
+- 🤖 **Gestión de dispositivos Arduino** (crear, editar, eliminar)
+- 🌡️ **Monitoreo de sensores** (humedad, temperatura, etc.)
+- 💧 **Control de actuadores** (bombas, válvulas)
+- ⚙️ **Configuración de riego automático** por umbrales
+- 📱 **Interfaz responsive** y moderna
+- 🔔 **Sistema de alertas** en tiempo real
+- 📈 **Historial de lecturas** y eventos
+- 🔌 **API REST** para comunicación con Arduino
+- 🗄️ **Base de datos MySQL** optimizada con índices y procedimientos
+
+## 🛠️ Tecnologías Utilizadas
+
+### Backend
+- **Node.js** - Entorno de ejecución
+- **Express.js** - Framework web
+- **MySQL** - Base de datos relacional
+- **JWT** - Autenticación basada en tokens
+- **bcrypt** - Encriptación de contraseñas
+- **EJS** - Motor de plantillas
+
+### Frontend
+- **HTML5/CSS3** - Estructura y estilos
+- **JavaScript** - Interactividad
+- **Font Awesome** - Iconos
+
+### IoT
+- **Arduino** (ESP8266/ESP32)
+- **Sensores** de humedad, temperatura, etc.
+- **Actuadores** (relés, bombas, válvulas)
+
+## 📁 Estructura del Proyecto
+
+```
+sistema_de_riego_arduino/
+├── src/
+│   ├── config/
+│   │   └── database.js          # Configuración de MySQL
+│   ├── controllers/
+│   │   ├── AuthController.js    # Autenticación
+│   │   ├── DashboardController.js
+│   │   ├── DeviceController.js
+│   │   ├── SensorController.js
+│   │   └── ArduinoController.js # API para Arduino
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Device.js
+│   │   ├── Sensor.js
+│   │   ├── Actuator.js
+│   │   ├── IrrigationConfig.js
+│   │   └── Alert.js
+│   ├── middleware/
+│   │   ├── auth.js              # JWT y protección de rutas
+│   │   └── logger.js
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── dashboard.js
+│   │   ├── devices.js
+│   │   ├── sensors.js
+│   │   └── arduino.js
+│   └── views/
+│       ├── auth/
+│       ├── dashboard/
+│       ├── devices/
+│       └── partials/
+├── public/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── main.js
+│       ├── dashboard.js
+│       └── devices.js
+├── database/
+│   └── schema.sql               # Script de base de datos
+├── arduino_ejemplo.ino          # Código ejemplo para Arduino
+├── server.js                    # Servidor principal
+├── package.json
+├── .env.example
+└── README.md
+```
+
+## 🚀 Instalación
+
+### 1. Requisitos Previos
+
+- **Node.js** (v14 o superior)
+- **MySQL** (v5.7 o superior)
+- **Arduino IDE** (para programar el hardware)
+
+### 2. Clonar el Repositorio
+
+```bash
+git clone https://github.com/CQuiroz1404/sistema_de_riego_arduino.git
+cd sistema_de_riego_arduino
+```
+
+### 3. Instalar Dependencias
+
+```bash
+npm install
+```
+
+### 4. Configurar Base de Datos
+
+1. Crear la base de datos en MySQL:
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+O manualmente:
+```sql
+mysql -u root -p
+CREATE DATABASE sistema_riego;
+USE sistema_riego;
+SOURCE database/schema.sql;
+```
+
+### 5. Configurar Variables de Entorno
+
+Copia el archivo `.env.example` a `.env` y configura tus variables:
+
+```bash
+cp .env.example .env
+```
+
+Edita el archivo `.env`:
+
+```env
+# Servidor
+PORT=3000
+NODE_ENV=development
+
+# Base de datos MySQL
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=tu_password
+DB_NAME=sistema_riego
+
+# Seguridad
+JWT_SECRET=tu_clave_secreta_jwt_muy_segura
+JWT_EXPIRES_IN=24h
+SESSION_SECRET=tu_clave_secreta_sesion
+
+# Arduino API
+ARDUINO_API_KEY=tu_clave_api_para_arduino
+```
+
+### 6. Iniciar el Servidor
+
+**Modo desarrollo** (con recarga automática):
+```bash
+npm run dev
+```
+
+**Modo producción**:
+```bash
+npm start
+```
+
+El servidor estará disponible en: `http://localhost:3000`
+
+## 👤 Usuarios por Defecto
+
+La base de datos incluye dos usuarios de prueba:
+
+**Administrador:**
+- Email: `admin@sistemariego.com`
+- Password: `admin123`
+
+**Usuario:**
+- Email: `usuario@sistemariego.com`
+- Password: `usuario123`
+
+## 📡 Configurar Arduino
+
+### 1. Hardware Requerido
+
+- Arduino con WiFi (ESP8266/ESP32)
+- Sensor de humedad del suelo
+- Relé para bomba de agua
+- Fuente de alimentación
+
+### 2. Librerías Necesarias
+
+Instala en Arduino IDE:
+- ESP8266WiFi (o WiFi para ESP32)
+- ESP8266HTTPClient (o HTTPClient)
+- ArduinoJson (v6.x)
+
+### 3. Configurar y Subir el Código
+
+1. Abre `arduino_ejemplo.ino` en Arduino IDE
+2. Modifica las constantes:
+   ```cpp
+   const char* WIFI_SSID = "TU_WIFI";
+   const char* WIFI_PASSWORD = "TU_PASSWORD";
+   const char* SERVER_URL = "http://TU_IP:3000";
+   const char* API_KEY = "TU_API_KEY";
+   ```
+3. Ajusta los pines según tu hardware
+4. Sube el código al Arduino
+
+### 4. Obtener API Key
+
+1. Inicia sesión en la plataforma web
+2. Ve a "Dispositivos" → "Nuevo Dispositivo"
+3. Completa el formulario
+4. **Copia la API Key** generada
+5. Úsala en tu código Arduino
+
+## 🔌 API Endpoints
+
+### Autenticación
+
+```bash
+POST   /auth/login          # Iniciar sesión
+POST   /auth/register       # Registrar usuario
+POST   /auth/logout         # Cerrar sesión
+```
+
+### Dispositivos (Protegidas)
+
+```bash
+GET    /devices             # Listar dispositivos
+POST   /devices             # Crear dispositivo
+GET    /devices/:id         # Ver dispositivo
+PUT    /devices/:id         # Actualizar dispositivo
+DELETE /devices/:id         # Eliminar dispositivo
+```
+
+### Sensores (Protegidas)
+
+```bash
+GET    /sensors/:id                    # Ver sensor
+GET    /sensors/device/:deviceId      # Sensores por dispositivo
+POST   /sensors                        # Crear sensor
+PUT    /sensors/:id                    # Actualizar sensor
+DELETE /sensors/:id                    # Eliminar sensor
+GET    /sensors/:id/readings           # Lecturas del sensor
+```
+
+### API Arduino (Requiere API Key)
+
+```bash
+POST   /api/arduino/data        # Enviar datos de sensores
+GET    /api/arduino/commands    # Obtener comandos
+GET    /api/arduino/ping        # Verificar conexión
+POST   /api/arduino/control     # Control manual (requiere JWT)
+```
+
+### Ejemplo de uso desde Arduino:
+
+**Enviar datos:**
+```cpp
+POST /api/arduino/data
+Headers: 
+  X-API-Key: tu_api_key
+  Content-Type: application/json
+Body:
+{
+  "sensor_id": 1,
+  "valor": 45.5
+}
+```
+
+**Obtener comandos:**
+```cpp
+GET /api/arduino/commands?api_key=tu_api_key
+Response:
+{
+  "success": true,
+  "commands": [
+    {
+      "actuador_id": 1,
+      "pin": "D1",
+      "estado": 1
+    }
+  ]
+}
+```
+
+## 🎨 Características de la Plataforma Web
+
+### Dashboard
+- Vista general de todos los dispositivos
+- Estadísticas en tiempo real
+- Alertas y notificaciones
+- Gráficos de sensores
+
+### Gestión de Dispositivos
+- Agregar nuevos Arduinos
+- Configurar sensores y actuadores
+- Monitorear conexión y estado
+- Eliminar dispositivos
+
+### Configuración de Riego
+- Riego automático por umbrales
+- Riego manual
+- Programación horaria
+- Historial de eventos
+
+### Sistema de Alertas
+- Sensor fuera de rango
+- Dispositivo offline
+- Errores de actuadores
+- Nivel bajo de agua
+
+## 🔒 Seguridad
+
+- ✅ Autenticación con JWT
+- ✅ Contraseñas encriptadas con bcrypt
+- ✅ Rutas protegidas con middleware
+- ✅ API Key para dispositivos Arduino
+- ✅ Validación de datos de entrada
+- ✅ Prevención de SQL Injection
+- ✅ CORS configurado
+- ✅ Variables de entorno para datos sensibles
+
+## 🐛 Solución de Problemas
+
+### Error de conexión a MySQL
+
+```bash
+Error: ER_ACCESS_DENIED_ERROR
+```
+**Solución:** Verifica las credenciales en `.env`
+
+### Arduino no se conecta
+
+1. Verifica que la API Key sea correcta
+2. Asegúrate que el servidor esté accesible
+3. Revisa la configuración WiFi
+4. Monitorea el puerto serial para ver errores
+
+### Puerto 3000 en uso
+
+```bash
+Error: listen EADDRINUSE: address already in use :::3000
+```
+**Solución:** Cambia el puerto en `.env` o detén el proceso:
+```bash
+# Windows PowerShell
+Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Process
+```
+
+## 📝 Tareas Futuras
+
+- [ ] Implementar gráficos con Chart.js
+- [ ] Notificaciones push
+- [ ] Exportar datos a CSV/PDF
+- [ ] App móvil
+- [ ] Predicción con Machine Learning
+- [ ] Integración con servicios de clima
+- [ ] Multi-idioma
+- [ ] Modo oscuro
+
+## 🤝 Contribuir
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Fork el proyecto
+2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia ISC.
+
+## 👥 Autores
+
+Sistema de Riego Team
+
+## 📧 Contacto
+
+Para preguntas o sugerencias, abre un issue en GitHub.
+
+---
+
+**⭐ Si este proyecto te fue útil, considera darle una estrella en GitHub!**

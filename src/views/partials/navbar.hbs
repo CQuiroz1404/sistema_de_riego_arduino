@@ -1,0 +1,23 @@
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-brand">
+            <i class="fas fa-seedling"></i>
+            <span>Sistema de Riego IoT</span>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/devices"><i class="fas fa-microchip"></i> Dispositivos</a></li>
+            {{#if user}}
+                {{#if (eq user.rol 'admin')}}
+                <li><a href="/admin"><i class="fas fa-user-shield"></i> Admin</a></li>
+                {{/if}}
+            {{/if}}
+            <li class="nav-user">
+                <span><i class="fas fa-user"></i> {{#if user}}{{user.nombre}}{{else}}Usuario{{/if}}</span>
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </li>
+        </ul>
+    </div>
+</nav>

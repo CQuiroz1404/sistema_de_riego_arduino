@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{device.nombre}} - Sistema de Riego IoT</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {{> navbar}}
+    
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1><i class="fas fa-microchip"></i> {{device.nombre}}</h1>
+                <p>{{#if device.ubicacion}}{{device.ubicacion}}{{else}}Sin ubicación{{/if}}</p>
+            </div>
+            <div>
+                <a href="/devices/{{device.id}}/edit" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+                <a href="/devices" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+        
+        <div class="device-detail">
+            <div class="info-card">
+                <h3><i class="fas fa-info-circle"></i> Información del Dispositivo</h3>
+                <div class="info-grid">
+                    <div>
+                        <label>Estado:</label>
+                        <span class="status-badge status-{{device.estado}}">{{device.estado}}</span>
+                    </div>
+                    <div>
+                        <label>API Key:</label>
+                        <code>{{device.api_key}}</code>
+                    </div>
+                    <div>
+                        <label>MAC Address:</label>
+                        <span>{{#if device.mac_address}}{{device.mac_address}}{{else}}N/A{{/if}}</span>
+                    </div>
+                    <div>
+                        <label>IP Address:</label>
+                        <span>{{#if device.ip_address}}{{device.ip_address}}{{else}}N/A{{/if}}</span>
+                    </div>
+                    <div>
+                        <label>Última Conexión:</label>
+                        <span>{{#if device.ultima_conexion}}{{formatDate device.ultima_conexion}}{{else}}Nunca{{/if}}</span>
+                    </div>
+                    <div>
+                        <label>Fecha Creación:</label>
+                        <span>{{formatDate device.fecha_creacion}}</span>
+                    </div>
+                </div>
+                {{#if device.descripcion}}
+                <div class="description">
+                    <label>Descripción:</label>
+                    <p>{{device.descripcion}}</p>
+                </div>
+                {{/if}}
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat-box">
+                    <i class="fas fa-thermometer-half"></i>
+                    <h4>{{stats.total_sensores}}</h4>
+                    <p>Sensores</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-tint"></i>
+                    <h4>{{stats.total_actuadores}}</h4>
+                    <p>Actuadores</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-chart-line"></i>
+                    <h4>{{stats.total_lecturas}}</h4>
+                    <p>Lecturas</p>
+                </div>
+            </div>
+            
+            <div class="sensors-section">
+                <h3><i class="fas fa-thermometer-half"></i> Sensores</h3>
+                {{#if sensors}}
+                {{#if (gt sensors.length 0)}}
+                <div class="sensors-grid">
+                    {{#each sensors}}
+                    <div class="sensor-card">
+                        <div class="sensor-header">
+                            <h4>{{this.nombre}}</h4>
+                            <span class="badge">{{this.tipo}}</span>
+                        </div>
+                        <div class="sensor-info">
+                            <p><i class="fas fa-microchip"></i> Pin: {{this.pin}}</p>
+                            <p><i class="fas fa-ruler"></i> Unidad: {{this.unidad}}</p>
+                            {{#if this.ultimo_valor}}
+                            <p class="value"><i class="fas fa-chart-line"></i> Último valor: {{this.ultimo_valor}} {{this.unidad}}</p>
+                            {{/if}}
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+                {{else}}
+                <p class="empty-text">No hay sensores configurados</p>
+                {{/if}}
+                {{else}}
+                <p class="empty-text">No hay sensores configurados</p>
+                {{/if}}
+            </div>
+            
+            <div class="actuators-section">
+                <h3><i class="fas fa-tint"></i> Actuadores</h3>
+                {{#if actuators}}
+                {{#if (gt actuators.length 0)}}
+                <div class="actuators-grid">
+                    {{#each actuators}}
+                    <div class="actuator-card">
+                        <div class="actuator-header">
+                            <h4>{{this.nombre}}</h4>
+                            <span class="badge badge-{{this.estado}}">{{this.estado}}</span>
+                        </div>
+                        <div class="actuator-info">
+                            <p><i class="fas fa-microchip"></i> Tipo: {{this.tipo}}</p>
+                            <p><i class="fas fa-plug"></i> Pin: {{this.pin}}</p>
+                        </div>
+                        <div class="actuator-controls">
+                            <button onclick="controlActuator({{this.id}}, 'encender')" class="btn btn-sm btn-success">
+                                <i class="fas fa-power-off"></i> Encender
+                            </button>
+                            <button onclick="controlActuator({{this.id}}, 'apagar')" class="btn btn-sm btn-danger">
+                                <i class="fas fa-stop"></i> Apagar
+                            </button>
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+                {{else}}
+                <p class="empty-text">No hay actuadores configurados</p>
+                {{/if}}
+                {{else}}
+                <p class="empty-text">No hay actuadores configurados</p>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .device-detail { margin-top: 30px; }
+        .info-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .info-grid div { padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .info-grid label { font-weight: 600; display: block; margin-bottom: 5px; color: #666; }
+        .description { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        .stat-box i { font-size: 32px; color: #2ecc71; margin-bottom: 10px; }
+        .stat-box h4 { font-size: 32px; margin: 10px 0; }
+        .sensors-section, .actuators-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .sensors-grid, .actuators-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .sensor-card, .actuator-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
+        .sensor-header, .actuator-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; background: #3498db; color: white; }
+        .badge-encendido { background: #27ae60; }
+        .badge-apagado { background: #95a5a6; }
+        .sensor-info p, .actuator-info p { margin: 8px 0; color: #666; }
+        .sensor-info .value { font-weight: 600; color: #2c3e50; font-size: 16px; }
+        .actuator-controls { display: flex; gap: 10px; margin-top: 15px; }
+        .empty-text { text-align: center; color: #999; padding: 40px; }
+    </style>
+    
+    <script>
+        async function controlActuator(actuatorId, accion) {
+            try {
+                const response = await fetch(`/api/arduino/actuators/${actuatorId}/control`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} correctamente`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error de conexión');
+            }
+        }
+    </script>
+</body>
+</html>

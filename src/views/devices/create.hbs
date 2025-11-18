@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Dispositivo - Sistema de Riego IoT</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {{> navbar}}
+    
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-plus-circle"></i> Nuevo Dispositivo Arduino</h1>
+            <a href="/devices" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+        
+        <div class="form-container">
+            <form id="deviceForm" class="device-form">
+                <div class="form-group">
+                    <label for="nombre">
+                        <i class="fas fa-microchip"></i> Nombre del Dispositivo *
+                    </label>
+                    <input type="text" id="nombre" name="nombre" required 
+                           placeholder="Ej: Arduino Jardín Principal">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ubicacion">
+                        <i class="fas fa-map-marker-alt"></i> Ubicación
+                    </label>
+                    <input type="text" id="ubicacion" name="ubicacion" 
+                           placeholder="Ej: Jardín trasero">
+                </div>
+                
+                <div class="form-group">
+                    <label for="descripcion">
+                        <i class="fas fa-comment"></i> Descripción
+                    </label>
+                    <textarea id="descripcion" name="descripcion" rows="3" 
+                              placeholder="Descripción del dispositivo..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="mac_address">
+                        <i class="fas fa-network-wired"></i> Dirección MAC
+                    </label>
+                    <input type="text" id="mac_address" name="mac_address" 
+                           placeholder="AA:BB:CC:DD:EE:FF"
+                           pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$">
+                    <small>Formato: AA:BB:CC:DD:EE:FF</small>
+                </div>
+                
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="successMessage" class="success-message" style="display: none;"></div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Crear Dispositivo
+                    </button>
+                    <a href="/devices" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+            
+            <div id="apiKeyResult" class="api-key-box" style="display: none;">
+                <h3><i class="fas fa-key"></i> API Key Generada</h3>
+                <p>Guarda esta clave, la necesitarás para configurar tu Arduino:</p>
+                <div class="api-key-display">
+                    <code id="apiKeyValue"></code>
+                    <button onclick="copyApiKey()" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                </div>
+                <div class="alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Esta clave solo se muestra una vez. Asegúrate de copiarla antes de continuar.
+                </div>
+                <a href="/devices" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Volver a Dispositivos
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .device-form {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .api-key-box {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .api-key-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .api-key-display code {
+            flex: 1;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+    
+    <script>
+        document.getElementById('deviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                nombre: document.getElementById('nombre').value,
+                ubicacion: document.getElementById('ubicacion').value,
+                descripcion: document.getElementById('descripcion').value,
+                mac_address: document.getElementById('mac_address').value
+            };
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/devices', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.querySelector('.device-form').style.display = 'none';
+                    document.getElementById('apiKeyResult').style.display = 'block';
+                    document.getElementById('apiKeyValue').textContent = data.api_key;
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error al crear dispositivo';
+                errorDiv.style.display = 'block';
+            }
+        });
+        
+        function copyApiKey() {
+            const apiKey = document.getElementById('apiKeyValue').textContent;
+            navigator.clipboard.writeText(apiKey).then(() => {
+                alert('API Key copiada al portapapeles');
+            });
+        }
+    </script>
+</body>
+</html>

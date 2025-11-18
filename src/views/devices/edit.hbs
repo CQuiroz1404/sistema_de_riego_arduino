@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar {{device.nombre}} - Sistema de Riego IoT</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {{> navbar}}
+    
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1><i class="fas fa-edit"></i> Editar Dispositivo</h1>
+                <p>{{device.nombre}}</p>
+            </div>
+            <a href="/devices/{{device.id}}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+        
+        <div class="form-container">
+            <form id="editForm" class="device-form">
+                <div class="form-group">
+                    <label for="nombre">
+                        <i class="fas fa-microchip"></i> Nombre del Dispositivo *
+                    </label>
+                    <input type="text" id="nombre" name="nombre" required value="{{device.nombre}}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ubicacion">
+                        <i class="fas fa-map-marker-alt"></i> Ubicación
+                    </label>
+                    <input type="text" id="ubicacion" name="ubicacion" value="{{device.ubicacion}}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="descripcion">
+                        <i class="fas fa-comment"></i> Descripción
+                    </label>
+                    <textarea id="descripcion" name="descripcion" rows="3">{{device.descripcion}}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="estado">
+                        <i class="fas fa-power-off"></i> Estado
+                    </label>
+                    <select id="estado" name="estado">
+                        <option value="activo" {{#if (eq device.estado 'activo')}}selected{{/if}}>Activo</option>
+                        <option value="inactivo" {{#if (eq device.estado 'inactivo')}}selected{{/if}}>Inactivo</option>
+                        <option value="mantenimiento" {{#if (eq device.estado 'mantenimiento')}}selected{{/if}}>Mantenimiento</option>
+                    </select>
+                </div>
+                
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="successMessage" class="success-message" style="display: none;"></div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <a href="/devices/{{device.id}}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <style>
+        .form-container { max-width: 800px; margin: 30px auto; }
+        .device-form { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-actions { display: flex; gap: 10px; margin-top: 30px; }
+    </style>
+    
+    <script>
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                nombre: document.getElementById('nombre').value,
+                ubicacion: document.getElementById('ubicacion').value,
+                descripcion: document.getElementById('descripcion').value,
+                estado: document.getElementById('estado').value
+            };
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/devices/{{device.id}}', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successDiv.textContent = 'Dispositivo actualizado correctamente';
+                    successDiv.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/devices/{{device.id}}';
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error al actualizar dispositivo';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
