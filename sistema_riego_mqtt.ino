@@ -5,6 +5,15 @@
  * 
  * IMPORTANTE: Este código usa WiFiS3.h (específico para Arduino UNO R4 WiFi)
  * NO usar ESP8266WiFi.h o WiFi.h estándar
+ * 
+ * SENSORES CONFIGURADOS:
+ * - Humedad de Suelo: Pin A0 (analógico)
+ * - Temperatura LM35CZ: Pin A1 (analógico)
+ *   Conexión LM35CZ:
+ *   - Pin 1 (Vout) → Arduino A1
+ *   - Pin 2 (GND)  → Arduino GND
+ *   - Pin 3 (Vcc)  → Arduino 5V
+ *   Salida: 10mV/°C (0°C = 0V, 100°C = 1V)
  */
 
 #include <WiFiS3.h>
@@ -35,7 +44,7 @@ const int SENSOR_TEMPERATURA_ID = 2;
 
 // Pines de sensores
 const int PIN_HUMEDAD_SUELO = A0;
-const int PIN_DHT = 2;  // Si usas DHT11/DHT22
+const int PIN_LM35 = A1;  // Sensor de temperatura LM35CZ
 
 // Actuadores (obtener de la base de datos)
 const int ACTUADOR_BOMBA_ID = 1;
@@ -336,8 +345,11 @@ void enviarDatosSensores() {
   // Convertir a porcentaje (ajustar según calibración)
   float humedadPorcentaje = map(humedadSuelo, 0, 1023, 0, 100);
 
-  // Simular temperatura (reemplazar con lectura real de DHT)
-  float temperatura = 25.0 + random(-5, 5);
+  // Leer temperatura del LM35CZ en pin A1
+  int lecturaLM35 = analogRead(PIN_LM35);
+  // Convertir lectura ADC a temperatura (LM35CZ: 10mV/°C, Arduino R4: 5V/1023)
+  // Fórmula: Temperatura = (lectura * 5000mV / 1023) / 10mV
+  float temperatura = (lecturaLM35 * 5.0 * 100.0) / 1023.0;
 
   // Crear JSON
   StaticJsonDocument<256> doc;
