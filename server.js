@@ -6,6 +6,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { testConnection } = require('./src/config/database');
 const { errorHandler, logger } = require('./src/middleware/logger');
+const mqttService = require('./src/services/mqttService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -121,16 +122,27 @@ async function startServer() {
       console.log('El servidor continuará ejecutándose, pero las funciones de BD no estarán disponibles.');
     }
 
+    // Inicializar servicio MQTT
+    let mqttConnected = false;
+    try {
+      await mqttService.connect();
+      mqttConnected = mqttService.isConnected();
+    } catch (error) {
+      console.error('⚠️  Error al inicializar MQTT:', error.message);
+      console.log('El servidor continuará sin MQTT. Los dispositivos no podrán comunicarse.');
+    }
+
     // Iniciar servidor en todas las interfaces (0.0.0.0)
     app.listen(PORT, '0.0.0.0', () => {
       console.log('');
       console.log('═══════════════════════════════════════════════════════');
-      console.log('  🌱 Sistema de Riego Arduino IoT');
+      console.log('  🌱 Sistema de Riego Arduino IoT - MQTT');
       console.log('═══════════════════════════════════════════════════════');
       console.log(`  Servidor Local: http://localhost:${PORT}`);
       console.log(`  Servidor Red: http://192.168.1.169:${PORT}`);
       console.log(`  Entorno: ${process.env.NODE_ENV || 'development'}`);
       console.log(`  Base de datos: ${dbConnected ? '✓ Conectada' : '✗ Desconectada'}`);
+      console.log(`  MQTT Broker: ${mqttConnected ? '✓ Conectado' : '✗ Desconectado'}`);
       console.log('═══════════════════════════════════════════════════════');
       console.log('');
       console.log('Presione Ctrl+C para detener el servidor');
@@ -150,6 +162,29 @@ process.on('unhandledRejection', (err) => {
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
   process.exit(1);
+});
+
+// Manejo de cierre graceful
+process.on('SIGINT', async () => {
+  console.log('\n\n🛑 Cerrando servidor...');
+  try {
+    await mqttService.disconnect();
+    console.log('✓ MQTT desconectado');
+  } catch (error) {
+    console.error('Error al cerrar MQTT:', error);
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n\n🛑 Cerrando servidor...');
+  try {
+    await mqttService.disconnect();
+    console.log('✓ MQTT desconectado');
+  } catch (error) {
+    console.error('Error al cerrar MQTT:', error);
+  }
+  process.exit(0);
 });
 
 // Iniciar

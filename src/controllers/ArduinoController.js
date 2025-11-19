@@ -4,6 +4,7 @@ const Actuator = require('../models/Actuator');
 const IrrigationConfig = require('../models/IrrigationConfig');
 const Alert = require('../models/Alert');
 const { dbLogger } = require('../middleware/logger');
+const mqttService = require('../services/mqttService');
 
 class ArduinoController {
   // Endpoint para que Arduino envíe datos de sensores
@@ -199,7 +200,7 @@ class ArduinoController {
     }
   }
 
-  // Endpoint para controlar actuadores manualmente
+  // Endpoint para controlar actuadores manualmente (ahora usa MQTT)
   static async controlActuator(req, res) {
     try {
       const { actuator_id, accion } = req.body; // accion: 'encender' o 'apagar'
@@ -229,16 +230,15 @@ class ArduinoController {
       }
 
       const nuevoEstado = accion === 'encender' ? 'encendido' : 'apagado';
-      await Actuator.updateState(actuator_id, nuevoEstado);
 
-      await Actuator.logEvent({
-        dispositivo_id: actuator.dispositivo_id,
-        actuador_id: actuator_id,
-        accion: accion === 'encender' ? 'inicio' : 'fin',
-        modo: 'manual',
-        duracion_segundos: null,
-        usuario_id: req.user.id
-      });
+      // Usar servicio MQTT para controlar el actuador
+      await mqttService.controlActuator(
+        actuator.dispositivo_id,
+        actuator_id,
+        nuevoEstado,
+        'manual',
+        req.user.id
+      );
 
       await dbLogger('info', 'irrigation', `Control manual: ${actuator.nombre} ${accion}`, actuator.dispositivo_id, req.user.id, req.ip);
 
