@@ -25,29 +25,38 @@
 // CONFIGURACIÓN - MODIFICAR SEGÚN TU ENTORNO
 // ============================================
 
-// WiFi (Usar red 2.4GHz)
-const char* WIFI_SSID = "TU_SSID";          // Cambiar por tu red WiFi
-const char* WIFI_PASSWORD = "TU_PASSWORD";   // Cambiar por tu contraseña
+// WiFi (Usar red 2.4GHz - NO 5GHz)
+const char* WIFI_SSID = "TU_RED_WIFI_2.4GHZ";     // ← CAMBIAR: Tu red WiFi
+const char* WIFI_PASSWORD = "TU_PASSWORD_WIFI";   // ← CAMBIAR: Contraseña WiFi
 
-// MQTT Broker
-const char* MQTT_BROKER = "broker.emqx.io";  // Broker público (cambiar si usas uno privado)
-const int MQTT_PORT = 1883;
-const char* MQTT_USER = "";                  // Dejar vacío si el broker no requiere auth
-const char* MQTT_PASSWORD = "";
+// MQTT Broker - EMQX Cloud
+// Opción 1: Broker público (para pruebas)
+// const char* MQTT_BROKER = "broker.emqx.io";
+// const int MQTT_PORT = 1883;
+// const char* MQTT_USER = "";
+// const char* MQTT_PASSWORD = "";
+
+// Opción 2: EMQX Cloud privado (RECOMENDADO)
+const char* MQTT_BROKER = "m0020126.ala.eu-central-1.emqxsl.com";  // ← CAMBIAR: Tu deployment de EMQX Cloud
+const int MQTT_PORT = 8883;                             // 1883 (TCP) o 8883 (TLS)
+const char* MQTT_USER = "riegoTeam";             // ← CAMBIAR: Usuario de EMQX
+const char* MQTT_PASSWORD = "Cu7WhT6gnZfZgz8";        // ← CAMBIAR: Contraseña de EMQX
 
 // API Key del dispositivo (obtener de la base de datos)
-const char* API_KEY = "d4d6b2bdfdb606e35287ef099910abf0c1cfdf598f14d4fcd0da1804b1ea4808";
+// SELECT api_key FROM dispositivos WHERE id = 1;
+const char* API_KEY = "d4d6b2bdfdb606e35287ef099910abf0c1cfdf598f14d4fcd0da1804b1ea4808";  // ← CAMBIAR: API Key de la BD
 
 // IDs de sensores (obtener de la base de datos)
-const int SENSOR_HUMEDAD_ID = 1;
-const int SENSOR_TEMPERATURA_ID = 2;
+// SELECT id, nombre FROM sensores WHERE dispositivo_id = 1;
+const int SENSOR_TEMPERATURA_ID = 2;  // ← CAMBIAR: ID del sensor de temperatura en tu BD
 
 // Pin del sensor de temperatura
 const int PIN_LM35 = A1;  // Sensor de temperatura LM35DZ/CZ (compatible con ambos)
 
 // Actuadores (obtener de la base de datos)
-const int ACTUADOR_BOMBA_ID = 1;
-const int PIN_BOMBA = 7;
+// SELECT id, pin FROM actuadores WHERE dispositivo_id = 1;
+const int ACTUADOR_BOMBA_ID = 1;  // ← CAMBIAR: ID del actuador en tu BD
+const int PIN_BOMBA = 7;          // ← CAMBIAR: Pin físico donde conectaste la bomba
 
 // Intervalos de tiempo
 const unsigned long INTERVALO_SENSORES = 5000;   // 5 segundos (actualización rápida)
