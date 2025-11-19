@@ -7,9 +7,9 @@
  * NO usar ESP8266WiFi.h o WiFi.h estándar
  * 
  * SENSORES CONFIGURADOS:
- * - Humedad de Suelo: Pin A0 (analógico)
- * - Temperatura LM35CZ: Pin A1 (analógico)
- *   Conexión LM35CZ:
+ * - Temperatura LM35DZ/CZ: Pin A1 (analógico)
+ *   Compatible con LM35DZ y LM35CZ (funcionan igual)
+ *   Conexión LM35DZ/CZ:
  *   - Pin 1 (Vout) → Arduino A1
  *   - Pin 2 (GND)  → Arduino GND
  *   - Pin 3 (Vcc)  → Arduino 5V
@@ -42,16 +42,15 @@ const char* API_KEY = "d4d6b2bdfdb606e35287ef099910abf0c1cfdf598f14d4fcd0da1804b
 const int SENSOR_HUMEDAD_ID = 1;
 const int SENSOR_TEMPERATURA_ID = 2;
 
-// Pines de sensores
-const int PIN_HUMEDAD_SUELO = A0;
-const int PIN_LM35 = A1;  // Sensor de temperatura LM35CZ
+// Pin del sensor de temperatura
+const int PIN_LM35 = A1;  // Sensor de temperatura LM35DZ/CZ (compatible con ambos)
 
 // Actuadores (obtener de la base de datos)
 const int ACTUADOR_BOMBA_ID = 1;
 const int PIN_BOMBA = 7;
 
 // Intervalos de tiempo
-const unsigned long INTERVALO_SENSORES = 10000;  // 10 segundos
+const unsigned long INTERVALO_SENSORES = 5000;   // 5 segundos (actualización rápida)
 const unsigned long INTERVALO_PING = 30000;      // 30 segundos
 
 // ============================================
@@ -340,28 +339,35 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
 void enviarDatosSensores() {
   if (!mqttClient.connected()) return;
 
-  // Leer sensores
-  int humedadSuelo = analogRead(PIN_HUMEDAD_SUELO);
-  // Convertir a porcentaje (ajustar según calibración)
-  float humedadPorcentaje = map(humedadSuelo, 0, 1023, 0, 100);
-
-  // Leer temperatura del LM35CZ en pin A1
+  // ============================================
+  // LECTURA DE SENSORES CON DEBUG
+  // ============================================
+  
+  Serial.println("\n--- LECTURA DE SENSORES ---");
+  
+  // Leer temperatura del LM35DZ/CZ (A1)
   int lecturaLM35 = analogRead(PIN_LM35);
-  // Convertir lectura ADC a temperatura (LM35CZ: 10mV/°C, Arduino R4: 5V/1023)
-  // Fórmula: Temperatura = (lectura * 5000mV / 1023) / 10mV
-  float temperatura = (lecturaLM35 * 5.0 * 100.0) / 1023.0;
+  float voltajeLM35 = (lecturaLM35 * 5.0) / 1023.0;
+  float temperatura = voltajeLM35 * 100.0;  // 10mV/°C = 0.01V/°C
+  
+  // DEBUG: Mostrar lectura cruda de temperatura
+  Serial.print("🌡️  Temperatura LM35DZ/CZ (A1):");
+  Serial.print("\n   ADC Raw: ");
+  Serial.print(lecturaLM35);
+  Serial.print(" | Voltaje: ");
+  Serial.print(voltajeLM35, 3);
+  Serial.print("V | Temp: ");
+  Serial.print(temperatura, 1);
+  Serial.println("°C");
 
   // Crear JSON
   StaticJsonDocument<256> doc;
   JsonArray sensores = doc.createNestedArray("sensores");
 
+  // Solo enviar temperatura
   JsonObject sensor1 = sensores.createNestedObject();
-  sensor1["sensor_id"] = SENSOR_HUMEDAD_ID;
-  sensor1["valor"] = humedadPorcentaje;
-
-  JsonObject sensor2 = sensores.createNestedObject();
-  sensor2["sensor_id"] = SENSOR_TEMPERATURA_ID;
-  sensor2["valor"] = temperatura;
+  sensor1["sensor_id"] = SENSOR_TEMPERATURA_ID;
+  sensor1["valor"] = temperatura;
 
   doc["timestamp"] = millis();
 
@@ -369,14 +375,16 @@ void enviarDatosSensores() {
   char buffer[256];
   serializeJson(doc, buffer);
 
+  // DEBUG: Mostrar JSON que se va a enviar
+  Serial.print("\n📤 JSON a enviar: ");
+  Serial.println(buffer);
+
   if (mqttClient.publish(topicSensores, buffer, false)) {
-    Serial.print("📊 Sensores enviados: Humedad=");
-    Serial.print(humedadPorcentaje);
-    Serial.print("%, Temp=");
-    Serial.print(temperatura);
-    Serial.println("°C");
+    Serial.println("✅ Datos publicados exitosamente por MQTT");
+    Serial.println("---------------------------\n");
   } else {
-    Serial.println("⚠️  Error al publicar sensores");
+    Serial.println("❌ ERROR: No se pudo publicar por MQTT");
+    Serial.println("---------------------------\n");
   }
 }
 
