@@ -1,6 +1,7 @@
 // Dashboard JavaScript
 
 let refreshInterval;
+let connectionCheckInterval;
 
 // Actualizar datos del dashboard
 async function refreshData() {
@@ -18,6 +19,73 @@ async function refreshData() {
         console.error('Error al actualizar datos:', error);
         showNotification('Error al actualizar datos', 'error');
     }
+}
+
+// Verificar estado de conexión de dispositivos
+async function checkDeviceConnections() {
+    const deviceCards = document.querySelectorAll('[data-device-id]');
+    
+    for (const card of deviceCards) {
+        const deviceId = card.getAttribute('data-device-id');
+        try {
+            const response = await fetch(`/api/devices/${deviceId}/status`);
+            const result = await response.json();
+            
+            if (result.success) {
+                updateConnectionStatus(deviceId, result.data);
+            }
+        } catch (error) {
+            console.error(`Error al verificar dispositivo ${deviceId}:`, error);
+            updateConnectionStatus(deviceId, { connected: false });
+        }
+    }
+}
+
+// Actualizar indicador de conexión
+function updateConnectionStatus(deviceId, data) {
+    const statusElement = document.querySelector(`[data-connection-status="${deviceId}"]`);
+    if (!statusElement) {
+        console.warn(`No se encontró elemento de estado para dispositivo ${deviceId}`);
+        return;
+    }
+    
+    const dot = statusElement.querySelector('.connection-dot');
+    const text = statusElement.querySelector('.connection-text');
+    const lastConnectionElement = document.querySelector(`[data-last-connection="${deviceId}"]`);
+    
+    console.log(`[Device ${deviceId}] Estado:`, data);
+    
+    if (data.connected) {
+        dot.classList.remove('offline');
+        dot.classList.add('online');
+        text.textContent = 'Conectado';
+        
+        if (lastConnectionElement && data.last_connection) {
+            lastConnectionElement.textContent = `Hace ${getTimeAgo(data.last_connection)}`;
+        }
+    } else {
+        dot.classList.remove('online');
+        dot.classList.add('offline');
+        text.textContent = 'Desconectado';
+        
+        if (lastConnectionElement && data.last_connection) {
+            lastConnectionElement.textContent = `Última vez: ${getTimeAgo(data.last_connection)}`;
+        } else if (lastConnectionElement) {
+            lastConnectionElement.textContent = 'Sin conexión';
+        }
+    }
+}
+
+// Calcular tiempo transcurrido
+function getTimeAgo(timestamp) {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const seconds = Math.floor((now - past) / 1000);
+    
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
 }
 
 // Actualizar estadísticas
@@ -53,6 +121,7 @@ function updateAlerts(alerts) {
 // Iniciar actualización automática cada 30 segundos
 function startAutoRefresh() {
     refreshInterval = setInterval(refreshData, 30000);
+    connectionCheckInterval = setInterval(checkDeviceConnections, 5000); // Cada 5 segundos
 }
 
 // Detener actualización automática
@@ -60,10 +129,16 @@ function stopAutoRefresh() {
     if (refreshInterval) {
         clearInterval(refreshInterval);
     }
+    if (connectionCheckInterval) {
+        clearInterval(connectionCheckInterval);
+    }
 }
 
 // Inicializar cuando se carga la página
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar conexiones inmediatamente
+    checkDeviceConnections();
+    
     // Iniciar actualización automática
     startAutoRefresh();
     
@@ -72,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.hidden) {
             stopAutoRefresh();
         } else {
+            checkDeviceConnections(); // Verificar inmediatamente al volver
             startAutoRefresh();
         }
     });

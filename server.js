@@ -90,6 +90,11 @@ app.use('/devices', deviceRoutes);
 app.use('/sensors', sensorRoutes);
 app.use('/api/arduino', arduinoRoutes);
 
+// Ruta API para verificar estado de dispositivos
+const DeviceController = require('./src/controllers/DeviceController');
+const { verifyToken } = require('./src/middleware/auth');
+app.get('/api/devices/:id/status', verifyToken, DeviceController.checkStatus);
+
 // Ruta 404
 app.use((req, res) => {
   res.status(404).render('error', {
@@ -116,13 +121,14 @@ async function startServer() {
       console.log('El servidor continuará ejecutándose, pero las funciones de BD no estarán disponibles.');
     }
 
-    // Iniciar servidor
-    app.listen(PORT, () => {
+    // Iniciar servidor en todas las interfaces (0.0.0.0)
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('');
       console.log('═══════════════════════════════════════════════════════');
       console.log('  🌱 Sistema de Riego Arduino IoT');
       console.log('═══════════════════════════════════════════════════════');
-      console.log(`  Servidor: http://localhost:${PORT}`);
+      console.log(`  Servidor Local: http://localhost:${PORT}`);
+      console.log(`  Servidor Red: http://192.168.1.169:${PORT}`);
       console.log(`  Entorno: ${process.env.NODE_ENV || 'development'}`);
       console.log(`  Base de datos: ${dbConnected ? '✓ Conectada' : '✗ Desconectada'}`);
       console.log('═══════════════════════════════════════════════════════');

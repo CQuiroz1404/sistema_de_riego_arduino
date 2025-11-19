@@ -44,10 +44,16 @@ class Device {
   // Listar dispositivos por usuario
   static async findByUserId(userId) {
     try {
-      const [rows] = await pool.query(
-        'SELECT * FROM dispositivos WHERE usuario_id = ? ORDER BY fecha_creacion DESC',
-        [userId]
-      );
+      const [rows] = await pool.query(`
+        SELECT 
+          d.*,
+          (SELECT COUNT(*) FROM sensores WHERE dispositivo_id = d.id) as total_sensores,
+          (SELECT COUNT(*) FROM actuadores WHERE dispositivo_id = d.id) as total_actuadores,
+          TIMESTAMPDIFF(SECOND, d.ultima_conexion, NOW()) as segundos_desde_conexion
+        FROM dispositivos d
+        WHERE d.usuario_id = ? 
+        ORDER BY d.fecha_creacion DESC
+      `, [userId]);
       return rows;
     } catch (error) {
       throw error;
@@ -57,9 +63,15 @@ class Device {
   // Listar todos los dispositivos
   static async findAll() {
     try {
-      const [rows] = await pool.query(
-        'SELECT * FROM vista_estado_dispositivos ORDER BY ultima_conexion DESC'
-      );
+      const [rows] = await pool.query(`
+        SELECT 
+          d.*,
+          (SELECT COUNT(*) FROM sensores WHERE dispositivo_id = d.id) as total_sensores,
+          (SELECT COUNT(*) FROM actuadores WHERE dispositivo_id = d.id) as total_actuadores,
+          TIMESTAMPDIFF(SECOND, d.ultima_conexion, NOW()) as segundos_desde_conexion
+        FROM dispositivos d
+        ORDER BY d.ultima_conexion DESC
+      `);
       return rows;
     } catch (error) {
       throw error;

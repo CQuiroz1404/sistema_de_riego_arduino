@@ -231,6 +231,52 @@ class DeviceController {
       });
     }
   }
+
+  // API: Verificar estado de conexión de un dispositivo
+  static async checkStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const device = await Device.findById(id);
+
+      if (!device) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Dispositivo no encontrado' 
+        });
+      }
+
+      // Verificar permisos
+      if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'No tienes permisos' 
+        });
+      }
+
+      // Considerar conectado si la última conexión fue hace menos de 30 segundos
+      const now = new Date();
+      const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
+      const isConnected = lastConnection && (now - lastConnection) < 30000;
+
+      console.log(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isConnected: ${isConnected}`);
+
+      res.json({ 
+        success: true, 
+        data: {
+          connected: isConnected,
+          last_connection: device.ultima_conexion,
+          estado: device.estado,
+          seconds_ago: lastConnection ? Math.floor((now - lastConnection) / 1000) : null
+        }
+      });
+    } catch (error) {
+      console.error('Error al verificar estado:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al verificar estado' 
+      });
+    }
+  }
 }
 
 module.exports = DeviceController;
