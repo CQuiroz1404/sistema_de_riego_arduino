@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { Usuarios } = require('../models');
 const { dbLogger } = require('../middleware/logger');
 
 class AuthController {
@@ -28,7 +28,7 @@ class AuthController {
       }
 
       // Buscar usuario
-      const user = await User.findByEmail(email);
+      const user = await Usuarios.findOne({ where: { email } });
       if (!user) {
         return res.status(401).json({ 
           success: false, 
@@ -61,7 +61,7 @@ class AuthController {
       );
 
       // Actualizar última conexión
-      await User.updateLastConnection(user.id);
+      await Usuarios.update({ ultima_conexion: new Date() }, { where: { id: user.id } });
 
       // Log de login
       await dbLogger('info', 'auth', `Login exitoso: ${user.email}`, null, user.id, req.ip);
@@ -120,7 +120,7 @@ class AuthController {
       }
 
       // Verificar si el email ya existe
-      const existingUser = await User.findByEmail(email);
+      const existingUser = await Usuarios.findOne({ where: { email } });
       if (existingUser) {
         return res.status(409).json({ 
           success: false, 
@@ -132,7 +132,7 @@ class AuthController {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Crear usuario
-      const userId = await User.create({
+      const newUser = await Usuarios.create({
         nombre,
         email,
         password: hashedPassword,
@@ -140,12 +140,12 @@ class AuthController {
       });
 
       // Log de registro
-      await dbLogger('info', 'auth', `Nuevo usuario registrado: ${email}`, null, userId, req.ip);
+      await dbLogger('info', 'auth', `Nuevo usuario registrado: ${email}`, null, newUser.id, req.ip);
 
       res.json({ 
         success: true, 
         message: 'Usuario registrado exitosamente',
-        userId 
+        userId: newUser.id 
       });
     } catch (error) {
       console.error('Error en registro:', error);

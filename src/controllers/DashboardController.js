@@ -1,8 +1,6 @@
-const Device = require('../models/Device');
-const Sensor = require('../models/Sensor');
-const Actuator = require('../models/Actuator');
-const Alert = require('../models/Alert');
-const { pool } = require('../config/database');
+const { Dispositivos, Sensores, Actuadores, Alertas, Lecturas } = require('../models');
+const { Op } = require('sequelize');
+const { sequelize } = require('../models'); // Para consultas raw si es necesario
 
 class DashboardController {
   // Vista principal del dashboard
@@ -11,21 +9,21 @@ class DashboardController {
       // Obtener dispositivos del usuario
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Device.findAll();
+        devices = await Dispositivos.findAll();
       } else {
-        devices = await Device.findByUserId(req.user.id);
+        devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
 
       // Obtener alertas no leídas
-      const alerts = await Alert.getUnread();
+      const alerts = await Alertas.findAll({ where: { leida: false } });
 
       // Estadísticas generales
       const stats = await DashboardController.getGeneralStats(req.user);
 
       res.render('dashboard/index', {
         user: req.user,
-        devices,
-        alerts,
+        devices: devices.map(d => d.toJSON()),
+        alerts: alerts.map(a => a.toJSON()),
         stats
       });
     } catch (error) {
@@ -40,23 +38,27 @@ class DashboardController {
   static async getGeneralStats(user) {
     try {
       const userId = user.rol === 'admin' ? null : user.id;
-
-      let query = `
+      
+      // Usando consultas raw para mantener la lógica compleja de conteos
+      // O podríamos usar count() de Sequelize por separado
+      
+      const whereUser = userId ? `WHERE usuario_id = ${userId}` : '';
+      const whereUserDev = userId ? `AND d.usuario_id = ${userId}` : '';
+      
+      const query = `
         SELECT 
-          (SELECT COUNT(*) FROM dispositivos ${userId ? 'WHERE usuario_id = ?' : ''}) as total_dispositivos,
-          (SELECT COUNT(*) FROM dispositivos WHERE estado = 'activo' ${userId ? 'AND usuario_id = ?' : ''}) as dispositivos_activos,
+          (SELECT COUNT(*) FROM dispositivos ${whereUser}) as total_dispositivos,
+          (SELECT COUNT(*) FROM dispositivos WHERE estado = 'activo' ${userId ? `AND usuario_id = ${userId}` : ''}) as dispositivos_activos,
           (SELECT COUNT(*) FROM sensores s 
            JOIN dispositivos d ON s.dispositivo_id = d.id 
-           WHERE s.activo = TRUE ${userId ? 'AND d.usuario_id = ?' : ''}) as total_sensores,
+           WHERE s.activo = TRUE ${whereUserDev}) as total_sensores,
           (SELECT COUNT(*) FROM actuadores a 
            JOIN dispositivos d ON a.dispositivo_id = d.id 
-           WHERE a.activo = TRUE ${userId ? 'AND d.usuario_id = ?' : ''}) as total_actuadores,
+           WHERE a.activo = TRUE ${whereUserDev}) as total_actuadores,
           (SELECT COUNT(*) FROM alertas WHERE leida = FALSE) as alertas_no_leidas
       `;
 
-      const params = userId ? [userId, userId, userId, userId] : [];
-      const [stats] = await pool.query(query, params);
-
+      const [stats] = await sequelize.query(query);
       return stats[0];
     } catch (error) {
       console.error('Error al obtener estadísticas:', error);
@@ -69,33 +71,36 @@ class DashboardController {
     try {
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Device.findAll();
+        devices = await Dispositivos.findAll();
       } else {
-        devices = await Device.findByUserId(req.user.id);
+        devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
 
       // Obtener última lectura de cada dispositivo
       const devicesWithData = await Promise.all(
         devices.map(async (device) => {
-          const sensors = await Sensor.findByDeviceId(device.id);
+          const sensors = await Sensores.findAll({ where: { dispositivo_id: device.id } });
           const sensorsWithReadings = await Promise.all(
             sensors.map(async (sensor) => {
-              const lastReading = await Sensor.getLastReading(sensor.id);
-              return { ...sensor, lastReading };
+              const lastReading = await Lecturas.findOne({ 
+                where: { sensor_id: sensor.id },
+                order: [['fecha_registro', 'DESC']]
+              });
+              return { ...sensor.toJSON(), lastReading: lastReading ? lastReading.toJSON() : null };
             })
           );
-          return { ...device, sensors: sensorsWithReadings };
+          return { ...device.toJSON(), sensors: sensorsWithReadings };
         })
       );
 
       const stats = await DashboardController.getGeneralStats(req.user);
-      const alerts = await Alert.getUnread();
+      const alerts = await Alertas.findAll({ where: { leida: false } });
 
       res.json({
         success: true,
         devices: devicesWithData,
         stats,
-        alerts
+        alerts: alerts.map(a => a.toJSON())
       });
     } catch (error) {
       console.error('Error al obtener datos:', error);
@@ -110,7 +115,7 @@ class DashboardController {
   static async getDeviceData(req, res) {
     try {
       const { id } = req.params;
-      const device = await Device.findById(id);
+      const device = await Dispositivos.findByPk(id);
 
       if (!device) {
         return res.status(404).json({
@@ -127,22 +132,25 @@ class DashboardController {
         });
       }
 
-      const sensors = await Sensor.findByDeviceId(id);
-      const actuators = await Actuator.findByDeviceId(id);
+      const sensors = await Sensores.findAll({ where: { dispositivo_id: id } });
+      const actuators = await Actuadores.findAll({ where: { dispositivo_id: id } });
 
       // Obtener última lectura de cada sensor
       const sensorsWithReadings = await Promise.all(
         sensors.map(async (sensor) => {
-          const lastReading = await Sensor.getLastReading(sensor.id);
-          return { ...sensor, lastReading };
+          const lastReading = await Lecturas.findOne({ 
+            where: { sensor_id: sensor.id },
+            order: [['fecha_registro', 'DESC']]
+          });
+          return { ...sensor.toJSON(), lastReading: lastReading ? lastReading.toJSON() : null };
         })
       );
 
       res.json({
         success: true,
-        device,
+        device: device.toJSON(),
         sensors: sensorsWithReadings,
-        actuators
+        actuators: actuators.map(a => a.toJSON())
       });
     } catch (error) {
       console.error('Error al obtener datos del dispositivo:', error);

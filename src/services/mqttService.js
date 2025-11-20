@@ -1,9 +1,5 @@
 const mqtt = require('mqtt');
-const Device = require('../models/Device');
-const Sensor = require('../models/Sensor');
-const Actuator = require('../models/Actuator');
-const IrrigationConfig = require('../models/IrrigationConfig');
-const Alert = require('../models/Alert');
+const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego } = require('../models');
 const { dbLogger } = require('../middleware/logger');
 
 class MQTTService {
@@ -102,7 +98,7 @@ class MQTTService {
       }
 
       // Actualizar última conexión
-      await Device.updateLastConnection(device.id, 'mqtt');
+      await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
 
       // Procesar según tipo de mensaje
       switch (type) {
@@ -139,7 +135,7 @@ class MQTTService {
       for (const sensorData of sensores) {
         const { sensor_id, valor } = sensorData;
 
-        const sensor = await Sensor.findById(sensor_id);
+        const sensor = await Sensores.findByPk(sensor_id);
         
         if (!sensor || sensor.dispositivo_id !== device.id) {
           console.warn(`Sensor ${sensor_id} no encontrado o no pertenece al dispositivo ${device.id}`);
@@ -147,11 +143,14 @@ class MQTTService {
         }
 
         // Registrar lectura
-        await Sensor.addReading(sensor_id, valor);
+        await Lecturas.create({
+          sensor_id: sensor_id,
+          valor: valor
+        });
 
         // Verificar rangos y crear alertas
         if (sensor.valor_minimo !== null && valor < sensor.valor_minimo) {
-          await Alert.create({
+          await Alertas.create({
             dispositivo_id: device.id,
             tipo: 'sensor_fuera_rango',
             severidad: 'media',
@@ -160,7 +159,7 @@ class MQTTService {
         }
 
         if (sensor.valor_maximo !== null && valor > sensor.valor_maximo) {
-          await Alert.create({
+          await Alertas.create({
             dispositivo_id: device.id,
             tipo: 'sensor_fuera_rango',
             severidad: 'media',
@@ -185,11 +184,17 @@ class MQTTService {
    */
   async checkAutoIrrigation(deviceId, sensorId, valor) {
     try {
-      const configs = await IrrigationConfig.getActiveAutoConfigs(deviceId);
+      const configs = await ConfiguracionesRiego.findAll({
+        where: {
+          dispositivo_id: deviceId,
+          activo: true,
+          modo: 'automatico'
+        }
+      });
       
       for (const config of configs) {
         if (config.sensor_id === sensorId) {
-          const actuator = await Actuator.findById(config.actuador_id);
+          const actuator = await Actuadores.findByPk(config.actuador_id);
           
           // Activar riego si valor está por debajo del umbral inferior
           if (valor < config.umbral_inferior && actuator.estado === 'apagado') {
@@ -228,7 +233,7 @@ class MQTTService {
   async processPing(device, payload) {
     try {
       console.log(`💓 Ping recibido de ${device.nombre}`);
-      await Device.updateLastConnection(device.id, 'mqtt');
+      await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
     } catch (error) {
       console.error('Error al procesar ping:', error);
     }
@@ -243,26 +248,25 @@ class MQTTService {
    */
   async controlActuator(deviceId, actuatorId, estado, modo = 'manual', userId = null) {
     try {
-      const device = await Device.findById(deviceId);
+      const device = await Dispositivos.findByPk(deviceId);
       if (!device) {
         throw new Error('Dispositivo no encontrado');
       }
 
-      const actuator = await Actuator.findById(actuatorId);
+      const actuator = await Actuadores.findByPk(actuatorId);
       if (!actuator) {
         throw new Error('Actuador no encontrado');
       }
 
       // Actualizar estado en base de datos
-      await Actuator.updateState(actuatorId, estado);
+      await Actuadores.update({ estado: estado }, { where: { id: actuatorId } });
 
       // Registrar evento
-      await Actuator.logEvent({
+      await EventosRiego.create({
         dispositivo_id: deviceId,
         actuador_id: actuatorId,
-        accion: estado === 'encendido' ? 'inicio' : 'fin',
-        modo: modo,
-        duracion_segundos: null,
+        tipo_evento: estado === 'encendido' ? 'inicio_riego' : 'fin_riego',
+        detalle: `Riego ${modo} ${estado}`,
         usuario_id: userId
       });
 
@@ -298,10 +302,10 @@ class MQTTService {
    */
   async publishDeviceState(deviceId) {
     try {
-      const device = await Device.findById(deviceId);
+      const device = await Dispositivos.findByPk(deviceId);
       if (!device) return;
 
-      const actuators = await Actuator.findByDeviceId(deviceId);
+      const actuators = await Actuadores.findAll({ where: { dispositivo_id: deviceId } });
       
       const topic = `riego/${device.api_key}/comandos/all`;
       const payload = JSON.stringify({
@@ -331,7 +335,7 @@ class MQTTService {
       return this.devicesByApiKey.get(apiKey);
     }
 
-    const device = await Device.findByApiKey(apiKey);
+    const device = await Dispositivos.findOne({ where: { api_key: apiKey } });
     if (device) {
       this.devicesByApiKey.set(apiKey, device);
       // Limpiar caché después de 5 minutos

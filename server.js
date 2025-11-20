@@ -4,12 +4,54 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const morgan = require('morgan');
-const { testConnection, syncDatabase, closePool, closeSequelize } = require('./src/config/database');
+const { testConnection, syncDatabase, closePool, closeSequelize } = require('./src/config/baseDatos');
 const { errorHandler, logger } = require('./src/middleware/logger');
 const mqttService = require('./src/services/mqttService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Esperar a que la base de datos esté disponible (reintentos)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForDatabase() {
+  const maxAttempts = parseInt(process.env.DB_RETRY_COUNT, 10) || 5;
+  const intervalMs = parseInt(process.env.DB_RETRY_INTERVAL_MS, 10) || 5000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`🔎 Intento ${attempt}/${maxAttempts} de conectar a la base de datos...`);
+      const ok = await testConnection();
+      if (ok) {
+        // Si se usa Sequelize, también verificar su conexión si es posible
+        if (process.env.USE_SEQUELIZE === 'true') {
+          try {
+            // testSequelizeConnection may be available via database module
+            const dbModule = require('./src/config/database');
+            if (typeof dbModule.testSequelizeConnection === 'function') {
+              const seqOk = await dbModule.testSequelizeConnection();
+              if (!seqOk) {
+                console.warn('⚠️  Sequelize no respondió correctamente, pero pool MySQL está disponible.');
+              }
+            }
+          } catch (err) {
+            console.warn('⚠️  No se pudo verificar Sequelize:', err.message || err);
+          }
+        }
+        return true;
+      }
+    } catch (err) {
+      console.error('Error comprobando la BD:', err.message || err);
+    }
+
+    if (attempt < maxAttempts) {
+      console.log(`Esperando ${intervalMs}ms antes del siguiente intento...`);
+      await sleep(intervalMs);
+    }
+  }
+
+  return false;
+}
 
 // ============================================
 // Middlewares
@@ -114,12 +156,11 @@ app.use(errorHandler);
 // ============================================
 async function startServer() {
   try {
-    // Verificar conexión a la base de datos
-    const dbConnected = await testConnection();
-    
-    if (!dbConnected) {
-      console.error('⚠️  No se pudo conectar a la base de datos. Verifique la configuración.');
-      console.log('El servidor continuará ejecutándose, pero las funciones de BD no estarán disponibles.');
+    // Esperar a que la base de datos esté disponible (reintentos configurables)
+    const dbReady = await waitForDatabase();
+    if (!dbReady) {
+      console.error('✗ No se pudo conectar a la base de datos después de varios intentos. Abortando inicio del servidor.');
+      process.exit(1);
     }
 
     // Si está habilitado, sincronizar usando Sequelize (opcional)
@@ -150,7 +191,7 @@ async function startServer() {
       console.log(`  Servidor Local: http://localhost:${PORT}`);
       console.log(`  Servidor Red: http://192.168.1.169:${PORT}`);
       console.log(`  Entorno: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`  Base de datos: ${dbConnected ? '✓ Conectada' : '✗ Desconectada'}`);
+      console.log(`  Base de datos: ${dbReady ? '✓ Conectada' : '✗ Desconectada'}`);
       console.log(`  MQTT Broker: ${mqttConnected ? '✓ Conectado' : '✗ Desconectado'}`);
       console.log('═══════════════════════════════════════════════════════');
       console.log('');

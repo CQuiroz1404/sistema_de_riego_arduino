@@ -1,6 +1,6 @@
-const Sensor = require('../models/Sensor');
-const Device = require('../models/Device');
+const { Sensores, Dispositivos, Lecturas } = require('../models');
 const { dbLogger } = require('../middleware/logger');
+const { Op } = require('sequelize');
 
 class SensorController {
   // Crear nuevo sensor
@@ -9,7 +9,7 @@ class SensorController {
       const { dispositivo_id, nombre, tipo, pin, unidad, valor_minimo, valor_maximo } = req.body;
 
       // Verificar permisos sobre el dispositivo
-      const device = await Device.findById(dispositivo_id);
+      const device = await Dispositivos.findByPk(dispositivo_id);
       if (!device) {
         return res.status(404).json({ 
           success: false, 
@@ -24,7 +24,7 @@ class SensorController {
         });
       }
 
-      const sensorId = await Sensor.create({
+      const sensor = await Sensores.create({
         dispositivo_id,
         nombre,
         tipo,
@@ -39,7 +39,7 @@ class SensorController {
       res.json({ 
         success: true, 
         message: 'Sensor creado exitosamente',
-        sensorId 
+        sensorId: sensor.id 
       });
     } catch (error) {
       console.error('Error al crear sensor:', error);
@@ -54,7 +54,7 @@ class SensorController {
   static async show(req, res) {
     try {
       const { id } = req.params;
-      const sensor = await Sensor.findById(id);
+      const sensor = await Sensores.findByPk(id);
 
       if (!sensor) {
         return res.status(404).json({ 
@@ -64,7 +64,7 @@ class SensorController {
       }
 
       // Verificar permisos
-      const device = await Device.findById(sensor.dispositivo_id);
+      const device = await Dispositivos.findByPk(sensor.dispositivo_id);
       if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
         return res.status(403).json({ 
           success: false, 
@@ -74,7 +74,7 @@ class SensorController {
 
       res.json({ 
         success: true, 
-        sensor 
+        sensor: sensor.toJSON() 
       });
     } catch (error) {
       console.error('Error al obtener sensor:', error);
@@ -91,7 +91,7 @@ class SensorController {
       const { deviceId } = req.params;
 
       // Verificar permisos
-      const device = await Device.findById(deviceId);
+      const device = await Dispositivos.findByPk(deviceId);
       if (!device) {
         return res.status(404).json({ 
           success: false, 
@@ -106,11 +106,11 @@ class SensorController {
         });
       }
 
-      const sensors = await Sensor.findByDeviceId(deviceId);
+      const sensors = await Sensores.findAll({ where: { dispositivo_id: deviceId } });
 
       res.json({ 
         success: true, 
-        sensors 
+        sensors: sensors.map(s => s.toJSON()) 
       });
     } catch (error) {
       console.error('Error al obtener sensores:', error);
@@ -125,7 +125,7 @@ class SensorController {
   static async update(req, res) {
     try {
       const { id } = req.params;
-      const sensor = await Sensor.findById(id);
+      const sensor = await Sensores.findByPk(id);
 
       if (!sensor) {
         return res.status(404).json({ 
@@ -135,7 +135,7 @@ class SensorController {
       }
 
       // Verificar permisos
-      const device = await Device.findById(sensor.dispositivo_id);
+      const device = await Dispositivos.findByPk(sensor.dispositivo_id);
       if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
         return res.status(403).json({ 
           success: false, 
@@ -143,7 +143,7 @@ class SensorController {
         });
       }
 
-      await Sensor.update(id, req.body);
+      await sensor.update(req.body);
       await dbLogger('info', 'sensors', `Sensor actualizado: ${sensor.nombre}`, sensor.dispositivo_id, req.user.id, req.ip);
 
       res.json({ 
@@ -163,7 +163,7 @@ class SensorController {
   static async delete(req, res) {
     try {
       const { id } = req.params;
-      const sensor = await Sensor.findById(id);
+      const sensor = await Sensores.findByPk(id);
 
       if (!sensor) {
         return res.status(404).json({ 
@@ -173,7 +173,7 @@ class SensorController {
       }
 
       // Verificar permisos
-      const device = await Device.findById(sensor.dispositivo_id);
+      const device = await Dispositivos.findByPk(sensor.dispositivo_id);
       if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
         return res.status(403).json({ 
           success: false, 
@@ -181,7 +181,7 @@ class SensorController {
         });
       }
 
-      await Sensor.delete(id);
+      await sensor.destroy();
       await dbLogger('warning', 'sensors', `Sensor eliminado: ${sensor.nombre}`, sensor.dispositivo_id, req.user.id, req.ip);
 
       res.json({ 
@@ -203,7 +203,7 @@ class SensorController {
       const { id } = req.params;
       const limit = parseInt(req.query.limit) || 50;
 
-      const sensor = await Sensor.findById(id);
+      const sensor = await Sensores.findByPk(id);
       if (!sensor) {
         return res.status(404).json({ 
           success: false, 
@@ -212,7 +212,7 @@ class SensorController {
       }
 
       // Verificar permisos
-      const device = await Device.findById(sensor.dispositivo_id);
+      const device = await Dispositivos.findByPk(sensor.dispositivo_id);
       if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
         return res.status(403).json({ 
           success: false, 
@@ -220,12 +220,16 @@ class SensorController {
         });
       }
 
-      const readings = await Sensor.getLastReadings(id, limit);
+      const readings = await Lecturas.findAll({
+        where: { sensor_id: id },
+        order: [['fecha_registro', 'DESC']],
+        limit: limit
+      });
 
       res.json({ 
         success: true, 
-        sensor,
-        readings 
+        sensor: sensor.toJSON(),
+        readings: readings.map(r => r.toJSON()) 
       });
     } catch (error) {
       console.error('Error al obtener lecturas:', error);
@@ -249,7 +253,7 @@ class SensorController {
         });
       }
 
-      const sensor = await Sensor.findById(id);
+      const sensor = await Sensores.findByPk(id);
       if (!sensor) {
         return res.status(404).json({ 
           success: false, 
@@ -258,7 +262,7 @@ class SensorController {
       }
 
       // Verificar permisos
-      const device = await Device.findById(sensor.dispositivo_id);
+      const device = await Dispositivos.findByPk(sensor.dispositivo_id);
       if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
         return res.status(403).json({ 
           success: false, 
@@ -266,12 +270,20 @@ class SensorController {
         });
       }
 
-      const readings = await Sensor.getReadingsByDateRange(id, start, end);
+      const readings = await Lecturas.findAll({
+        where: {
+          sensor_id: id,
+          fecha_registro: {
+            [Op.between]: [start, end]
+          }
+        },
+        order: [['fecha_registro', 'ASC']]
+      });
 
       res.json({ 
         success: true, 
-        sensor,
-        readings 
+        sensor: sensor.toJSON(),
+        readings: readings.map(r => r.toJSON()) 
       });
     } catch (error) {
       console.error('Error al obtener lecturas:', error);

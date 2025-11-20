@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+// Logger simplificado sin dependencia de base de datos
 
 // Middleware para logging de solicitudes
 const logger = (req, res, next) => {
@@ -7,16 +7,10 @@ const logger = (req, res, next) => {
   next();
 };
 
-// Middleware para registrar logs en la base de datos
+// Logger directo a consola (reemplaza al dbLogger anterior)
 const dbLogger = async (nivel, modulo, mensaje, dispositivo_id = null, usuario_id = null, ip_address = null) => {
-  try {
-    await pool.query(
-      'INSERT INTO logs_sistema (nivel, modulo, mensaje, dispositivo_id, usuario_id, ip_address) VALUES (?, ?, ?, ?, ?, ?)',
-      [nivel, modulo, mensaje, dispositivo_id, usuario_id, ip_address]
-    );
-  } catch (error) {
-    console.error('Error al registrar log en BD:', error);
-  }
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${nivel.toUpperCase()}] [${modulo}] ${mensaje} (Disp: ${dispositivo_id}, User: ${usuario_id}, IP: ${ip_address})`);
 };
 
 // Middleware de manejo de errores

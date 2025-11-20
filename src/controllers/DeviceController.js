@@ -1,8 +1,7 @@
-const Device = require('../models/Device');
-const Sensor = require('../models/Sensor');
-const Actuator = require('../models/Actuator');
+const { Dispositivos, Sensores, Actuadores, Lecturas } = require('../models');
 const { dbLogger } = require('../middleware/logger');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 
 class DeviceController {
   // Mostrar todos los dispositivos
@@ -10,13 +9,13 @@ class DeviceController {
     try {
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Device.findAll();
+        devices = await Dispositivos.findAll();
       } else {
-        devices = await Device.findByUserId(req.user.id);
+        devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
       
       res.render('devices/index', { 
-        devices, 
+        devices: devices.map(d => d.toJSON()), 
         user: req.user 
       });
     } catch (error) {
@@ -40,7 +39,7 @@ class DeviceController {
       // Generar API key única
       const api_key = crypto.randomBytes(32).toString('hex');
 
-      const deviceId = await Device.create({
+      const device = await Dispositivos.create({
         nombre,
         ubicacion,
         descripcion,
@@ -49,12 +48,12 @@ class DeviceController {
         usuario_id: req.user.id
       });
 
-      await dbLogger('info', 'devices', `Nuevo dispositivo creado: ${nombre}`, deviceId, req.user.id, req.ip);
+      await dbLogger('info', 'devices', `Nuevo dispositivo creado: ${nombre}`, device.id, req.user.id, req.ip);
 
       res.json({ 
         success: true, 
         message: 'Dispositivo creado exitosamente',
-        deviceId,
+        deviceId: device.id,
         api_key 
       });
     } catch (error) {
@@ -70,7 +69,7 @@ class DeviceController {
   static async show(req, res) {
     try {
       const { id } = req.params;
-      const device = await Device.findById(id);
+      const device = await Dispositivos.findByPk(id);
 
       if (!device) {
         return res.status(404).render('error', { 
@@ -85,14 +84,20 @@ class DeviceController {
         });
       }
 
-      const sensors = await Sensor.findByDeviceId(id);
-      const actuators = await Actuator.findByDeviceId(id);
-      const stats = await Device.getStats(id);
+      const sensors = await Sensores.findAll({ where: { dispositivo_id: id } });
+      const actuators = await Actuadores.findAll({ where: { dispositivo_id: id } });
+      
+      // Calcular estadísticas básicas (ejemplo)
+      const stats = {
+        total_sensores: sensors.length,
+        total_actuadores: actuators.length,
+        ultima_conexion: device.ultima_conexion
+      };
 
       res.render('devices/show', { 
-        device, 
-        sensors, 
-        actuators, 
+        device: device.toJSON(), 
+        sensors: sensors.map(s => s.toJSON()), 
+        actuators: actuators.map(a => a.toJSON()), 
         stats,
         user: req.user 
       });
@@ -108,7 +113,7 @@ class DeviceController {
   static async edit(req, res) {
     try {
       const { id } = req.params;
-      const device = await Device.findById(id);
+      const device = await Dispositivos.findByPk(id);
 
       if (!device) {
         return res.status(404).render('error', { 
@@ -124,7 +129,7 @@ class DeviceController {
       }
 
       res.render('devices/edit', { 
-        device, 
+        device: device.toJSON(), 
         user: req.user 
       });
     } catch (error) {
@@ -139,7 +144,7 @@ class DeviceController {
   static async update(req, res) {
     try {
       const { id } = req.params;
-      const device = await Device.findById(id);
+      const device = await Dispositivos.findByPk(id);
 
       if (!device) {
         return res.status(404).json({ 
@@ -156,7 +161,7 @@ class DeviceController {
         });
       }
 
-      await Device.update(id, req.body);
+      await device.update(req.body);
       await dbLogger('info', 'devices', `Dispositivo actualizado: ${device.nombre}`, id, req.user.id, req.ip);
 
       res.json({ 
@@ -176,7 +181,7 @@ class DeviceController {
   static async delete(req, res) {
     try {
       const { id } = req.params;
-      const device = await Device.findById(id);
+      const device = await Dispositivos.findByPk(id);
 
       if (!device) {
         return res.status(404).json({ 
@@ -193,7 +198,7 @@ class DeviceController {
         });
       }
 
-      await Device.delete(id);
+      await device.destroy();
       await dbLogger('warning', 'devices', `Dispositivo eliminado: ${device.nombre}`, id, req.user.id, req.ip);
 
       res.json({ 
@@ -214,14 +219,14 @@ class DeviceController {
     try {
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Device.findAll();
+        devices = await Dispositivos.findAll();
       } else {
-        devices = await Device.findByUserId(req.user.id);
+        devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
       
       res.json({ 
         success: true, 
-        devices 
+        devices: devices.map(d => d.toJSON()) 
       });
     } catch (error) {
       console.error('Error al obtener dispositivos:', error);
@@ -236,7 +241,7 @@ class DeviceController {
   static async checkStatus(req, res) {
     try {
       const { id } = req.params;
-      const device = await Device.findById(id);
+      const device = await Dispositivos.findByPk(id);
 
       if (!device) {
         return res.status(404).json({ 
