@@ -220,7 +220,7 @@ class MQTTService {
     try {
       const { tipo, mensaje } = payload;
       console.log(`📢 Evento de ${device.nombre}: ${tipo} - ${mensaje}`);
-      await dbLogger('info', 'device', `${tipo}: ${mensaje}`, device.id, null, 'mqtt');
+      console.log(`[INFO] [device] ${tipo}: ${mensaje} (Disp: ${device.id})`);
     } catch (error) {
       console.error('Error al procesar evento:', error);
     }
