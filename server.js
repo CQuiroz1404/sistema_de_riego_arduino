@@ -5,7 +5,6 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const morgan = require('morgan');
 const { testConnection, syncDatabase, closePool, closeSequelize } = require('./src/config/baseDatos');
-const { errorHandler, logger } = require('./src/middleware/logger');
 const mqttService = require('./src/services/mqttService');
 
 const app = express();
@@ -61,7 +60,7 @@ async function waitForDatabase() {
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
-app.use(logger);
+// app.use(logger); // Logger eliminado
 
 // CORS
 app.use(cors({
@@ -149,7 +148,22 @@ app.use((req, res) => {
 // ============================================
 // Manejo de errores
 // ============================================
-app.use(errorHandler);
+// app.use(errorHandler); // Error handler eliminado
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Error interno del servidor',
+      error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+  } else {
+    res.status(err.status || 500).render('error', {
+      message: err.message || 'Error interno del servidor',
+      error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+  }
+});
 
 // ============================================
 // Iniciar servidor

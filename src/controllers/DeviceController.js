@@ -1,5 +1,4 @@
 const { Dispositivos, Sensores, Actuadores, Lecturas } = require('../models');
-const { dbLogger } = require('../middleware/logger');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 
@@ -48,7 +47,7 @@ class DeviceController {
         usuario_id: req.user.id
       });
 
-      await dbLogger('info', 'devices', `Nuevo dispositivo creado: ${nombre}`, device.id, req.user.id, req.ip);
+      console.log(`[INFO] [devices] Nuevo dispositivo creado: ${nombre} (Disp: ${device.id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -162,7 +161,7 @@ class DeviceController {
       }
 
       await device.update(req.body);
-      await dbLogger('info', 'devices', `Dispositivo actualizado: ${device.nombre}`, id, req.user.id, req.ip);
+      console.log(`[INFO] [devices] Dispositivo actualizado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -199,7 +198,7 @@ class DeviceController {
       }
 
       await device.destroy();
-      await dbLogger('warning', 'devices', `Dispositivo eliminado: ${device.nombre}`, id, req.user.id, req.ip);
+      console.log(`[WARNING] [devices] Dispositivo eliminado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 

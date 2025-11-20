@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Usuarios } = require('../models');
-const { dbLogger } = require('../middleware/logger');
 
 class AuthController {
   // Mostrar página de login
@@ -64,7 +63,7 @@ class AuthController {
       await Usuarios.update({ ultima_conexion: new Date() }, { where: { id: user.id } });
 
       // Log de login
-      await dbLogger('info', 'auth', `Login exitoso: ${user.email}`, null, user.id, req.ip);
+      console.log(`[INFO] [auth] Login exitoso: ${user.email} (User: ${user.id}, IP: ${req.ip})`);
 
       // Establecer cookie con el token
       res.cookie('token', token, {
@@ -140,7 +139,7 @@ class AuthController {
       });
 
       // Log de registro
-      await dbLogger('info', 'auth', `Nuevo usuario registrado: ${email}`, null, newUser.id, req.ip);
+      console.log(`[INFO] [auth] Nuevo usuario registrado: ${email} (User: ${newUser.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -161,7 +160,7 @@ class AuthController {
     try {
       // Log de logout
       if (req.user) {
-        await dbLogger('info', 'auth', `Logout: ${req.user.email}`, null, req.user.id, req.ip);
+        console.log(`[INFO] [auth] Logout: ${req.user.email} (User: ${req.user.id}, IP: ${req.ip})`);
       }
 
       // Limpiar cookie

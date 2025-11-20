@@ -1,6 +1,5 @@
 const mqtt = require('mqtt');
 const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego } = require('../models');
-const { dbLogger } = require('../middleware/logger');
 
 class MQTTService {
   constructor() {
@@ -175,7 +174,7 @@ class MQTTService {
 
     } catch (error) {
       console.error('Error al procesar datos de sensores:', error);
-      await dbLogger('error', 'mqtt', `Error al procesar sensores: ${error.message}`, device.id, null, 'mqtt');
+      console.log(`[ERROR] [mqtt] Error al procesar sensores: ${error.message} (Disp: ${device.id})`);
     }
   }
 
@@ -199,13 +198,13 @@ class MQTTService {
           // Activar riego si valor está por debajo del umbral inferior
           if (valor < config.umbral_inferior && actuator.estado === 'apagado') {
             await this.controlActuator(deviceId, config.actuador_id, 'encendido', 'automatico');
-            await dbLogger('info', 'irrigation', `Riego automático iniciado en ${actuator.nombre}`, deviceId, null, 'mqtt');
+            console.log(`[INFO] [irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
           }
           
           // Desactivar riego si valor está por encima del umbral superior
           if (valor > config.umbral_superior && actuator.estado === 'encendido') {
             await this.controlActuator(deviceId, config.actuador_id, 'apagado', 'automatico');
-            await dbLogger('info', 'irrigation', `Riego automático detenido en ${actuator.nombre}`, deviceId, null, 'mqtt');
+            console.log(`[INFO] [irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
           }
         }
       }
