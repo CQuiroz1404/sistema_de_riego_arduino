@@ -24,7 +24,11 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
+    // Accessibility
+    notification.setAttribute('role', 'status');
+    notification.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
     notification.style.position = 'fixed';
     notification.style.top = '20px';
     notification.style.right = '20px';
@@ -33,7 +37,7 @@ function showNotification(message, type = 'info') {
     notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     notification.style.zIndex = '9999';
     notification.style.animation = 'slideIn 0.3s ease';
-    
+
     if (type === 'success') {
         notification.style.backgroundColor = '#27ae60';
         notification.style.color = '#fff';
@@ -47,13 +51,13 @@ function showNotification(message, type = 'info') {
         notification.style.backgroundColor = '#3498db';
         notification.style.color = '#fff';
     }
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
-            document.body.removeChild(notification);
+            if (notification.parentNode) document.body.removeChild(notification);
         }, 300);
     }, 3000);
 }
@@ -105,16 +109,43 @@ function confirmAction(message) {
 // Hacer petición API
 async function apiRequest(url, options = {}) {
     try {
-        const response = await fetch(url, {
+        // Incluir cookies por defecto (sesiones JWT en cookies)
+        const fetchOptions = {
+            credentials: 'same-origin',
             ...options,
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
-        });
-        
-        const data = await response.json();
-        return { success: response.ok, data, status: response.status };
+        };
+
+        // Añadir token CSRF si existe en meta
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && csrfMeta.content) {
+            fetchOptions.headers['X-CSRF-Token'] = csrfMeta.content;
+        }
+
+        const response = await fetch(url, fetchOptions);
+
+        const contentType = response.headers.get('content-type') || '';
+
+        let data;
+        if (contentType.includes('application/json')) {
+            try {
+                data = await response.json();
+            } catch (err) {
+                console.warn('Respuesta JSON inválida:', err);
+                data = null;
+            }
+        } else {
+            data = await response.text();
+        }
+
+        if (!response.ok) {
+            return { success: false, status: response.status, data };
+        }
+
+        return { success: true, status: response.status, data };
     } catch (error) {
         console.error('Error en la petición:', error);
         return { success: false, error: error.message };

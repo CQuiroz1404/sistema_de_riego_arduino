@@ -40,6 +40,9 @@
     "mqtt": "^5.14.1",
     "mysql2": "^3.6.5"
   },
+  "optionalDependencies": {
+    "sequelize": "^6.32.1"
+  },
   "devDependencies": {
     "nodemon": "^3.0.2"
   }

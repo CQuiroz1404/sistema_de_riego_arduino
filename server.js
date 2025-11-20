@@ -4,7 +4,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const morgan = require('morgan');
-const { testConnection } = require('./src/config/database');
+const { testConnection, syncDatabase, closePool, closeSequelize } = require('./src/config/database');
 const { errorHandler, logger } = require('./src/middleware/logger');
 const mqttService = require('./src/services/mqttService');
 
@@ -122,6 +122,15 @@ async function startServer() {
       console.log('El servidor continuará ejecutándose, pero las funciones de BD no estarán disponibles.');
     }
 
+    // Si está habilitado, sincronizar usando Sequelize (opcional)
+    if (process.env.USE_SEQUELIZE === 'true') {
+      try {
+        await syncDatabase({ alter: process.env.DB_SYNC_ALTER === 'true' });
+      } catch (err) {
+        console.error('⚠️  Error durante sequelize.sync:', err.message || err);
+      }
+    }
+
     // Inicializar servicio MQTT
     let mqttConnected = false;
     try {
@@ -173,6 +182,12 @@ process.on('SIGINT', async () => {
   } catch (error) {
     console.error('Error al cerrar MQTT:', error);
   }
+  try {
+    await closePool();
+    await closeSequelize();
+  } catch (err) {
+    console.error('Error cerrando recursos de BD:', err);
+  }
   process.exit(0);
 });
 
@@ -183,6 +198,12 @@ process.on('SIGTERM', async () => {
     console.log('✓ MQTT desconectado');
   } catch (error) {
     console.error('Error al cerrar MQTT:', error);
+  }
+  try {
+    await closePool();
+    await closeSequelize();
+  } catch (err) {
+    console.error('Error cerrando recursos de BD:', err);
   }
   process.exit(0);
 });

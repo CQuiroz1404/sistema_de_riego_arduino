@@ -45,14 +45,14 @@ async function controlActuator(actuatorId, action) {
                 accion: action
             })
         });
-        
+
         if (result.success) {
             showNotification(`Actuador ${action === 'encender' ? 'encendido' : 'apagado'} exitosamente`, 'success');
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         } else {
-            showNotification(result.data.message || 'Error al controlar actuador', 'error');
+            showNotification((result.data && result.data.message) || 'Error al controlar actuador', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -63,12 +63,13 @@ async function controlActuator(actuatorId, action) {
 // Actualizar estado del dispositivo en tiempo real
 async function updateDeviceStatus(deviceId) {
     try {
-        const response = await fetch(`/dashboard/device/${deviceId}`);
-        const result = await response.json();
-        
-        if (result.success) {
+        const result = await apiRequest(`/dashboard/device/${deviceId}`);
+
+        if (result.success && result.data) {
             // Actualizar interfaz con los nuevos datos
-            updateDeviceUI(result.device, result.sensors, result.actuators);
+            updateDeviceUI(result.data.device, result.data.sensors, result.data.actuators);
+        } else {
+            console.warn('No se pudieron obtener datos del dispositivo', result);
         }
     } catch (error) {
         console.error('Error al actualizar estado:', error);

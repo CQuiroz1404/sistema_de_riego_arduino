@@ -6,14 +6,16 @@ let connectionCheckInterval;
 // Actualizar datos del dashboard
 async function refreshData() {
     try {
-        const response = await fetch('/dashboard/data');
-        const result = await response.json();
-        
-        if (result.success) {
-            updateStats(result.stats);
-            updateDevices(result.devices);
-            updateAlerts(result.alerts);
+        const result = await apiRequest('/dashboard/data');
+
+        if (result.success && result.data) {
+            updateStats(result.data.stats);
+            updateDevices(result.data.devices);
+            updateAlerts(result.data.alerts);
             showNotification('Datos actualizados', 'success');
+        } else if (!result.success) {
+            console.warn('Error al obtener dashboard/data', result);
+            showNotification('Error al actualizar datos', 'warning');
         }
     } catch (error) {
         console.error('Error al actualizar datos:', error);
@@ -28,11 +30,11 @@ async function checkDeviceConnections() {
     for (const card of deviceCards) {
         const deviceId = card.getAttribute('data-device-id');
         try {
-            const response = await fetch(`/api/devices/${deviceId}/status`);
-            const result = await response.json();
-            
+            const result = await apiRequest(`/api/devices/${deviceId}/status`);
             if (result.success) {
                 updateConnectionStatus(deviceId, result.data);
+            } else {
+                updateConnectionStatus(deviceId, { connected: false });
             }
         } catch (error) {
             console.error(`Error al verificar dispositivo ${deviceId}:`, error);
@@ -121,7 +123,7 @@ function updateAlerts(alerts) {
 // Iniciar actualización automática cada 30 segundos
 function startAutoRefresh() {
     refreshInterval = setInterval(refreshData, 30000);
-    connectionCheckInterval = setInterval(checkDeviceConnections, 5000); // Cada 5 segundos
+    connectionCheckInterval = setInterval(checkDeviceConnections, 10000); // Cada 10 segundos
 }
 
 // Detener actualización automática

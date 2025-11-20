@@ -59,14 +59,6 @@ const int MQTT_PORT = 8883;                             // 1883 (TCP) o 8883 (TL
 const char* MQTT_USER = "riegoTeam";             // ← CAMBIAR: Usuario de EMQX
 const char* MQTT_PASSWORD = "Cu7WhT6gnZfZgz8";        // ← CAMBIAR: Contraseña de EMQX
 
-// Valores para TEST_MODE: Broker público sin autenticación (fácil de probar)
-#if TEST_MODE
-  const char* TEST_MQTT_BROKER = "broker.emqx.io";
-  const int TEST_MQTT_PORT = 1883;
-  const char* TEST_MQTT_USER = "";
-  const char* TEST_MQTT_PASSWORD = "";
-#endif
-
 // API Key del dispositivo (obtener de la base de datos)
 // SELECT api_key FROM dispositivos WHERE id = 1;
 const char* API_KEY = "d4d6b2bdfdb606e35287ef099910abf0c1cfdf598f14d4fcd0da1804b1ea4808";  // ← CAMBIAR: API Key de la BD
@@ -93,7 +85,6 @@ const unsigned long INTERVALO_PING = 30000;      // 30 segundos
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
-WiFiClientSecure secureClient;
 ArduinoLEDMatrix matrix;
 
 unsigned long ultimoEnvioSensores = 0;
@@ -215,12 +206,9 @@ void loop() {
 void conectarWiFi() {
   matrix.loadFrame(LED_WIFI_CONECTANDO);
   Serial.print("Conectando a WiFi");
-
-  // Intento de reconexión limpio
+  
   WiFi.disconnect();
   delay(100);
-  Serial.print("\nIniciando WiFi.begin() con SSID: ");
-  Serial.println(WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   int intentos = 0;
@@ -231,8 +219,7 @@ void conectarWiFi() {
   }
   Serial.println();
 
-  int st = WiFi.status();
-  if (st == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED) {
     // Esperar a obtener IP válida
     Serial.print("Obteniendo IP");
     intentos = 0;
@@ -257,51 +244,7 @@ void conectarWiFi() {
     }
   } else {
     matrix.loadFrame(LED_ERROR);
-    Serial.print("❌ Error: No se pudo conectar a WiFi (estado: ");
-    Serial.print(st);
-    Serial.print(" -> ");
-    Serial.println(wifiStatusToString(st));
-
-    // Hacer un escaneo de redes para diagnóstico
-    Serial.println("Escaneando redes WiFi locales para diagnostico...");
-    int n = WiFi.scanNetworks();
-    if (n == 0) {
-      Serial.println("   No se encontraron redes (0)");
-    } else {
-      Serial.print("   Redes encontradas: ");
-      Serial.println(n);
-      for (int i = 0; i < n; ++i) {
-        Serial.print("   ");
-        Serial.print(i + 1);
-        Serial.print(". ");
-        Serial.print(WiFi.SSID(i));
-        Serial.print(" (RSSI ");
-        Serial.print(WiFi.RSSI(i));
-        Serial.print(" dBm)");
-        if (WiFi.encryptionType(i) != WIFI_AUTH_OPEN) Serial.print(" [secure]");
-        Serial.println();
-      }
-    }
-    WiFi.scanDelete();
-
-    Serial.println("Verifica: 1) SSID correcto, 2) Password correcto, 3) Red 2.4GHz, 4) No captive portal.");
-  }
-}
-
-// Convierte el código de estado de PubSubClient a texto legible
-const char* mqttStateToString(int state) {
-  switch (state) {
-    case -4: return "MQTT_CONNECTION_TIMEOUT";
-    case -3: return "MQTT_CONNECTION_LOST";
-    case -2: return "MQTT_CONNECT_FAILED";
-    case -1: return "MQTT_DISCONNECTED";
-    case 0: return "MQTT_CONNECTED";
-    case 1: return "MQTT_CONNECT_BAD_PROTOCOL";
-    case 2: return "MQTT_CONNECT_BAD_CLIENT_ID";
-    case 3: return "MQTT_CONNECT_UNAVAILABLE";
-    case 4: return "MQTT_CONNECT_BAD_CREDENTIALS";
-    case 5: return "MQTT_CONNECT_UNAUTH";
-    default: return "MQTT_UNKNOWN";
+    Serial.println("❌ Error: No se pudo conectar a WiFi");
   }
 }
 
@@ -314,86 +257,28 @@ void conectarMQTT() {
   String clientId = "arduino_riego_";
   clientId += String(random(0xffff), HEX);
 
-  // Seleccionar broker/creds según TEST_MODE
-#if TEST_MODE
-  const char* brokerToUse = TEST_MQTT_BROKER;
-  int portToUse = TEST_MQTT_PORT;
-  const char* userToUse = TEST_MQTT_USER;
-  const char* passToUse = TEST_MQTT_PASSWORD;
-#else
-  const char* brokerToUse = MQTT_BROKER;
-  int portToUse = MQTT_PORT;
-  const char* userToUse = MQTT_USER;
-  const char* passToUse = MQTT_PASSWORD;
-#endif
-
-  // Diagnóstico TCP: comprobar que el host/puerto aceptan conexiones TCP
-  {
-    WiFiClient tcpTest;
-    Serial.print("\nComprobando conectividad TCP a ");
-    Serial.print(brokerToUse);
-    Serial.print(":" );
-    Serial.print(portToUse);
-    Serial.print(" ... ");
-    if (!tcpTest.connect(brokerToUse, portToUse)) {
-      Serial.println("FAIL (TCP connect)");
-      Serial.println("❌ La conexión TCP al broker falló. Revisa broker/puerto/firewall.");
-      matrix.loadFrame(LED_ERROR);
-      return;
-    } else {
-      Serial.println("OK (TCP connect)");
-      tcpTest.stop();
-    }
-  }
-
-  // Configurar cliente TLS/No-TLS según puerto y configuración
-  if (MQTT_USE_TLS && portToUse == 8883) {
-    // Usar secureClient
-    if (MQTT_TLS_INSECURE) {
-      secureClient.setInsecure();
-      Serial.println("Aviso: usando TLS sin verificación de certificado (setInsecure()).");
-    } else {
-      if (strlen(ca_cert) > 10) {
-        secureClient.setCACert(ca_cert);
-        Serial.println("CA cargada en WiFiClientSecure.");
-      } else {
-        Serial.println("ERROR: ca_cert vacío. Active MQTT_TLS_INSECURE=true para pruebas o pegue el CA.");
-      }
-    }
-    mqttClient.setClient(secureClient);
-  } else {
-    // Forzar cliente TCP no seguro
-    mqttClient.setClient(wifiClient);
-  }
-
-  // Asignar servidor con la información seleccionada
-  mqttClient.setServer(brokerToUse, portToUse);
-
   int intentos = 0;
   while (!mqttClient.connected() && intentos < 5) {
     Serial.print(".");
-
-    if (mqttClient.connect(clientId.c_str(), userToUse, passToUse)) {
+    
+    if (mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
       Serial.println("\n✅ Conectado a MQTT broker");
       Serial.print("   Broker: ");
-      Serial.println(brokerToUse);
-
+      Serial.println(MQTT_BROKER);
+      
       // Suscribirse a tópicos de comandos
       mqttClient.subscribe(topicComandos);
       mqttClient.subscribe(topicComandosAll);
-
+      
       Serial.println("📡 Suscrito a tópicos de comandos");
       matrix.loadFrame(LED_TODO_OK);
-
+      
       // Enviar ping inicial
       enviarPing();
-
+      
     } else {
-      int st = mqttClient.state();
       Serial.print("❌ Error: ");
-      Serial.print(st);
-      Serial.print(" -> ");
-      Serial.println(mqttStateToString(st));
+      Serial.println(mqttClient.state());
       intentos++;
       delay(2000);
     }
@@ -402,22 +287,6 @@ void conectarMQTT() {
   if (!mqttClient.connected()) {
     matrix.loadFrame(LED_ERROR);
     Serial.println("\n⚠️  No se pudo conectar a MQTT, reintentando en próximo ciclo");
-  }
-}
-
-// Mapea los códigos de estado WiFi a texto legible
-const char* wifiStatusToString(int status) {
-  switch (status) {
-    case WL_NO_SHIELD: return "WL_NO_SHIELD";
-    case WL_IDLE_STATUS: return "WL_IDLE_STATUS";
-    case WL_NO_SSID_AVAIL: return "WL_NO_SSID_AVAIL";
-    case WL_SCAN_COMPLETED: return "WL_SCAN_COMPLETED";
-    case WL_CONNECTED: return "WL_CONNECTED";
-    case WL_CONNECT_FAILED: return "WL_CONNECT_FAILED";
-    case WL_CONNECTION_LOST: return "WL_CONNECTION_LOST";
-    case WL_WRONG_PASSWORD: return "WL_WRONG_PASSWORD";
-    case WL_DISCONNECTED: return "WL_DISCONNECTED";
-    default: return "WL_UNKNOWN";
   }
 }
 
