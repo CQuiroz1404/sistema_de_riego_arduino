@@ -425,6 +425,54 @@ body {
     color: #856404;
 }
 
+/* Estado de conexión */
+.status-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.connection-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.connection-badge i {
+    font-size: 0.6rem;
+}
+
+.connection-badge.connected {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.connection-badge.connected i {
+    animation: pulse-green 2s infinite;
+}
+
+.connection-badge.disconnected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+@keyframes pulse-green {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
 .device-info {
     margin-bottom: 1rem;
 }

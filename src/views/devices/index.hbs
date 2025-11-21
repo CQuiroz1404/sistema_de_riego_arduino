@@ -39,9 +39,14 @@
                         <td><strong>{{this.nombre}}</strong></td>
                         <td>{{#if this.ubicacion}}{{this.ubicacion}}{{else}}-{{/if}}</td>
                         <td>
-                            <span class="status-badge status-{{this.estado}}">
-                                {{this.estado}}
-                            </span>
+                            <div class="status-container">
+                                <span class="connection-badge {{#if this.isConnected}}connected{{else}}disconnected{{/if}}" id="connection-{{this.id}}">
+                                    <i class="fas fa-circle"></i> {{#if this.isConnected}}Conectado{{else}}Desconectado{{/if}}
+                                </span>
+                                <span class="status-badge status-{{this.estado}}">
+                                    {{this.estado}}
+                                </span>
+                            </div>
                         </td>
                         <td>
                             {{#if this.ultima_conexion}}
@@ -84,6 +89,41 @@
         {{/if}}
     </div>
     
+    <script src="/js/main.js"></script>
     <script src="/js/devices.js"></script>
+    <script>
+        // Actualizar estado de conexión de dispositivos cada 5 segundos
+        async function updateConnectionStatus() {
+            const rows = document.querySelectorAll('tbody tr');
+            
+            for (const row of rows) {
+                const viewBtn = row.querySelector('a[href*="/devices/"]');
+                if (!viewBtn) continue;
+                
+                const deviceId = viewBtn.href.split('/').pop();
+                try {
+                    const response = await fetch(`/devices/${deviceId}/status`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const badge = document.getElementById(`connection-${deviceId}`);
+                        if (badge) {
+                            const isConnected = result.data.connected;
+                            badge.className = `connection-badge ${isConnected ? 'connected' : 'disconnected'}`;
+                            badge.innerHTML = `<i class="fas fa-circle"></i> ${isConnected ? 'Conectado' : 'Desconectado'}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error verificando estado de dispositivo ${deviceId}:`, error);
+                }
+            }
+        }
+        
+        // Verificar al cargar la página
+        updateConnectionStatus();
+        
+        // Verificar cada 5 segundos
+        setInterval(updateConnectionStatus, 5000);
+    </script>
 </body>
 </html>
