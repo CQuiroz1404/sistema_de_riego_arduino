@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - Sistema de Riego IoT</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom styles for calendar page */
+        .calendar-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .vc-container {
+            border: none;
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+    {{> navbar}}
+    
+    <div class="container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-calendar-alt"></i> Calendario de Riego</h1>
+        </div>
+
+        <div class="calendar-container">
+            <div id="app">
+                <v-calendar is-expanded :attributes="attributes"></v-calendar>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue.js 2 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <!-- V-Calendar 2 -->
+    <script src="https://unpkg.com/v-calendar@2.4.2/lib/v-calendar.umd.min.js"></script>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                attributes: [
+                    {
+                        key: 'today',
+                        highlight: {
+                            color: 'blue',
+                            fillMode: 'light',
+                        },
+                        dates: new Date(),
+                        popover: {
+                            label: 'Hoy',
+                        },
+                    }
+                ]
+            }
+        });
+    </script>
+</body>
+</html>
