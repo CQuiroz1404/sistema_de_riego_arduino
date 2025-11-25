@@ -1,40 +1,51 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{title}} - Sistema de Riego IoT</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
     <style>
         /* Custom styles for calendar page */
-        .calendar-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-top: 20px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
         .vc-container {
             border: none;
             font-family: inherit;
+            width: 100%;
+        }
+        .vc-pane-container {
+            width: 100%;
         }
     </style>
 </head>
-<body>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
     {{> navbar}}
     
-    <div class="container">
-        <div class="dashboard-header">
-            <h1><i class="fas fa-calendar-alt"></i> Calendario de Riego</h1>
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <i class="fas fa-calendar-alt text-blue-500"></i> Calendario de Riego
+            </h1>
         </div>
 
-        <div class="calendar-container">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 max-w-4xl mx-auto">
             <div id="app">
-                <v-calendar is-expanded :attributes="attributes"></v-calendar>
+                <v-calendar is-expanded :attributes="attributes" :is-dark="isDark"></v-calendar>
             </div>
         </div>
     </div>
@@ -48,11 +59,12 @@
         new Vue({
             el: '#app',
             data: {
+                isDark: document.documentElement.classList.contains('dark'),
                 attributes: [
                     {
                         key: 'today',
                         highlight: {
-                            color: 'blue',
+                            color: 'green',
                             fillMode: 'light',
                         },
                         dates: new Date(),
@@ -61,6 +73,20 @@
                         },
                     }
                 ]
+            },
+            mounted() {
+                // Listen for theme changes
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.attributeName === 'class') {
+                            this.isDark = document.documentElement.classList.contains('dark');
+                        }
+                    });
+                });
+                
+                observer.observe(document.documentElement, {
+                    attributes: true
+                });
             }
         });
     </script>

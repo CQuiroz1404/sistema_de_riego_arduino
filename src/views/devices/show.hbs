@@ -1,174 +1,193 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{device.nombre}} - Sistema de Riego IoT</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
 </head>
-<body>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
     {{> navbar}}
     
-    <div class="container">
-        <div class="page-header">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <h1><i class="fas fa-microchip"></i> {{device.nombre}}</h1>
-                <p>{{#if device.ubicacion}}{{device.ubicacion}}{{else}}Sin ubicación{{/if}}</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i class="fas fa-microchip text-blue-500"></i> {{device.nombre}}
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2">
+                    <i class="fas fa-map-marker-alt"></i> {{#if device.ubicacion}}{{device.ubicacion}}{{else}}Sin ubicación{{/if}}
+                </p>
             </div>
-            <div>
-                <a href="/devices/{{device.id}}/edit" class="btn btn-warning">
+            <div class="flex gap-3">
+                <a href="/devices/{{device.id}}/edit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
                     <i class="fas fa-edit"></i> Editar
                 </a>
-                <a href="/devices" class="btn btn-secondary">
+                <a href="/devices" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
                     <i class="fas fa-arrow-left"></i> Volver
                 </a>
             </div>
         </div>
         
-        <div class="device-detail">
-            <div class="info-card">
-                <h3><i class="fas fa-info-circle"></i> Información del Dispositivo</h3>
-                <div class="info-grid">
-                    <div>
-                        <label>Estado:</label>
-                        <span class="status-badge status-{{device.estado}}">{{device.estado}}</span>
+        <div class="space-y-6">
+            <!-- Info Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-500"></i> Información del Dispositivo
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Estado</label>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{#if (eq device.estado 'activo')}}green{{else}}gray{{/if}}-100 text-{{#if (eq device.estado 'activo')}}green{{else}}gray{{/if}}-800 dark:bg-{{#if (eq device.estado 'activo')}}green{{else}}gray{{/if}}-900/30 dark:text-{{#if (eq device.estado 'activo')}}green{{else}}gray{{/if}}-400">
+                            {{device.estado}}
+                        </span>
                     </div>
-                    <div>
-                        <label>API Key:</label>
-                        <code>{{device.api_key}}</code>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">API Key</label>
+                        <code class="text-sm font-mono text-gray-800 dark:text-gray-200 break-all">{{device.api_key}}</code>
                     </div>
-                    <div>
-                        <label>MAC Address:</label>
-                        <span>{{#if device.mac_address}}{{device.mac_address}}{{else}}N/A{{/if}}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">MAC Address</label>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">{{#if device.mac_address}}{{device.mac_address}}{{else}}N/A{{/if}}</span>
                     </div>
-                    <div>
-                        <label>IP Address:</label>
-                        <span>{{#if device.ip_address}}{{device.ip_address}}{{else}}N/A{{/if}}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">IP Address</label>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">{{#if device.ip_address}}{{device.ip_address}}{{else}}N/A{{/if}}</span>
                     </div>
-                    <div>
-                        <label>Última Conexión:</label>
-                        <span>{{#if device.ultima_conexion}}{{formatDate device.ultima_conexion}}{{else}}Nunca{{/if}}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Última Conexión</label>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">{{#if device.ultima_conexion}}{{formatDate device.ultima_conexion}}{{else}}Nunca{{/if}}</span>
                     </div>
-                    <div>
-                        <label>Fecha Creación:</label>
-                        <span>{{formatDate device.fecha_creacion}}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha Creación</label>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">{{formatDate device.fecha_creacion}}</span>
                     </div>
                 </div>
                 {{#if device.descripcion}}
-                <div class="description">
-                    <label>Descripción:</label>
-                    <p>{{device.descripcion}}</p>
+                <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descripción</label>
+                    <p class="text-sm text-gray-800 dark:text-gray-200">{{device.descripcion}}</p>
                 </div>
                 {{/if}}
             </div>
             
-            <div class="stats-row">
-                <div class="stat-box">
-                    <i class="fas fa-thermometer-half"></i>
-                    <h4>{{stats.total_sensores}}</h4>
-                    <p>Sensores</p>
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 text-center">
+                    <i class="fas fa-thermometer-half text-3xl text-green-500 mb-2"></i>
+                    <h4 class="text-3xl font-bold text-gray-900 dark:text-white">{{stats.total_sensores}}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Sensores</p>
                 </div>
-                <div class="stat-box">
-                    <i class="fas fa-tint"></i>
-                    <h4>{{stats.total_actuadores}}</h4>
-                    <p>Actuadores</p>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 text-center">
+                    <i class="fas fa-tint text-3xl text-blue-500 mb-2"></i>
+                    <h4 class="text-3xl font-bold text-gray-900 dark:text-white">{{stats.total_actuadores}}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Actuadores</p>
                 </div>
-                <div class="stat-box">
-                    <i class="fas fa-chart-line"></i>
-                    <h4>{{stats.total_lecturas}}</h4>
-                    <p>Lecturas</p>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 text-center">
+                    <i class="fas fa-chart-line text-3xl text-purple-500 mb-2"></i>
+                    <h4 class="text-3xl font-bold text-gray-900 dark:text-white">{{stats.total_lecturas}}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Lecturas</p>
                 </div>
             </div>
             
-            <div class="sensors-section">
-                <h3><i class="fas fa-thermometer-half"></i> Sensores</h3>
+            <!-- Sensors -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-thermometer-half text-orange-500"></i> Sensores
+                </h3>
                 {{#if sensors}}
                 {{#if (gt sensors.length 0)}}
-                <div class="sensors-grid">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {{#each sensors}}
-                    <div class="sensor-card">
-                        <div class="sensor-header">
-                            <h4>{{this.nombre}}</h4>
-                            <span class="badge">{{this.tipo}}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-bold text-gray-900 dark:text-white">{{this.nombre}}</h4>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">{{this.tipo}}</span>
                         </div>
-                        <div class="sensor-info">
-                            <p><i class="fas fa-microchip"></i> Pin: {{this.pin}}</p>
-                            <p><i class="fas fa-ruler"></i> Unidad: {{this.unidad}}</p>
+                        <div class="space-y-2 text-sm">
+                            <p class="text-gray-600 dark:text-gray-300"><i class="fas fa-microchip w-5"></i> Pin: {{this.pin}}</p>
+                            <p class="text-gray-600 dark:text-gray-300"><i class="fas fa-ruler w-5"></i> Unidad: {{this.unidad}}</p>
                             {{#if this.ultimo_valor}}
-                            <p class="value"><i class="fas fa-chart-line"></i> Último valor: {{this.ultimo_valor}} {{this.unidad}}</p>
+                            <p class="font-bold text-gray-900 dark:text-white mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <i class="fas fa-chart-line w-5 text-green-500"></i> {{this.ultimo_valor}} {{this.unidad}}
+                            </p>
                             {{/if}}
                         </div>
                     </div>
                     {{/each}}
                 </div>
                 {{else}}
-                <p class="empty-text">No hay sensores configurados</p>
+                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No hay sensores configurados
+                </div>
                 {{/if}}
                 {{else}}
-                <p class="empty-text">No hay sensores configurados</p>
+                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No hay sensores configurados
+                </div>
                 {{/if}}
             </div>
             
-            <div class="actuators-section">
-                <h3><i class="fas fa-tint"></i> Actuadores</h3>
+            <!-- Actuators -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-tint text-blue-500"></i> Actuadores
+                </h3>
                 {{#if actuators}}
                 {{#if (gt actuators.length 0)}}
-                <div class="actuators-grid">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {{#each actuators}}
-                    <div class="actuator-card">
-                        <div class="actuator-header">
-                            <h4>{{this.nombre}}</h4>
-                            <span class="badge badge-{{this.estado}}">{{this.estado}}</span>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-bold text-gray-900 dark:text-white">{{this.nombre}}</h4>
+                            <span class="px-2.5 py-0.5 rounded text-xs font-medium bg-{{#if (eq this.estado 'encendido')}}green{{else}}gray{{/if}}-100 text-{{#if (eq this.estado 'encendido')}}green{{else}}gray{{/if}}-800 dark:bg-{{#if (eq this.estado 'encendido')}}green{{else}}gray{{/if}}-900/30 dark:text-{{#if (eq this.estado 'encendido')}}green{{else}}gray{{/if}}-400">
+                                {{this.estado}}
+                            </span>
                         </div>
-                        <div class="actuator-info">
-                            <p><i class="fas fa-microchip"></i> Tipo: {{this.tipo}}</p>
-                            <p><i class="fas fa-plug"></i> Pin: {{this.pin}}</p>
+                        <div class="space-y-2 text-sm mb-4">
+                            <p class="text-gray-600 dark:text-gray-300"><i class="fas fa-microchip w-5"></i> Tipo: {{this.tipo}}</p>
+                            <p class="text-gray-600 dark:text-gray-300"><i class="fas fa-plug w-5"></i> Pin: {{this.pin}}</p>
                         </div>
-                        <div class="actuator-controls">
-                            <button onclick="controlActuator({{this.id}}, 'encender')" class="btn btn-sm btn-success">
-                                <i class="fas fa-power-off"></i> Encender
+                        <div class="flex gap-2">
+                            <button onclick="controlActuator({{this.id}}, 'encender')" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors shadow-sm">
+                                <i class="fas fa-power-off mr-1"></i> Encender
                             </button>
-                            <button onclick="controlActuator({{this.id}}, 'apagar')" class="btn btn-sm btn-danger">
-                                <i class="fas fa-stop"></i> Apagar
+                            <button onclick="controlActuator({{this.id}}, 'apagar')" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors shadow-sm">
+                                <i class="fas fa-stop mr-1"></i> Apagar
                             </button>
                         </div>
                     </div>
                     {{/each}}
                 </div>
                 {{else}}
-                <p class="empty-text">No hay actuadores configurados</p>
+                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No hay actuadores configurados
+                </div>
                 {{/if}}
                 {{else}}
-                <p class="empty-text">No hay actuadores configurados</p>
+                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No hay actuadores configurados
+                </div>
                 {{/if}}
             </div>
         </div>
     </div>
-    
-    <style>
-        .device-detail { margin-top: 30px; }
-        .info-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
-        .info-grid div { padding: 10px; background: #f8f9fa; border-radius: 4px; }
-        .info-grid label { font-weight: 600; display: block; margin-bottom: 5px; color: #666; }
-        .description { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
-        .stat-box i { font-size: 32px; color: #2ecc71; margin-bottom: 10px; }
-        .stat-box h4 { font-size: 32px; margin: 10px 0; }
-        .sensors-section, .actuators-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .sensors-grid, .actuators-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
-        .sensor-card, .actuator-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
-        .sensor-header, .actuator-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; background: #3498db; color: white; }
-        .badge-encendido { background: #27ae60; }
-        .badge-apagado { background: #95a5a6; }
-        .sensor-info p, .actuator-info p { margin: 8px 0; color: #666; }
-        .sensor-info .value { font-weight: 600; color: #2c3e50; font-size: 16px; }
-        .actuator-controls { display: flex; gap: 10px; margin-top: 15px; }
-        .empty-text { text-align: center; color: #999; padding: 40px; }
-    </style>
     
     <script>
         async function controlActuator(actuatorId, accion) {
@@ -181,7 +200,7 @@
                 
                 const data = await response.json();
                 if (data.success) {
-                    alert(`Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} correctamente`);
+                    // alert(`Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} correctamente`);
                     location.reload();
                 } else {
                     alert('Error: ' + data.message);

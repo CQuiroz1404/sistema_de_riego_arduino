@@ -53,10 +53,12 @@ class AuthController {
       }
 
       // Generar token JWT
+      // Se establece una duración larga (30 días) para mantener la sesión
+      // hasta que el usuario decida cerrar sesión explícitamente.
       const token = jwt.sign(
         { id: user.id, email: user.email, rol: user.rol },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+        { expiresIn: '30d' }
       );
 
       // Actualizar última conexión
@@ -66,10 +68,11 @@ class AuthController {
       console.log(`[INFO] [auth] Login exitoso: ${user.email} (User: ${user.id}, IP: ${req.ip})`);
 
       // Establecer cookie con el token
+      // La cookie durará 30 días, pero se borrará explícitamente al hacer logout
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días
       });
 
       res.json({ 
