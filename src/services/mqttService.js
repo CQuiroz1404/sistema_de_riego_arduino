@@ -145,7 +145,7 @@ class MQTTService {
       }
 
       for (const sensorData of sensores) {
-        const { sensor_id, valor } = sensorData;
+        const { sensor_id, valor, estado, conectado } = sensorData;
 
         const sensor = await Sensores.findByPk(sensor_id);
         
@@ -154,7 +154,28 @@ class MQTTService {
           continue;
         }
 
-        // Registrar lectura
+        // Verificar estado del sensor
+        if (conectado === false || estado !== 'ok') {
+          const estadoMsg = estado === 'desconectado' ? 'DESCONECTADO' : 
+                          estado === 'fuera_rango' ? 'FUERA DE RANGO' : 
+                          estado === 'lectura_anormal' ? 'LECTURA ANORMAL' : 'ERROR';
+          
+          logger.warn(`⚠️  Sensor ${sensor.nombre} (${device.nombre}): ${estadoMsg} - Valor: ${valor}`);
+          
+          // Crear alerta de sensor desconectado o anormal
+          await Alertas.create({
+            dispositivo_id: device.id,
+            tipo: 'sensor_error',
+            severidad: 'alta',
+            mensaje: `${sensor.nombre}: ${estadoMsg} (valor: ${valor} ${sensor.unidad})`,
+            leido: false
+          });
+          
+          // No procesar riego automático si el sensor no está conectado
+          continue;
+        }
+
+        // Registrar lectura solo si el sensor está válido
         await Lecturas.create({
           sensor_id: sensor_id,
           valor: valor
@@ -169,10 +190,10 @@ class MQTTService {
           await this.createAlert(device, sensor, 'alto', valor);
         }
 
-        // Verificar configuraciones de riego automático
+        // Verificar configuraciones de riego automático (solo con sensor conectado)
         await this.checkAutoIrrigation(device.id, sensor_id, valor);
 
-        logger.info(`📊 Sensor ${sensor.nombre} (${device.nombre}): ${valor} ${sensor.unidad}`);
+        logger.info(`📊 Sensor ${sensor.nombre} (${device.nombre}): ${valor} ${sensor.unidad} ✅`);
       }
 
       // Emitir evento WebSocket con todos los datos
@@ -231,6 +252,29 @@ class MQTTService {
       }
     } catch (error) {
       logger.error('Error al verificar riego automático: %o', error);
+    }
+  }
+
+  /**
+   * Crea una alerta para sensor fuera de rango
+   */
+  async createAlert(device, sensor, tipo, valor) {
+    try {
+      const mensaje = tipo === 'bajo' 
+        ? `${sensor.nombre}: Valor bajo (${valor} ${sensor.unidad})`
+        : `${sensor.nombre}: Valor alto (${valor} ${sensor.unidad})`;
+      
+      await Alertas.create({
+        dispositivo_id: device.id,
+        tipo: 'sensor_fuera_rango',
+        severidad: 'media',
+        mensaje: mensaje,
+        leido: false
+      });
+      
+      logger.warn(`⚠️  ${mensaje}`);
+    } catch (error) {
+      logger.error('Error al crear alerta: %o', error);
     }
   }
 

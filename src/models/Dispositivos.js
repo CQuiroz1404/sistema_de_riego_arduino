@@ -6,8 +6,6 @@ const Dispositivos = sequelize.define('dispositivos', {
   nombre: { type: DataTypes.STRING(100), allowNull: false },
   ubicacion: { type: DataTypes.STRING(200), allowNull: true },
   descripcion: { type: DataTypes.TEXT, allowNull: true },
-  mac_address: { type: DataTypes.STRING(17), allowNull: true, unique: true },
-  ip_address: { type: DataTypes.STRING(45), allowNull: true },
   api_key: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   estado: { type: DataTypes.ENUM('activo','inactivo','mantenimiento'), defaultValue: 'activo' },
   ultima_conexion: { type: DataTypes.DATE, allowNull: true },

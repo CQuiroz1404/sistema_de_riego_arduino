@@ -370,13 +370,19 @@ void enviarDatosSensores() {
   if (!mqttClient.connected()) return;
 
   // ============================================
-  // LECTURA DE SENSORES CON DEBUG
+  // LECTURA DE SENSORES CON VALIDACIÓN
   // ============================================
   
   Serial.println("\n--- LECTURA DE SENSORES ---");
   
-  // Leer temperatura del LM35DZ/CZ (A1)
-  int lecturaLM35 = analogRead(PIN_LM35);
+  // Leer temperatura del LM35DZ/CZ (A1) - Promedio de 10 lecturas
+  long sumaLecturas = 0;
+  for (int i = 0; i < 10; i++) {
+    sumaLecturas += analogRead(PIN_LM35);
+    delay(10);
+  }
+  int lecturaLM35 = sumaLecturas / 10;
+  
   float voltajeLM35 = (lecturaLM35 * 5.0) / 1023.0;
   float temperatura = voltajeLM35 * 100.0;  // 10mV/°C = 0.01V/°C
   
@@ -390,14 +396,44 @@ void enviarDatosSensores() {
   Serial.print(temperatura, 1);
   Serial.println("°C");
 
+  // ============================================
+  // VALIDACIÓN DE SENSOR
+  // ============================================
+  bool sensorValido = true;
+  String estadoSensor = "ok";
+  
+  // Validar rango de temperatura razonable (-10°C a 100°C)
+  if (temperatura < -10 || temperatura > 100) {
+    Serial.println("⚠️  ADVERTENCIA: Temperatura fuera de rango");
+    sensorValido = false;
+    estadoSensor = "fuera_rango";
+  }
+  
+  // Validar si el sensor está conectado (voltaje muy bajo o muy alto = desconectado)
+  if (voltajeLM35 < 0.1) {
+    Serial.println("⚠️  ADVERTENCIA: Sensor posiblemente desconectado (voltaje muy bajo)");
+    sensorValido = false;
+    estadoSensor = "desconectado";
+  } else if (voltajeLM35 > 4.5) {
+    Serial.println("⚠️  ADVERTENCIA: Sensor con lectura anormal (voltaje muy alto)");
+    sensorValido = false;
+    estadoSensor = "lectura_anormal";
+  }
+  
+  if (sensorValido) {
+    Serial.println("✅ Sensor validado correctamente");
+  }
+
   // Crear JSON
-  StaticJsonDocument<256> doc;
+  StaticJsonDocument<512> doc;
   JsonArray sensores = doc.createNestedArray("sensores");
 
-  // Solo enviar temperatura
+  // Enviar temperatura con información de estado
   JsonObject sensor1 = sensores.createNestedObject();
   sensor1["sensor_id"] = SENSOR_TEMPERATURA_ID;
   sensor1["valor"] = temperatura;
+  sensor1["estado"] = estadoSensor;
+  sensor1["conectado"] = sensorValido;
 
   doc["timestamp"] = millis();
 
