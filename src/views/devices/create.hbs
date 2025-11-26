@@ -64,17 +64,6 @@
                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
                                   placeholder="Descripción del dispositivo..."></textarea>
                     </div>
-                    
-                    <div>
-                        <label for="mac_address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            <i class="fas fa-network-wired mr-1"></i> Dirección MAC
-                        </label>
-                        <input type="text" id="mac_address" name="mac_address" 
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
-                               placeholder="AA:BB:CC:DD:EE:FF"
-                               pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Formato: AA:BB:CC:DD:EE:FF</p>
-                    </div>
                 </div>
                 
                 <div id="errorMessage" class="mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative hidden" role="alert"></div>
@@ -120,8 +109,7 @@
             const formData = {
                 nombre: document.getElementById('nombre').value,
                 ubicacion: document.getElementById('ubicacion').value,
-                descripcion: document.getElementById('descripcion').value,
-                mac_address: document.getElementById('mac_address').value
+                descripcion: document.getElementById('descripcion').value
             };
             
             const errorDiv = document.getElementById('errorMessage');

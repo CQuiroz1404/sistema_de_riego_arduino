@@ -44,7 +44,7 @@ class DeviceController {
   // Crear nuevo dispositivo
   static async store(req, res) {
     try {
-      const { nombre, ubicacion, descripcion, mac_address } = req.body;
+      const { nombre, ubicacion, descripcion } = req.body;
 
       // Generar API key única
       const api_key = crypto.randomBytes(32).toString('hex');
@@ -53,7 +53,6 @@ class DeviceController {
         nombre,
         ubicacion,
         descripcion,
-        mac_address,
         api_key,
         usuario_id: req.user.id
       });
