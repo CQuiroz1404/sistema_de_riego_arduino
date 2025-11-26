@@ -1,5 +1,4 @@
 const { Sensores, Dispositivos, Lecturas } = require('../models');
-const { dbLogger } = require('../middleware/logger');
 const { Op } = require('sequelize');
 
 class SensorController {
@@ -34,7 +33,7 @@ class SensorController {
         valor_maximo
       });
 
-      await dbLogger('info', 'sensors', `Nuevo sensor creado: ${nombre}`, dispositivo_id, req.user.id, req.ip);
+      console.log(`[INFO] [sensors] Nuevo sensor creado: ${nombre} (Disp: ${dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -144,7 +143,7 @@ class SensorController {
       }
 
       await sensor.update(req.body);
-      await dbLogger('info', 'sensors', `Sensor actualizado: ${sensor.nombre}`, sensor.dispositivo_id, req.user.id, req.ip);
+      console.log(`[INFO] [sensors] Sensor actualizado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -182,7 +181,7 @@ class SensorController {
       }
 
       await sensor.destroy();
-      await dbLogger('warning', 'sensors', `Sensor eliminado: ${sensor.nombre}`, sensor.dispositivo_id, req.user.id, req.ip);
+      console.log(`[WARNING] [sensors] Sensor eliminado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 

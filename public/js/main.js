@@ -15,47 +15,53 @@ async function logout() {
         }
     } catch (error) {
         console.error('Error al cerrar sesión:', error);
-        alert('Error al cerrar sesión');
+        showNotification('Error al cerrar sesión', 'error');
     }
 }
 
 // Mostrar notificación
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
+    
+    // Base classes
+    let classes = 'fixed top-5 right-5 px-6 py-4 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full flex items-center gap-3';
+    
+    // Type specific classes
+    if (type === 'success') {
+        classes += ' bg-green-500 text-white';
+    } else if (type === 'error') {
+        classes += ' bg-red-500 text-white';
+    } else if (type === 'warning') {
+        classes += ' bg-yellow-500 text-white';
+    } else {
+        classes += ' bg-blue-500 text-white';
+    }
+    
+    notification.className = classes;
+    
+    // Icon based on type
+    let icon = '';
+    if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+    else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+    else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle"></i>';
+    else icon = '<i class="fas fa-info-circle"></i>';
+    
+    notification.innerHTML = `${icon} <span class="font-medium">${message}</span>`;
 
     // Accessibility
     notification.setAttribute('role', 'status');
     notification.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
 
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.padding = '1rem 1.5rem';
-    notification.style.borderRadius = '4px';
-    notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    notification.style.zIndex = '9999';
-    notification.style.animation = 'slideIn 0.3s ease';
-
-    if (type === 'success') {
-        notification.style.backgroundColor = '#27ae60';
-        notification.style.color = '#fff';
-    } else if (type === 'error') {
-        notification.style.backgroundColor = '#e74c3c';
-        notification.style.color = '#fff';
-    } else if (type === 'warning') {
-        notification.style.backgroundColor = '#f39c12';
-        notification.style.color = '#fff';
-    } else {
-        notification.style.backgroundColor = '#3498db';
-        notification.style.color = '#fff';
-    }
-
     document.body.appendChild(notification);
 
+    // Animate in
+    requestAnimationFrame(() => {
+        notification.classList.remove('translate-x-full');
+    });
+
+    // Remove after delay
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
+        notification.classList.add('translate-x-full');
         setTimeout(() => {
             if (notification.parentNode) document.body.removeChild(notification);
         }, 300);
@@ -73,33 +79,6 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
-
-// Animaciones CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 
 // Confirmar acción
 function confirmAction(message) {

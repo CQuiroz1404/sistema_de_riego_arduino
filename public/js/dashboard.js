@@ -2,6 +2,27 @@
 
 let refreshInterval;
 let connectionCheckInterval;
+const socket = io();
+
+// Escuchar eventos de Socket.io
+socket.on('connect', () => {
+    console.log('🔌 Conectado a WebSockets');
+    showNotification('Conexión en tiempo real activa', 'success');
+});
+
+socket.on('sensor:update', (data) => {
+    console.log('📡 Datos de sensores recibidos:', data);
+    // Actualizar UI específica si es necesario
+    // Por ahora, refrescamos todo el dashboard para simplificar
+    // En una implementación más avanzada, actualizaríamos solo los elementos DOM específicos
+    refreshData();
+});
+
+socket.on('device:event', (data) => {
+    console.log('📢 Evento de dispositivo:', data);
+    showNotification(`${data.tipo}: ${data.mensaje}`, 'info');
+    refreshData();
+});
 
 // Actualizar datos del dashboard
 async function refreshData() {

@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Usuarios } = require('../models');
-const { dbLogger } = require('../middleware/logger');
 
 class AuthController {
   // Mostrar página de login
@@ -54,23 +53,26 @@ class AuthController {
       }
 
       // Generar token JWT
+      // Se establece una duración larga (30 días) para mantener la sesión
+      // hasta que el usuario decida cerrar sesión explícitamente.
       const token = jwt.sign(
         { id: user.id, email: user.email, rol: user.rol },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+        { expiresIn: '30d' }
       );
 
       // Actualizar última conexión
       await Usuarios.update({ ultima_conexion: new Date() }, { where: { id: user.id } });
 
       // Log de login
-      await dbLogger('info', 'auth', `Login exitoso: ${user.email}`, null, user.id, req.ip);
+      console.log(`[INFO] [auth] Login exitoso: ${user.email} (User: ${user.id}, IP: ${req.ip})`);
 
       // Establecer cookie con el token
+      // La cookie durará 30 días, pero se borrará explícitamente al hacer logout
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días
       });
 
       res.json({ 
@@ -95,7 +97,7 @@ class AuthController {
   // Procesar registro
   static async register(req, res) {
     try {
-      const { nombre, email, password, confirmPassword } = req.body;
+      const { nombre, email, password, confirmPassword, rut } = req.body;
 
       // Validar datos
       if (!nombre || !email || !password) {
@@ -128,6 +130,17 @@ class AuthController {
         });
       }
 
+      // Verificar si el RUT ya existe (si se proporciona)
+      if (rut) {
+        const existingRut = await Usuarios.findOne({ where: { rut } });
+        if (existingRut) {
+          return res.status(409).json({ 
+            success: false, 
+            message: 'El RUT ya está registrado' 
+          });
+        }
+      }
+
       // Encriptar contraseña
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -136,11 +149,12 @@ class AuthController {
         nombre,
         email,
         password: hashedPassword,
-        rol: 'usuario'
+        rol: 'usuario',
+        rut: rut || null
       });
 
       // Log de registro
-      await dbLogger('info', 'auth', `Nuevo usuario registrado: ${email}`, null, newUser.id, req.ip);
+      console.log(`[INFO] [auth] Nuevo usuario registrado: ${email} (User: ${newUser.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -161,7 +175,7 @@ class AuthController {
     try {
       // Log de logout
       if (req.user) {
-        await dbLogger('info', 'auth', `Logout: ${req.user.email}`, null, req.user.id, req.ip);
+        console.log(`[INFO] [auth] Logout: ${req.user.email} (User: ${req.user.id}, IP: ${req.ip})`);
       }
 
       // Limpiar cookie

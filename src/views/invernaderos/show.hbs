@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle Invernadero - Sistema de Riego IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{> navbar}}
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div class="flex items-center gap-4">
+                <a href="/invernaderos" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <i class="fas fa-warehouse text-green-500"></i> Invernadero #{{invernadero.id}}
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">{{invernadero.descripcion}}</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <a href="/invernaderos/{{invernadero.id}}/edit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Estado Actual -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-blue-500"></i> Estado Actual
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center">
+                            <i class="fas fa-thermometer-half text-3xl text-orange-500 mb-2"></i>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Temperatura</p>
+                            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{invernadero.temp_actual}}°C</h4>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center">
+                            <i class="fas fa-tint text-3xl text-blue-500 mb-2"></i>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Humedad</p>
+                            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{invernadero.hum_actual}}%</h4>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center">
+                            <i class="fas fa-shower text-3xl text-{{#if invernadero.riego}}blue{{else}}gray{{/if}}-500 mb-2"></i>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Riego</p>
+                            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{#if invernadero.riego}}Activado{{else}}Desactivado{{/if}}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Planta Info -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-leaf text-green-500"></i> Información de Planta
+                    </h3>
+                    {{#if invernadero.planta}}
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center border-b border-gray-100 dark:border-gray-700 pb-4">
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{invernadero.planta.nombre}}</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">{{invernadero.planta.tipo_planta.nombre}}</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                Asignada
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-100 dark:border-orange-800/30">
+                                <h5 class="font-medium text-orange-800 dark:text-orange-300 mb-2">Rango Temperatura</h5>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600 dark:text-gray-400">Mínima:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{invernadero.planta.rango_temperatura.temp_min}}°C</span>
+                                </div>
+                                <div class="flex justify-between text-sm mt-1">
+                                    <span class="text-gray-600 dark:text-gray-400">Máxima:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{invernadero.planta.rango_temperatura.temp_max}}°C</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                                <h5 class="font-medium text-blue-800 dark:text-blue-300 mb-2">Rango Humedad</h5>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600 dark:text-gray-400">Mínima:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{invernadero.planta.rango_humedad.hum_min}}%</span>
+                                </div>
+                                <div class="flex justify-between text-sm mt-1">
+                                    <span class="text-gray-600 dark:text-gray-400">Máxima:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{invernadero.planta.rango_humedad.hum_max}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{else}}
+                    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-seedling text-4xl mb-3 text-gray-300 dark:text-gray-600"></i>
+                        <p>No hay planta asignada a este invernadero</p>
+                        <a href="/invernaderos/{{invernadero.id}}/edit" class="text-green-600 hover:text-green-700 font-medium mt-2 inline-block">Asignar Planta</a>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+            
+            <!-- Acciones Rápidas -->
+            <div class="space-y-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-bolt text-yellow-500"></i> Acciones
+                    </h3>
+                    <div class="space-y-3">
+                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-shower"></i> Activar Riego Manual
+                        </button>
+                        <a href="/invernaderos/{{invernadero.id}}/calendario" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-calendar-alt"></i> Ver Calendario
+                        </a>
+                        <a href="/invernaderos/{{invernadero.id}}/historial" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-history"></i> Ver Historial
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

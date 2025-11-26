@@ -1,7 +1,7 @@
 const { Dispositivos, Sensores, Actuadores, Lecturas } = require('../models');
-const { dbLogger } = require('../middleware/logger');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
+const logger = require('../config/logger');
 
 class DeviceController {
   // Mostrar todos los dispositivos
@@ -29,7 +29,7 @@ class DeviceController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al obtener dispositivos:', error);
+      logger.error('Error al obtener dispositivos: %o', error);
       res.status(500).render('error', { 
         message: 'Error al cargar dispositivos' 
       });
@@ -58,7 +58,7 @@ class DeviceController {
         usuario_id: req.user.id
       });
 
-      await dbLogger('info', 'devices', `Nuevo dispositivo creado: ${nombre}`, device.id, req.user.id, req.ip);
+      logger.info(`[INFO] [devices] Nuevo dispositivo creado: ${nombre} (Disp: ${device.id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -67,7 +67,7 @@ class DeviceController {
         api_key 
       });
     } catch (error) {
-      console.error('Error al crear dispositivo:', error);
+      logger.error('Error al crear dispositivo: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al crear dispositivo' 
@@ -112,7 +112,7 @@ class DeviceController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al obtener dispositivo:', error);
+      logger.error('Error al obtener dispositivo: %o', error);
       res.status(500).render('error', { 
         message: 'Error al cargar dispositivo' 
       });
@@ -143,7 +143,7 @@ class DeviceController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al cargar formulario:', error);
+      logger.error('Error al cargar formulario: %o', error);
       res.status(500).render('error', { 
         message: 'Error al cargar formulario' 
       });
@@ -172,14 +172,14 @@ class DeviceController {
       }
 
       await device.update(req.body);
-      await dbLogger('info', 'devices', `Dispositivo actualizado: ${device.nombre}`, id, req.user.id, req.ip);
+      logger.info(`[INFO] [devices] Dispositivo actualizado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
         message: 'Dispositivo actualizado exitosamente' 
       });
     } catch (error) {
-      console.error('Error al actualizar dispositivo:', error);
+      logger.error('Error al actualizar dispositivo: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al actualizar dispositivo' 
@@ -209,14 +209,14 @@ class DeviceController {
       }
 
       await device.destroy();
-      await dbLogger('warning', 'devices', `Dispositivo eliminado: ${device.nombre}`, id, req.user.id, req.ip);
+      logger.warn(`[WARNING] [devices] Dispositivo eliminado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
         message: 'Dispositivo eliminado exitosamente' 
       });
     } catch (error) {
-      console.error('Error al eliminar dispositivo:', error);
+      logger.error('Error al eliminar dispositivo: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al eliminar dispositivo' 
@@ -239,7 +239,7 @@ class DeviceController {
         devices: devices.map(d => d.toJSON()) 
       });
     } catch (error) {
-      console.error('Error al obtener dispositivos:', error);
+      logger.error('Error al obtener dispositivos: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al cargar dispositivos' 
@@ -273,7 +273,7 @@ class DeviceController {
       const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
       const isConnected = lastConnection && (now - lastConnection) < 30000;
 
-      console.log(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isConnected: ${isConnected}`);
+      logger.debug(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isConnected: ${isConnected}`);
 
       res.json({ 
         success: true, 
@@ -285,7 +285,7 @@ class DeviceController {
         }
       });
     } catch (error) {
-      console.error('Error al verificar estado:', error);
+      logger.error('Error al verificar estado: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al verificar estado' 

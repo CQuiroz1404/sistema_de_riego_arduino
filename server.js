@@ -5,10 +5,21 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const morgan = require('morgan');
 const { testConnection, syncDatabase, closePool, closeSequelize } = require('./src/config/baseDatos');
-const { errorHandler, logger } = require('./src/middleware/logger');
 const mqttService = require('./src/services/mqttService');
+const logger = require('./src/config/logger');
+const http = require('http');
+const { Server } = require('socket.io');
+const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./src/config/swagger');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+// Configurar Socket.io en MQTT Service
+mqttService.setSocketIo(io);
+
 const PORT = process.env.PORT || 3000;
 
 // Esperar a que la base de datos esté disponible (reintentos)
@@ -20,7 +31,7 @@ async function waitForDatabase() {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`🔎 Intento ${attempt}/${maxAttempts} de conectar a la base de datos...`);
+      logger.info(`🔎 Intento ${attempt}/${maxAttempts} de conectar a la base de datos...`);
       const ok = await testConnection();
       if (ok) {
         // Si se usa Sequelize, también verificar su conexión si es posible
@@ -31,21 +42,21 @@ async function waitForDatabase() {
             if (typeof dbModule.testSequelizeConnection === 'function') {
               const seqOk = await dbModule.testSequelizeConnection();
               if (!seqOk) {
-                console.warn('⚠️  Sequelize no respondió correctamente, pero pool MySQL está disponible.');
+                logger.warn('⚠️  Sequelize no respondió correctamente, pero pool MySQL está disponible.');
               }
             }
           } catch (err) {
-            console.warn('⚠️  No se pudo verificar Sequelize:', err.message || err);
+            logger.warn('⚠️  No se pudo verificar Sequelize: %s', err.message || err);
           }
         }
         return true;
       }
     } catch (err) {
-      console.error('Error comprobando la BD:', err.message || err);
+      logger.error('Error comprobando la BD: %s', err.message || err);
     }
 
     if (attempt < maxAttempts) {
-      console.log(`Esperando ${intervalMs}ms antes del siguiente intento...`);
+      logger.info(`Esperando ${intervalMs}ms antes del siguiente intento...`);
       await sleep(intervalMs);
     }
   }
@@ -57,11 +68,21 @@ async function waitForDatabase() {
 // Middlewares
 // ============================================
 
+// Rate Limiting (Seguridad)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Limitar cada IP a 100 peticiones por ventana
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo después de 15 minutos'
+});
+app.use('/api/', limiter); // Aplicar solo a rutas API
+
 // Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
-app.use(logger);
+// app.use(logger); // Logger eliminado
 
 // CORS
 app.use(cors({
@@ -75,6 +96,23 @@ app.use(express.urlencoded({ extended: true }));
 
 // Cookie parser
 app.use(cookieParser());
+
+// Middleware global para exponer usuario autenticado a las vistas
+const jwt = require('jsonwebtoken');
+app.use((req, res, next) => {
+  try {
+    const token = req.cookies && req.cookies.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+    }
+  } catch (e) {
+    req.user = null;
+  }
+
+  res.locals.user = req.user;
+  next();
+});
 
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
@@ -116,7 +154,12 @@ hbs.registerHelper('json', function(context) {
 
 // Ruta raíz
 app.get('/', (req, res) => {
-  res.redirect('/auth/login');
+  if (req.user) {
+    // Si ya hay sesión, ir directo al dashboard
+    return res.redirect('/dashboard');
+  }
+  // Si no hay sesión, mostrar login
+  return res.redirect('/auth/login');
 });
 
 // Importar rutas
@@ -125,6 +168,9 @@ const dashboardRoutes = require('./src/routes/dashboard');
 const deviceRoutes = require('./src/routes/devices');
 const sensorRoutes = require('./src/routes/sensors');
 const arduinoRoutes = require('./src/routes/arduino');
+const calendarRoutes = require('./src/routes/calendar');
+const invernaderoRoutes = require('./src/routes/invernaderos');
+const plantaRoutes = require('./src/routes/plantas');
 
 // Usar rutas
 app.use('/auth', authRoutes);
@@ -132,6 +178,12 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/devices', deviceRoutes);
 app.use('/sensors', sensorRoutes);
 app.use('/api/arduino', arduinoRoutes);
+app.use('/calendar', calendarRoutes);
+app.use('/invernaderos', invernaderoRoutes);
+app.use('/plantas', plantaRoutes);
+
+// Documentación API (Swagger)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Ruta API para verificar estado de dispositivos
 const DeviceController = require('./src/controllers/DeviceController');
@@ -149,7 +201,21 @@ app.use((req, res) => {
 // ============================================
 // Manejo de errores
 // ============================================
-app.use(errorHandler);
+app.use((err, req, res, next) => {
+  logger.error('Error: %o', err);
+  if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Error interno del servidor',
+      error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+  } else {
+    res.status(err.status || 500).render('error', {
+      message: err.message || 'Error interno del servidor',
+      error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+  }
+});
 
 // ============================================
 // Iniciar servidor
@@ -159,7 +225,7 @@ async function startServer() {
     // Esperar a que la base de datos esté disponible (reintentos configurables)
     const dbReady = await waitForDatabase();
     if (!dbReady) {
-      console.error('✗ No se pudo conectar a la base de datos después de varios intentos. Abortando inicio del servidor.');
+      logger.error('✗ No se pudo conectar a la base de datos después de varios intentos. Abortando inicio del servidor.');
       process.exit(1);
     }
 
@@ -168,7 +234,7 @@ async function startServer() {
       try {
         await syncDatabase({ alter: process.env.DB_SYNC_ALTER === 'true' });
       } catch (err) {
-        console.error('⚠️  Error durante sequelize.sync:', err.message || err);
+        logger.error('⚠️  Error durante sequelize.sync: %s', err.message || err);
       }
     }
 
@@ -178,78 +244,80 @@ async function startServer() {
       await mqttService.connect();
       mqttConnected = mqttService.isConnected();
     } catch (error) {
-      console.error('⚠️  Error al inicializar MQTT:', error.message);
-      console.log('El servidor continuará sin MQTT. Los dispositivos no podrán comunicarse.');
+      logger.error('⚠️  Error al inicializar MQTT: %s', error.message);
+      logger.info('El servidor continuará sin MQTT. Los dispositivos no podrán comunicarse.');
     }
 
     // Iniciar servidor en todas las interfaces (0.0.0.0)
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log('');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('  🌱 Sistema de Riego Arduino IoT - MQTT');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log(`  Servidor Local: http://localhost:${PORT}`);
-      console.log(`  Servidor Red: http://192.168.1.169:${PORT}`);
-      console.log(`  Entorno: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`  Base de datos: ${dbReady ? '✓ Conectada' : '✗ Desconectada'}`);
-      console.log(`  MQTT Broker: ${mqttConnected ? '✓ Conectado' : '✗ Desconectado'}`);
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('');
-      console.log('Presione Ctrl+C para detener el servidor');
-      console.log('');
+    server.listen(PORT, '0.0.0.0', () => {
+      logger.info('');
+      logger.info('═══════════════════════════════════════════════════════');
+      logger.info('  🌱 Sistema de Riego Arduino IoT - MQTT');
+      logger.info('═══════════════════════════════════════════════════════');
+      logger.info(`  Servidor Local: http://localhost:${PORT}`);
+      logger.info(`  Entorno: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`  Base de datos: ${dbReady ? '✓ Conectada' : '✗ Desconectada'}`);
+      logger.info(`  MQTT Broker: ${mqttConnected ? '✓ Conectado' : '✗ Desconectado'}`);
+      logger.info(`  WebSockets: ✓ Activo`);
+      logger.info('═══════════════════════════════════════════════════════');
+      logger.info('');
+      logger.info('Presione Ctrl+C para detener el servidor');
+      logger.info('');
     });
   } catch (error) {
-    console.error('Error fatal al iniciar el servidor:', error);
+    logger.error('Error fatal al iniciar el servidor: %o', error);
     process.exit(1);
   }
 }
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
+  logger.error('Unhandled Rejection: %o', err);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  logger.error('Uncaught Exception: %o', err);
   process.exit(1);
 });
 
 // Manejo de cierre graceful
 process.on('SIGINT', async () => {
-  console.log('\n\n🛑 Cerrando servidor...');
+  logger.info('\n\n🛑 Cerrando servidor...');
   try {
     await mqttService.disconnect();
-    console.log('✓ MQTT desconectado');
+    logger.info('✓ MQTT desconectado');
   } catch (error) {
-    console.error('Error al cerrar MQTT:', error);
+    logger.error('Error al cerrar MQTT: %o', error);
   }
   try {
     await closePool();
     await closeSequelize();
   } catch (err) {
-    console.error('Error cerrando recursos de BD:', err);
+    logger.error('Error cerrando recursos de BD: %o', err);
   }
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n\n🛑 Cerrando servidor...');
+  logger.info('\n\n🛑 Cerrando servidor...');
   try {
     await mqttService.disconnect();
-    console.log('✓ MQTT desconectado');
+    logger.info('✓ MQTT desconectado');
   } catch (error) {
-    console.error('Error al cerrar MQTT:', error);
+    logger.error('Error al cerrar MQTT: %o', error);
   }
   try {
     await closePool();
     await closeSequelize();
   } catch (err) {
-    console.error('Error cerrando recursos de BD:', err);
+    logger.error('Error cerrando recursos de BD: %o', err);
   }
   process.exit(0);
 });
 
-// Iniciar
-startServer();
+// Iniciar solo si es el archivo principal
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;
