@@ -1,4 +1,4 @@
-const { HistorialAutomatico, HistorialAcciones, Invernadero, Acciones } = require('../models');
+const { HistorialAutomatico, HistorialAcciones, Invernaderos, Acciones } = require('../models');
 
 const HistorialController = {
     // Obtener historial de un invernadero
@@ -7,7 +7,7 @@ const HistorialController = {
             const { invernaderoId } = req.params;
             const { tipo } = req.query; // 'automatico' o 'acciones'
 
-            const invernadero = await Invernadero.findByPk(invernaderoId);
+            const invernadero = await Invernaderos.findByPk(invernaderoId);
             
             let historial = [];
             let view = 'historial/index';
