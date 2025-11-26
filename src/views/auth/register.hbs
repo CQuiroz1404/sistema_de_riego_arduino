@@ -54,6 +54,15 @@
                     </div>
                 </div>
                 <div class="mb-4">
+                    <label for="rut" class="sr-only">RUT</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-id-card text-gray-400"></i>
+                        </div>
+                        <input id="rut" name="rut" type="text" class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm" placeholder="RUT (Opcional)">
+                    </div>
+                </div>
+                <div class="mb-4">
                     <label for="password" class="sr-only">Contraseña</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -106,6 +115,7 @@
             
             const nombre = document.getElementById('nombre').value;
             const email = document.getElementById('email').value;
+            const rut = document.getElementById('rut').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const errorDiv = document.getElementById('errorMessage');
@@ -128,7 +138,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ nombre, email, password, confirmPassword })
+                    body: JSON.stringify({ nombre, email, rut, password, confirmPassword })
                 });
                 
                 const data = await response.json();

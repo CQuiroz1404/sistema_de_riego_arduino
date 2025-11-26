@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Evento - Sistema de Riego IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{> navbar}}
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="mb-8">
+                <a href="/invernaderos/{{invernadero.id}}/calendario" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex items-center gap-2 mb-4">
+                    <i class="fas fa-arrow-left"></i> Volver al calendario
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i class="fas fa-clock text-blue-500"></i> Programar Evento
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Configura un nuevo ciclo de riego para {{invernadero.descripcion}}.</p>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <form action="/invernaderos/{{invernadero.id}}/calendario" method="POST" class="p-6 space-y-6">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Semana -->
+                        <div>
+                            <label for="semana_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Semana del Ciclo</label>
+                            <select id="semana_id" name="semana_id" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                {{#each semanas}}
+                                    <option value="{{this.id}}">Semana {{this.numero_semana}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+
+                        <!-- Día -->
+                        <div>
+                            <label for="dia_semana" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Día de la Semana</label>
+                            <select id="dia_semana" name="dia_semana" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                <option value="Lunes">Lunes</option>
+                                <option value="Martes">Martes</option>
+                                <option value="Miércoles">Miércoles</option>
+                                <option value="Jueves">Jueves</option>
+                                <option value="Viernes">Viernes</option>
+                                <option value="Sábado">Sábado</option>
+                                <option value="Domingo">Domingo</option>
+                            </select>
+                        </div>
+
+                        <!-- Hora Inicio -->
+                        <div>
+                            <label for="hora_inicio" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora de Inicio</label>
+                            <input type="time" id="hora_inicio" name="hora_inicio" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                        </div>
+
+                        <!-- Duración -->
+                        <div>
+                            <label for="duracion_minutos" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duración (minutos)</label>
+                            <input type="number" id="duracion_minutos" name="duracion_minutos" min="1" max="120" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                placeholder="Ej: 15">
+                        </div>
+
+                        <!-- Acción -->
+                        <div class="md:col-span-2">
+                            <label for="accion_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Acción a Realizar</label>
+                            <select id="accion_id" name="accion_id" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                {{#each acciones}}
+                                    <option value="{{this.id}}">{{this.descripcion}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 flex items-center justify-end gap-4">
+                        <a href="/invernaderos/{{invernadero.id}}/calendario" class="px-6 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition-colors flex items-center gap-2">
+                            <i class="fas fa-save"></i> Guardar Evento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

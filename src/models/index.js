@@ -13,44 +13,46 @@ const EventosRiego = require('./EventosRiego');
 const LogsSistema = require('./LogsSistema');
 const Alertas = require('./Alertas');
 
+// Nuevos modelos
+const TipoPlanta = require('./TipoPlanta');
+const RangoTemperatura = require('./RangoTemperatura');
+const RangoHumedad = require('./RangoHumedad');
+const Plantas = require('./Plantas');
+const Invernaderos = require('./Invernaderos');
+const Semanas = require('./Semanas');
+const Acciones = require('./Acciones');
+const Calendario = require('./Calendario');
+const HistorialAutomatico = require('./HistorialAutomatico');
+const HistorialAcciones = require('./HistorialAcciones');
+
 // Registrar asociaciones (según schema.sql)
 // usuarios 1 - N dispositivos
 Dispositivos.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
 Usuarios.hasMany(Dispositivos, { foreignKey: 'usuario_id' });
 
-// dispositivos 1 - N sensores
-Sensores.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-Dispositivos.hasMany(Sensores, { foreignKey: 'dispositivo_id' });
+// ... (asociaciones existentes) ...
 
-// sensores 1 - N lecturas
-Lecturas.belongsTo(Sensores, { foreignKey: 'sensor_id' });
-Sensores.hasMany(Lecturas, { foreignKey: 'sensor_id' });
+// Nuevas asociaciones
+// Plantas
+Plantas.belongsTo(TipoPlanta, { foreignKey: 'tipo_planta_id' });
+Plantas.belongsTo(RangoTemperatura, { foreignKey: 'rango_temperatura_id' });
+Plantas.belongsTo(RangoHumedad, { foreignKey: 'rango_humedad_id' });
 
-// dispositivos 1 - N actuadores
-Actuadores.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-Dispositivos.hasMany(Actuadores, { foreignKey: 'dispositivo_id' });
+// Invernaderos
+Invernaderos.belongsTo(Plantas, { foreignKey: 'planta_id' });
 
-// configuraciones_riego FK a dispositivo, sensor, actuador
-ConfiguracionesRiego.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-ConfiguracionesRiego.belongsTo(Sensores, { foreignKey: 'sensor_id' });
-ConfiguracionesRiego.belongsTo(Actuadores, { foreignKey: 'actuador_id' });
+// Calendario
+Calendario.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
+Calendario.belongsTo(Semanas, { foreignKey: 'semana_id' });
+Calendario.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
 
-// horarios_riego -> configuraciones_riego
-HorariosRiego.belongsTo(ConfiguracionesRiego, { foreignKey: 'configuracion_id' });
-ConfiguracionesRiego.hasMany(HorariosRiego, { foreignKey: 'configuracion_id' });
+// Historial Automatico
+HistorialAutomatico.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
 
-// eventos_riego -> dispositivos, actuadores, usuarios
-EventosRiego.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-EventosRiego.belongsTo(Actuadores, { foreignKey: 'actuador_id' });
-EventosRiego.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
-
-// logs_sistema -> dispositivos, usuarios
-LogsSistema.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-LogsSistema.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
-
-// alertas -> dispositivos
-Alertas.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-Dispositivos.hasMany(Alertas, { foreignKey: 'dispositivo_id' });
+// Historial Acciones
+HistorialAcciones.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
+HistorialAcciones.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
+HistorialAcciones.belongsTo(Acciones, { foreignKey: 'accion_id' });
 
 module.exports = {
   sequelize,
@@ -63,5 +65,16 @@ module.exports = {
   HorariosRiego,
   EventosRiego,
   LogsSistema,
-  Alertas
+  Alertas,
+  // Nuevos exports
+  TipoPlanta,
+  RangoTemperatura,
+  RangoHumedad,
+  Plantas,
+  Invernaderos,
+  Semanas,
+  Acciones,
+  Calendario,
+  HistorialAutomatico,
+  HistorialAcciones
 };
