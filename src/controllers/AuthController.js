@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Usuarios } = require('../models');
+const logger = require('../config/logger');
+const emailService = require('../services/emailService');
 
 class AuthController {
   // Mostrar página de login
@@ -65,7 +67,7 @@ class AuthController {
       await Usuarios.update({ ultima_conexion: new Date() }, { where: { id: user.id } });
 
       // Log de login
-      console.log(`[INFO] [auth] Login exitoso: ${user.email} (User: ${user.id}, IP: ${req.ip})`);
+      logger.info(`[INFO] [auth] Login exitoso: ${user.email} (User: ${user.id}, IP: ${req.ip})`);
 
       // Establecer cookie con el token
       // La cookie durará 30 días, pero se borrará explícitamente al hacer logout
@@ -86,7 +88,7 @@ class AuthController {
         }
       });
     } catch (error) {
-      console.error('Error en login:', error);
+      logger.error('Error en login: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al procesar login' 
@@ -154,7 +156,15 @@ class AuthController {
       });
 
       // Log de registro
-      console.log(`[INFO] [auth] Nuevo usuario registrado: ${email} (User: ${newUser.id}, IP: ${req.ip})`);
+      logger.info(`[INFO] [auth] Nuevo usuario registrado: ${email} (User: ${newUser.id}, IP: ${req.ip})`);
+
+      // Enviar correo de bienvenida
+      await emailService.sendAlert(
+        email,
+        '¡Bienvenido al Sistema de Riego IoT!',
+        `Hola ${nombre},<br><br>Tu cuenta ha sido creada exitosamente. Ahora puedes registrar tus dispositivos Arduino y comenzar a monitorear tu riego de forma inteligente.<br><br>¡Gracias por unirte!`,
+        'info'
+      );
 
       res.json({ 
         success: true, 
@@ -162,7 +172,7 @@ class AuthController {
         userId: newUser.id 
       });
     } catch (error) {
-      console.error('Error en registro:', error);
+      logger.error('Error en registro: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al registrar usuario' 
@@ -175,7 +185,7 @@ class AuthController {
     try {
       // Log de logout
       if (req.user) {
-        console.log(`[INFO] [auth] Logout: ${req.user.email} (User: ${req.user.id}, IP: ${req.ip})`);
+        logger.info(`[INFO] [auth] Logout: ${req.user.email} (User: ${req.user.id}, IP: ${req.ip})`);
       }
 
       // Limpiar cookie
@@ -185,7 +195,7 @@ class AuthController {
         message: 'Sesión cerrada exitosamente' 
       });
     } catch (error) {
-      console.error('Error en logout:', error);
+      logger.error('Error en logout: %o', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al cerrar sesión' 

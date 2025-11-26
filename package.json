@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/CQuiroz1404/sistema_de_riego_arduino#readme",
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",

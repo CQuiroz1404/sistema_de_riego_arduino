@@ -1,7 +1,8 @@
 const mqtt = require('mqtt');
-const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego } = require('../models');
+const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego, Usuarios } = require('../models');
 const logger = require('../config/logger');
 const weatherService = require('./weatherService');
+const emailService = require('./emailService');
 
 class MQTTService {
   constructor() {
@@ -161,21 +162,11 @@ class MQTTService {
 
         // Verificar rangos y crear alertas
         if (sensor.valor_minimo !== null && valor < sensor.valor_minimo) {
-          await Alertas.create({
-            dispositivo_id: device.id,
-            tipo: 'sensor_fuera_rango',
-            severidad: 'media',
-            mensaje: `${sensor.nombre}: Valor bajo (${valor} ${sensor.unidad})`
-          });
+          await this.createAlert(device, sensor, 'bajo', valor);
         }
 
         if (sensor.valor_maximo !== null && valor > sensor.valor_maximo) {
-          await Alertas.create({
-            dispositivo_id: device.id,
-            tipo: 'sensor_fuera_rango',
-            severidad: 'media',
-            mensaje: `${sensor.nombre}: Valor alto (${valor} ${sensor.unidad})`
-          });
+          await this.createAlert(device, sensor, 'alto', valor);
         }
 
         // Verificar configuraciones de riego automático
@@ -398,6 +389,42 @@ class MQTTService {
    */
   isConnected() {
     return this.connected;
+  }
+
+  /**
+   * Crea una alerta y notifica al usuario si es necesario
+   */
+  async createAlert(device, sensor, tipo, valor) {
+    try {
+      const mensaje = `${sensor.nombre}: Valor ${tipo} (${valor} ${sensor.unidad})`;
+      const severidad = 'media'; // Podría ser dinámica según qué tan fuera de rango esté
+
+      // Guardar en BD
+      await Alertas.create({
+        dispositivo_id: device.id,
+        tipo: 'sensor_fuera_rango',
+        severidad: severidad,
+        mensaje: mensaje
+      });
+
+      logger.warn(`⚠️ Alerta creada: ${mensaje} (Disp: ${device.id})`);
+
+      // Obtener usuario para notificar
+      const usuario = await Usuarios.findByPk(device.usuario_id);
+      
+      if (usuario && usuario.email) {
+        // Enviar correo
+        await emailService.sendAlert(
+          usuario.email,
+          `Alerta de Sensor - ${device.nombre}`,
+          `El sensor <strong>${sensor.nombre}</strong> reportó un valor de <strong>${valor} ${sensor.unidad}</strong>, lo cual está fuera del rango permitido.`,
+          'warning'
+        );
+      }
+
+    } catch (error) {
+      logger.error('Error al crear alerta y notificar: %o', error);
+    }
   }
 }
 
