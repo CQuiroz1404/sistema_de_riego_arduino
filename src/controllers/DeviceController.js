@@ -14,8 +14,18 @@ class DeviceController {
         devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
       
+      // Calcular estado de conexión en tiempo real (conectado si última conexión < 30 segundos)
+      const now = new Date();
+      const devicesWithStatus = devices.map(d => {
+        const device = d.toJSON();
+        const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
+        device.isConnected = lastConnection && (now - lastConnection) < 30000;
+        device.secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
+        return device;
+      });
+      
       res.render('devices/index', { 
-        devices: devices.map(d => d.toJSON()), 
+        devices: devicesWithStatus, 
         user: req.user 
       });
     } catch (error) {
@@ -34,7 +44,7 @@ class DeviceController {
   // Crear nuevo dispositivo
   static async store(req, res) {
     try {
-      const { nombre, ubicacion, descripcion, mac_address } = req.body;
+      const { nombre, ubicacion, descripcion } = req.body;
 
       // Generar API key única
       const api_key = crypto.randomBytes(32).toString('hex');
@@ -43,7 +53,6 @@ class DeviceController {
         nombre,
         ubicacion,
         descripcion,
-        mac_address,
         api_key,
         usuario_id: req.user.id
       });
