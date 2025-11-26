@@ -47,23 +47,8 @@
                             <select id="semana_id" name="semana_id" required
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
                                 {{#each semanas}}
-                                    <option value="{{this.id}}">Semana {{this.numero_semana}}</option>
+                                    <option value="{{this.id}}">{{this.nombre}}</option>
                                 {{/each}}
-                            </select>
-                        </div>
-
-                        <!-- Día -->
-                        <div>
-                            <label for="dia_semana" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Día de la Semana</label>
-                            <select id="dia_semana" name="dia_semana" required
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-                                <option value="Lunes">Lunes</option>
-                                <option value="Martes">Martes</option>
-                                <option value="Miércoles">Miércoles</option>
-                                <option value="Jueves">Jueves</option>
-                                <option value="Viernes">Viernes</option>
-                                <option value="Sábado">Sábado</option>
-                                <option value="Domingo">Domingo</option>
                             </select>
                         </div>
 
@@ -75,22 +60,11 @@
                         </div>
 
                         <!-- Duración -->
-                        <div>
+                        <div class="md:col-span-2">
                             <label for="duracion_minutos" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duración (minutos)</label>
                             <input type="number" id="duracion_minutos" name="duracion_minutos" min="1" max="120" required
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                                 placeholder="Ej: 15">
-                        </div>
-
-                        <!-- Acción -->
-                        <div class="md:col-span-2">
-                            <label for="accion_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Acción a Realizar</label>
-                            <select id="accion_id" name="accion_id" required
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-                                {{#each acciones}}
-                                    <option value="{{this.id}}">{{this.descripcion}}</option>
-                                {{/each}}
-                            </select>
                         </div>
                     </div>
 

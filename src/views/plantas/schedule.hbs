@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurar Riego - {{planta.nombre}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{> navbar}}
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="mb-8">
+                <a href="/plantas" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex items-center gap-2 mb-4">
+                    <i class="fas fa-arrow-left"></i> Volver a Plantas
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i class="fas fa-tint text-blue-500"></i> Configurar Riego para {{planta.nombre}}
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Establece el calendario de riego automático para esta planta.</p>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <form action="/plantas/{{planta.id}}/schedule" method="POST" class="p-6 space-y-6">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Día -->
+                        <div>
+                            <label for="dia_semana" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Día de la Semana</label>
+                            <select id="dia_semana" name="dia_semana" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                <option value="Lunes">Lunes</option>
+                                <option value="Martes">Martes</option>
+                                <option value="Miércoles">Miércoles</option>
+                                <option value="Jueves">Jueves</option>
+                                <option value="Viernes">Viernes</option>
+                                <option value="Sábado">Sábado</option>
+                                <option value="Domingo">Domingo</option>
+                            </select>
+                        </div>
+
+                        <!-- Hora Inicio -->
+                        <div>
+                            <label for="hora_inicio" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora de Riego</label>
+                            <input type="time" id="hora_inicio" name="hora_inicio" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                        </div>
+
+                        <!-- Duración -->
+                        <div>
+                            <label for="duracion_minutos" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duración (minutos)</label>
+                            <input type="number" id="duracion_minutos" name="duracion_minutos" min="1" max="120" value="15" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                        </div>
+
+                        <!-- Semana (Oculto o Default) -->
+                        <!-- Asumimos semana 1 por defecto o permitimos seleccionar si es necesario. Para simplificar, lo dejaremos fijo o seleccionable si hay datos -->
+                        <div>
+                             <label for="semana_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Semana del Ciclo</label>
+                            <select id="semana_id" name="semana_id" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                {{#each semanas}}
+                                    <option value="{{this.id}}">Semana {{this.numero_semana}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                            <div>
+                                <h4 class="text-sm font-medium text-blue-800 dark:text-blue-300">Actualización Automática</h4>
+                                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                                    Al guardar esta configuración, el calendario del invernadero asociado a esta planta se actualizará automáticamente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 flex items-center justify-end gap-4">
+                        <a href="/plantas" class="px-6 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition-colors flex items-center gap-2">
+                            <i class="fas fa-save"></i> Guardar Configuración
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

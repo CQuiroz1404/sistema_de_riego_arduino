@@ -9,4 +9,8 @@ router.get('/', PlantaController.index);
 router.get('/create', PlantaController.create);
 router.post('/', PlantaController.store);
 
+// Rutas para programación de riego
+router.get('/:id/schedule', PlantaController.schedule);
+router.post('/:id/schedule', PlantaController.saveSchedule);
+
 module.exports = router;

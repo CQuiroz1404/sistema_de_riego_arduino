@@ -1,4 +1,4 @@
-const { Calendario, Invernadero, Semanas, Acciones } = require('../models');
+const { Calendario, Invernaderos, Semanas } = require('../models');
 
 const CalendarioController = {
     // Obtener calendario de un invernadero
@@ -8,21 +8,19 @@ const CalendarioController = {
             const calendario = await Calendario.findAll({
                 where: { invernadero_id: invernaderoId },
                 include: [
-                    { model: Semanas, as: 'semana' },
-                    { model: Acciones, as: 'accion' }
+                    { model: Semanas, as: 'semana' }
                 ],
                 order: [
                     ['semana_id', 'ASC'],
-                    ['dia_semana', 'ASC'],
-                    ['hora_inicio', 'ASC']
+                    ['hora_inicial', 'ASC']
                 ]
             });
             
-            const invernadero = await Invernadero.findByPk(invernaderoId);
+            const invernadero = await Invernaderos.findByPk(invernaderoId);
             
             res.render('calendario/index', { 
-                calendario, 
-                invernadero,
+                calendario: calendario.map(c => c.toJSON()), 
+                invernadero: invernadero.toJSON(),
                 user: req.user 
             });
         } catch (error) {
@@ -39,13 +37,11 @@ const CalendarioController = {
         try {
             const { invernaderoId } = req.params;
             const semanas = await Semanas.findAll();
-            const acciones = await Acciones.findAll();
-            const invernadero = await Invernadero.findByPk(invernaderoId);
+            const invernadero = await Invernaderos.findByPk(invernaderoId);
 
             res.render('calendario/create', {
-                invernadero,
-                semanas,
-                acciones,
+                invernadero: invernadero.toJSON(),
+                semanas: semanas.map(s => s.toJSON()),
                 user: req.user
             });
         } catch (error) {
@@ -58,15 +54,20 @@ const CalendarioController = {
     async store(req, res) {
         try {
             const { invernaderoId } = req.params;
-            const { semana_id, dia_semana, hora_inicio, duracion_minutos, accion_id } = req.body;
+            const { semana_id, hora_inicio, duracion_minutos } = req.body;
+
+            // Calcular hora_final
+            const [hours, minutes] = hora_inicio.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours, minutes + parseInt(duracion_minutos), 0);
+            const hora_final = date.toTimeString().slice(0, 5);
 
             await Calendario.create({
                 invernadero_id: invernaderoId,
                 semana_id,
-                dia_semana,
-                hora_inicio,
-                duracion_minutos,
-                accion_id
+                hora_inicial: hora_inicio,
+                hora_final: hora_final,
+                usuario_id: req.user ? req.user.id : null
             });
 
             res.redirect(`/invernaderos/${invernaderoId}/calendario`);
