@@ -171,6 +171,7 @@ const arduinoRoutes = require('./src/routes/arduino');
 const calendarRoutes = require('./src/routes/calendar');
 const invernaderoRoutes = require('./src/routes/invernaderos');
 const plantaRoutes = require('./src/routes/plantas');
+const profileRoutes = require('./src/routes/profile');
 
 // Usar rutas
 app.use('/auth', authRoutes);
@@ -181,6 +182,7 @@ app.use('/api/arduino', arduinoRoutes);
 app.use('/calendar', calendarRoutes);
 app.use('/invernaderos', invernaderoRoutes);
 app.use('/plantas', plantaRoutes);
+app.use('/profile', profileRoutes);
 
 // Documentación API (Swagger)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
