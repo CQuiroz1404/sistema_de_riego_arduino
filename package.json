@@ -34,6 +34,7 @@
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "express-validator": "^7.0.1",
+    "fullcalendar": "^6.1.19",
     "hbs": "^4.2.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",

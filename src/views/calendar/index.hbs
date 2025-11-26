@@ -19,17 +19,55 @@
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FullCalendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    
     <script src="/js/theme.js"></script>
     <script src="/js/main.js"></script>
+    
     <style>
-        /* Custom styles for calendar page */
-        .vc-container {
-            border: none;
-            font-family: inherit;
-            width: 100%;
+        /* Personalización para modo oscuro de FullCalendar */
+        .fc {
+            font-size: 0.75rem;
+            --fc-page-bg-color: transparent;
+            --fc-neutral-bg-color: rgba(243, 244, 246, 0.5);
+            --fc-list-event-hover-bg-color: rgba(243, 244, 246, 0.8);
         }
-        .vc-pane-container {
-            width: 100%;
+        
+        html.dark .fc {
+            --fc-page-bg-color: transparent;
+            --fc-neutral-bg-color: rgba(31, 41, 55, 0.5);
+            --fc-list-event-hover-bg-color: rgba(55, 65, 81, 0.8);
+            --fc-border-color: #374151;
+            --fc-button-text-color: #fff;
+            --fc-button-bg-color: #374151;
+            --fc-button-border-color: #4b5563;
+            --fc-button-hover-bg-color: #4b5563;
+            --fc-button-hover-border-color: #6b7280;
+            --fc-button-active-bg-color: #1f2937;
+            --fc-button-active-border-color: #4b5563;
+            --fc-event-bg-color: #3b82f6;
+            --fc-event-border-color: #2563eb;
+            --fc-today-bg-color: rgba(59, 130, 246, 0.15);
+            color: #e5e7eb;
+        }
+
+        html.dark .fc-theme-standard td, 
+        html.dark .fc-theme-standard th {
+            border-color: #374151;
+        }
+        
+        /* Ajustes de botones */
+        .fc-button {
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            text-transform: capitalize !important;
+        }
+        
+        .fc-toolbar-title {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
         }
     </style>
 </head>
@@ -37,57 +75,70 @@
     {{> navbar}}
     
     <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                 <i class="fas fa-calendar-alt text-blue-500"></i> Calendario de Riego
             </h1>
+            <!-- Aquí podrías agregar botones de acción global si fuera necesario -->
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 max-w-4xl mx-auto">
-            <div id="app">
-                <v-calendar is-expanded :attributes="attributes" :is-dark="isDark"></v-calendar>
-            </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 dark:border-gray-700 max-w-4xl mx-auto">
+            <div id='calendar'></div>
         </div>
     </div>
 
-    <!-- Vue.js 2 -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-    <!-- V-Calendar 2 -->
-    <script src="https://unpkg.com/v-calendar@2.4.2/lib/v-calendar.umd.min.js"></script>
-
     <script>
-        new Vue({
-            el: '#app',
-            data: {
-                isDark: document.documentElement.classList.contains('dark'),
-                attributes: [
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 550,
+                locale: 'es',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,multiMonthYear'
+                },
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana',
+                    day: 'Día',
+                    year: 'Año'
+                },
+                navLinks: true, // permite hacer clic en los nombres de día/semana para navegar
+                editable: false,
+                dayMaxEvents: true, // permitir enlace "más" cuando hay demasiados eventos
+                events: [
+                    // Aquí cargaremos los eventos dinámicamente en el futuro
+                    // Ejemplo estático:
                     {
-                        key: 'today',
-                        highlight: {
-                            color: 'green',
-                            fillMode: 'light',
-                        },
-                        dates: new Date(),
-                        popover: {
-                            label: 'Hoy',
-                        },
+                        title: 'Riego Tomates',
+                        start: new Date().toISOString().split('T')[0] + 'T08:00:00',
+                        end: new Date().toISOString().split('T')[0] + 'T08:15:00',
+                        color: '#10B981' // green
+                    },
+                    {
+                        title: 'Fertilización',
+                        start: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString().split('T')[0],
+                        color: '#F59E0B' // yellow
                     }
                 ]
-            },
-            mounted() {
-                // Listen for theme changes
-                const observer = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                        if (mutation.attributeName === 'class') {
-                            this.isDark = document.documentElement.classList.contains('dark');
-                        }
-                    });
+            });
+            calendar.render();
+
+            // Observador para redibujar el calendario si cambia el tema (para ajustar colores si es necesario)
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        calendar.render(); // Forzar redibujado
+                    }
                 });
-                
-                observer.observe(document.documentElement, {
-                    attributes: true
-                });
-            }
+            });
+            
+            observer.observe(document.documentElement, {
+                attributes: true
+            });
         });
     </script>
 </body>
