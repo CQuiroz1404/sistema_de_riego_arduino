@@ -1,11 +1,23 @@
 const mqtt = require('mqtt');
 const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego } = require('../models');
+const logger = require('../config/logger');
+const weatherService = require('./weatherService');
 
 class MQTTService {
   constructor() {
     this.client = null;
     this.connected = false;
     this.devicesByApiKey = new Map(); // Cache de dispositivos
+    this.io = null; // Instancia de Socket.io
+  }
+
+  /**
+   * Configura la instancia de Socket.io
+   * @param {object} io - Instancia de Socket.io
+   */
+  setSocketIo(io) {
+    this.io = io;
+    logger.info('🔌 Socket.io configurado en MQTT Service');
   }
 
   /**
@@ -23,29 +35,29 @@ class MQTTService {
         password: process.env.MQTT_PASSWORD || ''
       };
 
-      console.log(`🔌 Conectando a broker MQTT: ${brokerUrl}...`);
+      logger.info(`🔌 Conectando a broker MQTT: ${brokerUrl}...`);
       
       this.client = mqtt.connect(brokerUrl, options);
 
       // Eventos del cliente MQTT
       this.client.on('connect', () => {
         this.connected = true;
-        console.log('✅ Conectado al broker MQTT');
+        logger.info('✅ Conectado al broker MQTT');
         this.subscribeToTopics();
       });
 
       this.client.on('error', (error) => {
-        console.error('❌ Error MQTT:', error.message);
+        logger.error('❌ Error MQTT: %s', error.message);
         this.connected = false;
       });
 
       this.client.on('offline', () => {
-        console.log('⚠️  Cliente MQTT offline');
+        logger.warn('⚠️  Cliente MQTT offline');
         this.connected = false;
       });
 
       this.client.on('reconnect', () => {
-        console.log('🔄 Reconectando al broker MQTT...');
+        logger.info('🔄 Reconectando al broker MQTT...');
       });
 
       this.client.on('message', (topic, message) => {
@@ -53,7 +65,7 @@ class MQTTService {
       });
 
     } catch (error) {
-      console.error('Error al inicializar MQTT:', error);
+      logger.error('Error al inicializar MQTT: %o', error);
       throw error;
     }
   }
@@ -74,9 +86,9 @@ class MQTTService {
 
     this.client.subscribe(topics, (err) => {
       if (err) {
-        console.error('Error al suscribirse a tópicos:', err);
+        logger.error('Error al suscribirse a tópicos: %o', err);
       } else {
-        console.log('📡 Suscrito a tópicos MQTT:', topics.join(', '));
+        logger.info('📡 Suscrito a tópicos MQTT: %s', topics.join(', '));
       }
     });
   }
@@ -92,7 +104,7 @@ class MQTTService {
       // Verificar dispositivo por API Key
       const device = await this.getDeviceByApiKey(apiKey);
       if (!device) {
-        console.warn(`⚠️  Mensaje rechazado: API Key inválida (${apiKey})`);
+        logger.warn(`⚠️  Mensaje rechazado: API Key inválida (${apiKey})`);
         return;
       }
 
@@ -111,11 +123,11 @@ class MQTTService {
           await this.processPing(device, payload);
           break;
         default:
-          console.warn(`Tipo de mensaje desconocido: ${type}`);
+          logger.warn(`Tipo de mensaje desconocido: ${type}`);
       }
 
     } catch (error) {
-      console.error('Error al procesar mensaje MQTT:', error);
+      logger.error('Error al procesar mensaje MQTT: %o', error);
     }
   }
 
@@ -127,7 +139,7 @@ class MQTTService {
       const { sensores } = payload;
 
       if (!sensores || !Array.isArray(sensores)) {
-        console.warn('Formato de datos de sensores inválido');
+        logger.warn('Formato de datos de sensores inválido');
         return;
       }
 
@@ -137,7 +149,7 @@ class MQTTService {
         const sensor = await Sensores.findByPk(sensor_id);
         
         if (!sensor || sensor.dispositivo_id !== device.id) {
-          console.warn(`Sensor ${sensor_id} no encontrado o no pertenece al dispositivo ${device.id}`);
+          logger.warn(`Sensor ${sensor_id} no encontrado o no pertenece al dispositivo ${device.id}`);
           continue;
         }
 
@@ -169,12 +181,20 @@ class MQTTService {
         // Verificar configuraciones de riego automático
         await this.checkAutoIrrigation(device.id, sensor_id, valor);
 
-        console.log(`📊 Sensor ${sensor.nombre} (${device.nombre}): ${valor} ${sensor.unidad}`);
+        logger.info(`📊 Sensor ${sensor.nombre} (${device.nombre}): ${valor} ${sensor.unidad}`);
+      }
+
+      // Emitir evento WebSocket con todos los datos
+      if (this.io) {
+        this.io.emit('sensor:update', {
+          deviceId: device.id,
+          sensores: payload.sensores,
+          timestamp: Date.now()
+        });
       }
 
     } catch (error) {
-      console.error('Error al procesar datos de sensores:', error);
-      console.log(`[ERROR] [mqtt] Error al procesar sensores: ${error.message} (Disp: ${device.id})`);
+      logger.error('Error al procesar datos de sensores: %o', error);
     }
   }
 
@@ -197,19 +217,29 @@ class MQTTService {
           
           // Activar riego si valor está por debajo del umbral inferior
           if (valor < config.umbral_inferior && actuator.estado === 'apagado') {
-            await this.controlActuator(deviceId, config.actuador_id, 'encendido', 'automatico');
-            console.log(`[INFO] [irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
+            
+            // Verificar clima antes de regar
+            // Nota: Aquí usamos coordenadas hardcodeadas, idealmente vendrían del dispositivo
+            const canWater = await weatherService.shouldWater();
+            
+            if (canWater) {
+              await this.controlActuator(deviceId, config.actuador_id, 'encendido', 'automatico');
+              logger.info(`[INFO] [irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
+            } else {
+              logger.info(`[INFO] [irrigation] Riego pospuesto por lluvia en ${actuator.nombre} (Disp: ${deviceId})`);
+              // Opcional: Crear alerta informativa
+            }
           }
           
           // Desactivar riego si valor está por encima del umbral superior
           if (valor > config.umbral_superior && actuator.estado === 'encendido') {
             await this.controlActuator(deviceId, config.actuador_id, 'apagado', 'automatico');
-            console.log(`[INFO] [irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
+            logger.info(`[INFO] [irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
           }
         }
       }
     } catch (error) {
-      console.error('Error al verificar riego automático:', error);
+      logger.error('Error al verificar riego automático: %o', error);
     }
   }
 
@@ -219,10 +249,18 @@ class MQTTService {
   async processEvent(device, payload) {
     try {
       const { tipo, mensaje } = payload;
-      console.log(`📢 Evento de ${device.nombre}: ${tipo} - ${mensaje}`);
-      console.log(`[INFO] [device] ${tipo}: ${mensaje} (Disp: ${device.id})`);
+      logger.info(`📢 Evento de ${device.nombre}: ${tipo} - ${mensaje}`);
+      
+      if (this.io) {
+        this.io.emit('device:event', {
+          deviceId: device.id,
+          tipo,
+          mensaje,
+          timestamp: Date.now()
+        });
+      }
     } catch (error) {
-      console.error('Error al procesar evento:', error);
+      logger.error('Error al procesar evento: %o', error);
     }
   }
 
@@ -231,10 +269,10 @@ class MQTTService {
    */
   async processPing(device, payload) {
     try {
-      console.log(`💓 Ping recibido de ${device.nombre}`);
+      logger.debug(`💓 Ping recibido de ${device.nombre}`);
       await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
     } catch (error) {
-      console.error('Error al procesar ping:', error);
+      logger.error('Error al procesar ping: %o', error);
     }
   }
 
@@ -281,17 +319,17 @@ class MQTTService {
       if (this.client && this.connected) {
         this.client.publish(topic, payload, { qos: 1 }, (err) => {
           if (err) {
-            console.error('Error al publicar comando:', err);
+            logger.error('Error al publicar comando: %o', err);
           } else {
-            console.log(`🎛️  Comando enviado a ${device.nombre}: Actuador ${actuator.nombre} -> ${estado}`);
+            logger.info(`🎛️  Comando enviado a ${device.nombre}: Actuador ${actuator.nombre} -> ${estado}`);
           }
         });
       } else {
-        console.warn('⚠️  Cliente MQTT no conectado, no se pudo enviar comando');
+        logger.warn('⚠️  Cliente MQTT no conectado, no se pudo enviar comando');
       }
 
     } catch (error) {
-      console.error('Error al controlar actuador:', error);
+      logger.error('Error al controlar actuador: %o', error);
       throw error;
     }
   }
@@ -318,11 +356,11 @@ class MQTTService {
 
       if (this.client && this.connected) {
         this.client.publish(topic, payload, { qos: 1 });
-        console.log(`📤 Estado completo enviado a ${device.nombre}`);
+        logger.info(`📤 Estado completo enviado a ${device.nombre}`);
       }
 
     } catch (error) {
-      console.error('Error al publicar estado del dispositivo:', error);
+      logger.error('Error al publicar estado del dispositivo: %o', error);
     }
   }
 
@@ -351,7 +389,7 @@ class MQTTService {
     if (this.client) {
       this.client.end();
       this.connected = false;
-      console.log('🔌 Desconectado del broker MQTT');
+      logger.info('🔌 Desconectado del broker MQTT');
     }
   }
 
