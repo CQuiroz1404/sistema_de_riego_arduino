@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS calendario (
     id INT AUTO_INCREMENT PRIMARY KEY,
     invernadero_id INT,
     semana_id INT,
+    dia_semana VARCHAR(20),
     hora_inicial TIME,
     usuario_id INT, -- Referencia a usuarios (RUT_USUARI)
     hora_final TIME,
