@@ -238,6 +238,10 @@ void conectarWiFi() {
       Serial.print("   RSSI: ");
       Serial.print(WiFi.RSSI());
       Serial.println(" dBm");
+      
+      // Esperar a que la conexión se estabilice completamente
+      Serial.println("⏳ Estabilizando conexión...");
+      delay(2000);  // Esperar 2 segundos para que el stack TCP/IP esté listo
     } else {
       matrix.loadFrame(LED_ERROR);
       Serial.println("❌ Error: No se obtuvo IP válida");
