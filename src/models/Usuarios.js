@@ -7,6 +7,7 @@ const Usuarios = sequelize.define('usuarios', {
   email: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   password: { type: DataTypes.STRING(255), allowNull: false },
   rol: { type: DataTypes.ENUM('admin','usuario'), defaultValue: 'usuario' },
+  rut: { type: DataTypes.STRING(20), unique: true },
   activo: { type: DataTypes.BOOLEAN, defaultValue: true },
   fecha_creacion: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   ultima_conexion: { type: DataTypes.DATE, allowNull: true }

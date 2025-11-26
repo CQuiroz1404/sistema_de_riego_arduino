@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invernaderos - Sistema de Riego IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{> navbar}}
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <i class="fas fa-warehouse text-green-500"></i> Invernaderos
+            </h1>
+            <a href="/invernaderos/create" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i class="fas fa-plus"></i> Nuevo Invernadero
+            </a>
+        </div>
+        
+        {{#if invernaderos}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {{#each invernaderos}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Invernadero #{{this.id}}</h3>
+                        <span class="px-2 py-1 rounded text-xs font-medium bg-{{#if this.estado}}green{{else}}red{{/if}}-100 text-{{#if this.estado}}green{{else}}red{{/if}}-800 dark:bg-{{#if this.estado}}green{{else}}red{{/if}}-900/30 dark:text-{{#if this.estado}}green{{else}}red{{/if}}-400">
+                            {{#if this.estado}}Activo{{else}}Inactivo{{/if}}
+                        </span>
+                    </div>
+                    
+                    <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">{{this.descripcion}}</p>
+                    
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500 dark:text-gray-400"><i class="fas fa-leaf w-5"></i> Planta:</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{#if this.planta}}{{this.planta.nombre}}{{else}}Sin asignar{{/if}}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500 dark:text-gray-400"><i class="fas fa-thermometer-half w-5"></i> Temp:</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{this.temp_actual}}°C</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500 dark:text-gray-400"><i class="fas fa-tint w-5"></i> Humedad:</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{this.hum_actual}}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2">
+                        <a href="/invernaderos/{{this.id}}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium px-3 py-1">
+                            Ver Detalles
+                        </a>
+                        <a href="/invernaderos/{{this.id}}/edit" class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 text-sm font-medium px-3 py-1">
+                            Editar
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        {{else}}
+        <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-warehouse text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No hay invernaderos</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Comienza creando tu primer invernadero</p>
+            <a href="/invernaderos/create" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm inline-flex items-center gap-2">
+                <i class="fas fa-plus"></i> Nuevo Invernadero
+            </a>
+        </div>
+        {{/if}}
+    </div>
+</body>
+</html>

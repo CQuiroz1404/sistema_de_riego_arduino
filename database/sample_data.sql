@@ -1,143 +1,179 @@
+﻿-- ============================================
+-- Datos de Ejemplo Completos (Sistema de Riego IoT)
 -- ============================================
--- Datos de Ejemplo para Testing
--- ============================================
--- Este script agrega datos de prueba adicionales
+-- Este script puebla todas las tablas del sistema
 -- Ejecuta DESPUÉS de schema.sql
 
 USE sistema_riego;
 
 -- ============================================
--- Dispositivo de ejemplo
+-- 0. ACTUALIZACIÓN DE USUARIOS (RUT)
 -- ============================================
+-- Actualizar usuarios existentes con RUT válido (necesario para la nueva lógica de Auth)
+UPDATE usuarios SET rut = '12.345.678-9' WHERE email = 'admin@sistemariego.com';
+UPDATE usuarios SET rut = '98.765.432-1' WHERE email = 'usuario@sistemariego.com';
+
+-- ============================================
+-- 1. DATOS MAESTROS (Nuevas Tablas)
+-- ============================================
+
+-- Tipos de Planta
+INSERT INTO tipo_planta (nombre, estado) VALUES 
+('Hortaliza', 1),
+('Frutal', 1),
+('Ornamental', 1),
+('Aromática', 1);
+
+-- Rangos de Temperatura
+INSERT INTO rango_temperatura (temp_min, temp_max, estado) VALUES 
+(18.00, 24.00, 1), -- Templado (Ideal Tomate)
+(24.00, 30.00, 1), -- Cálido
+(10.00, 18.00, 1); -- Frío (Ideal Lechuga)
+
+-- Rangos de Humedad
+INSERT INTO rango_humedad (hum_min, hum_max, estado) VALUES 
+(40.00, 60.00, 1), -- Moderada (Ideal Tomate)
+(60.00, 80.00, 1), -- Alta (Ideal Lechuga)
+(20.00, 40.00, 1); -- Baja
+
+-- Plantas
+INSERT INTO plantas (nombre, tipo_planta_id, rango_temperatura_id, rango_humedad_id, estado) VALUES 
+('Tomate Cherry', 1, 1, 1, 1), -- Temp: 18-24, Hum: 40-60
+('Lechuga', 1, 3, 2, 1),       -- Temp: 10-18, Hum: 60-80
+('Albahaca', 4, 2, 1, 1),
+('Pimiento', 1, 2, 1, 1);
+
+-- Invernaderos
+-- Nota: Los valores actuales coincidirán con las últimas lecturas de los sensores
+INSERT INTO invernaderos (descripcion, planta_id, riego, temp_actual, hum_actual, estado) VALUES 
+('Invernadero Principal', 1, 0, 22.5, 55.0, 1), -- Asignado a Tomate Cherry
+('Invernadero Semilleros', 2, 0, 15.0, 70.0, 1), -- Asignado a Lechuga
+('Invernadero Experimental', 3, 1, 28.0, 45.0, 1);
+
+-- Semanas
+INSERT INTO semanas (nombre) VALUES 
+('Semana 1 - Germinación'),
+('Semana 2 - Crecimiento Vegetativo'),
+('Semana 3 - Floración'),
+('Semana 4 - Fructificación'),
+('Semana 5 - Cosecha');
+
+-- Acciones
+INSERT INTO acciones (nombre) VALUES 
+('Riego por Goteo'),
+('Ventilación'),
+('Fertirrigación'),
+('Nebulización'),
+('Control de Plagas');
+
+-- Calendario
+INSERT INTO calendario (invernadero_id, semana_id, hora_inicial, usuario_id, hora_final, estado) VALUES 
+(1, 1, '08:00:00', 1, '08:30:00', 1),
+(1, 1, '18:00:00', 1, '18:30:00', 1),
+(2, 2, '07:00:00', 1, '07:15:00', 1);
+
+-- Historial Automático (Simulado)
+INSERT INTO historial_automatico (invernadero_id, fecha, hora, temp, humedad, estado) VALUES 
+(1, CURDATE(), '08:00:00', 21.5, 54.0, 'Normal'),
+(1, CURDATE(), '09:00:00', 22.0, 53.5, 'Normal'),
+(1, CURDATE(), '10:00:00', 23.5, 52.0, 'Alerta Temp Alta');
+
+-- Historial Acciones
+INSERT INTO historial_acciones (invernadero_id, fecha, hora, temp, humedad, usuario_id, accion_id, estado) VALUES 
+(1, CURDATE(), '08:05:00', 21.5, 54.0, 1, 1, 'Ejecutado'),
+(1, CURDATE(), '12:00:00', 25.0, 50.0, 1, 2, 'Ejecutado');
+
+-- ============================================
+-- 2. HARDWARE (Dispositivos y Sensores)
+-- ============================================
+
+-- Dispositivo 1: Vinculado lógicamente al "Invernadero Principal"
 INSERT INTO dispositivos (nombre, ubicacion, descripcion, mac_address, api_key, estado, usuario_id) VALUES 
-('Arduino Jardín Principal', 'Jardín trasero', 'Sistema de riego automático del jardín principal', 'AA:BB:CC:DD:EE:FF', 'ejemplo_api_key_12345678901234567890', 'activo', 1);
+('Controlador Invernadero 1', 'Invernadero Principal', 'Control de riego para Tomates', 'AA:BB:CC:DD:EE:FF', 'api_key_inv_principal_001', 'activo', 1);
 
-SET @dispositivo_id = LAST_INSERT_ID();
+SET @dispositivo1_id = LAST_INSERT_ID();
 
--- ============================================
--- Sensores de ejemplo
--- ============================================
+-- Dispositivo 2: Vinculado lógicamente al "Invernadero Semilleros"
+INSERT INTO dispositivos (nombre, ubicacion, descripcion, mac_address, api_key, estado, usuario_id) VALUES 
+('Controlador Semilleros', 'Invernadero Semilleros', 'Control de humedad para Lechugas', '11:22:33:44:55:66', 'api_key_inv_semilleros_002', 'activo', 1);
+
+SET @dispositivo2_id = LAST_INSERT_ID();
+
+-- Sensores para Dispositivo 1 (Invernadero Principal)
 INSERT INTO sensores (dispositivo_id, nombre, tipo, pin, unidad, valor_minimo, valor_maximo) VALUES 
-(@dispositivo_id, 'Sensor Humedad Suelo Zona 1', 'humedad_suelo', 'A0', '%', 0, 100),
-(@dispositivo_id, 'Sensor Temperatura Ambiente', 'temperatura', 'A1', '°C', -10, 50),
-(@dispositivo_id, 'Sensor Nivel Tanque', 'nivel_agua', 'A2', 'cm', 0, 200);
+(@dispositivo1_id, 'Humedad Suelo Tomates', 'humedad_suelo', 'A0', '%', 0, 100),
+(@dispositivo1_id, 'Temperatura Ambiente', 'temperatura', 'A1', '°C', -10, 50),
+(@dispositivo1_id, 'Nivel Tanque Principal', 'nivel_agua', 'A2', 'cm', 0, 200);
 
-SET @sensor_humedad_id = LAST_INSERT_ID();
-SET @sensor_temp_id = @sensor_humedad_id + 1;
-SET @sensor_nivel_id = @sensor_humedad_id + 2;
+SET @sensor_hum_d1 = LAST_INSERT_ID(); -- ID base
+SET @sensor_temp_d1 = @sensor_hum_d1 + 1;
+SET @sensor_nivel_d1 = @sensor_hum_d1 + 2;
 
--- ============================================
--- Actuadores de ejemplo
--- ============================================
+-- Actuadores para Dispositivo 1
 INSERT INTO actuadores (dispositivo_id, nombre, tipo, pin, estado) VALUES 
-(@dispositivo_id, 'Bomba Principal', 'bomba', 'D1', 'apagado'),
-(@dispositivo_id, 'Válvula Zona 1', 'electrovalvula', 'D2', 'apagado');
+(@dispositivo1_id, 'Bomba Riego Tomates', 'bomba', 'D1', 'apagado'),
+(@dispositivo1_id, 'Ventilador Principal', 'electrovalvula', 'D2', 'apagado');
 
-SET @actuador_bomba_id = LAST_INSERT_ID();
-SET @actuador_valvula_id = @actuador_bomba_id + 1;
+SET @actuador_bomba_d1 = LAST_INSERT_ID();
 
 -- ============================================
--- Lecturas de ejemplo (últimas 24 horas)
+-- 3. LECTURAS (Sincronizadas con Invernaderos)
 -- ============================================
 
--- Lecturas de humedad (cada hora durante 24 horas)
+-- Lecturas Dispositivo 1 (Invernadero Principal)
+-- Objetivo: Terminar en Temp 22.5 y Hum 55.0 para coincidir con la tabla 'invernaderos'
+
+-- Humedad (Tendencia a 55%)
 INSERT INTO lecturas (sensor_id, valor, fecha_lectura) VALUES 
-(@sensor_humedad_id, 45.5, DATE_SUB(NOW(), INTERVAL 24 HOUR)),
-(@sensor_humedad_id, 44.2, DATE_SUB(NOW(), INTERVAL 23 HOUR)),
-(@sensor_humedad_id, 43.8, DATE_SUB(NOW(), INTERVAL 22 HOUR)),
-(@sensor_humedad_id, 42.5, DATE_SUB(NOW(), INTERVAL 21 HOUR)),
-(@sensor_humedad_id, 41.0, DATE_SUB(NOW(), INTERVAL 20 HOUR)),
-(@sensor_humedad_id, 39.5, DATE_SUB(NOW(), INTERVAL 19 HOUR)),
-(@sensor_humedad_id, 38.2, DATE_SUB(NOW(), INTERVAL 18 HOUR)),
-(@sensor_humedad_id, 37.0, DATE_SUB(NOW(), INTERVAL 17 HOUR)),
-(@sensor_humedad_id, 35.5, DATE_SUB(NOW(), INTERVAL 16 HOUR)),
-(@sensor_humedad_id, 34.0, DATE_SUB(NOW(), INTERVAL 15 HOUR)),
-(@sensor_humedad_id, 32.5, DATE_SUB(NOW(), INTERVAL 14 HOUR)),
-(@sensor_humedad_id, 31.0, DATE_SUB(NOW(), INTERVAL 13 HOUR)),
-(@sensor_humedad_id, 55.0, DATE_SUB(NOW(), INTERVAL 12 HOUR)), -- Se regó
-(@sensor_humedad_id, 60.5, DATE_SUB(NOW(), INTERVAL 11 HOUR)),
-(@sensor_humedad_id, 58.2, DATE_SUB(NOW(), INTERVAL 10 HOUR)),
-(@sensor_humedad_id, 56.0, DATE_SUB(NOW(), INTERVAL 9 HOUR)),
-(@sensor_humedad_id, 54.5, DATE_SUB(NOW(), INTERVAL 8 HOUR)),
-(@sensor_humedad_id, 52.8, DATE_SUB(NOW(), INTERVAL 7 HOUR)),
-(@sensor_humedad_id, 51.0, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
-(@sensor_humedad_id, 49.5, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
-(@sensor_humedad_id, 48.0, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
-(@sensor_humedad_id, 46.5, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-(@sensor_humedad_id, 45.0, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
-(@sensor_humedad_id, 43.5, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(@sensor_humedad_id, 42.0, NOW());
+(@sensor_hum_d1, 60.0, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+(@sensor_hum_d1, 59.0, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
+(@sensor_hum_d1, 58.0, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(@sensor_hum_d1, 57.0, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+(@sensor_hum_d1, 56.0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
+(@sensor_hum_d1, 55.0, NOW()); -- Coincide con Invernadero Principal
 
--- Lecturas de temperatura
+-- Temperatura (Tendencia a 22.5°C)
 INSERT INTO lecturas (sensor_id, valor, fecha_lectura) VALUES 
-(@sensor_temp_id, 22.5, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
-(@sensor_temp_id, 24.0, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-(@sensor_temp_id, 25.5, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
-(@sensor_temp_id, 26.0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(@sensor_temp_id, 25.8, NOW());
-
--- Lecturas de nivel de agua
-INSERT INTO lecturas (sensor_id, valor, fecha_lectura) VALUES 
-(@sensor_nivel_id, 150.0, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
-(@sensor_nivel_id, 145.0, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-(@sensor_nivel_id, 140.0, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
-(@sensor_nivel_id, 135.0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(@sensor_nivel_id, 130.0, NOW());
+(@sensor_temp_d1, 20.0, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+(@sensor_temp_d1, 20.5, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
+(@sensor_temp_d1, 21.0, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(@sensor_temp_d1, 21.5, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+(@sensor_temp_d1, 22.0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
+(@sensor_temp_d1, 22.5, NOW()); -- Coincide con Invernadero Principal
 
 -- ============================================
--- Configuración de riego automático
+-- 4. CONFIGURACIONES Y EVENTOS
 -- ============================================
+
+-- Configuración Riego Tomates
 INSERT INTO configuraciones_riego (dispositivo_id, nombre, sensor_id, actuador_id, umbral_inferior, umbral_superior, duracion_minutos, modo) VALUES 
-(@dispositivo_id, 'Riego Automático Zona 1', @sensor_humedad_id, @actuador_bomba_id, 30.0, 60.0, 15, 'automatico');
+(@dispositivo1_id, 'Riego Automático Tomates', @sensor_hum_d1, @actuador_bomba_d1, 40.0, 60.0, 15, 'automatico');
 
 SET @config_id = LAST_INSERT_ID();
 
--- ============================================
--- Horarios de riego programado
--- ============================================
+-- Horarios
 INSERT INTO horarios_riego (configuracion_id, dia_semana, hora_inicio, duracion_minutos) VALUES 
-(@config_id, 1, '06:00:00', 15), -- Lunes 6:00 AM
-(@config_id, 1, '18:00:00', 10), -- Lunes 6:00 PM
-(@config_id, 3, '06:00:00', 15), -- Miércoles 6:00 AM
-(@config_id, 3, '18:00:00', 10), -- Miércoles 6:00 PM
-(@config_id, 5, '06:00:00', 15), -- Viernes 6:00 AM
-(@config_id, 5, '18:00:00', 10); -- Viernes 6:00 PM
+(@config_id, 1, '08:00:00', 15),
+(@config_id, 3, '08:00:00', 15),
+(@config_id, 5, '08:00:00', 15);
 
--- ============================================
--- Eventos de riego (historial)
--- ============================================
+-- Eventos Recientes
 INSERT INTO eventos_riego (dispositivo_id, actuador_id, accion, modo, duracion_segundos, usuario_id, fecha_evento) VALUES 
-(@dispositivo_id, @actuador_bomba_id, 'inicio', 'automatico', NULL, NULL, DATE_SUB(NOW(), INTERVAL 12 HOUR)),
-(@dispositivo_id, @actuador_bomba_id, 'fin', 'automatico', 900, NULL, DATE_SUB(NOW(), INTERVAL 12 HOUR) + INTERVAL 15 MINUTE),
-(@dispositivo_id, @actuador_bomba_id, 'inicio', 'manual', NULL, 1, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
-(@dispositivo_id, @actuador_bomba_id, 'fin', 'manual', 600, 1, DATE_SUB(NOW(), INTERVAL 6 HOUR) + INTERVAL 10 MINUTE);
+(@dispositivo1_id, @actuador_bomba_d1, 'inicio', 'automatico', NULL, NULL, DATE_SUB(NOW(), INTERVAL 24 HOUR)),
+(@dispositivo1_id, @actuador_bomba_d1, 'fin', 'automatico', 900, NULL, DATE_SUB(NOW(), INTERVAL 24 HOUR) + INTERVAL 15 MINUTE);
 
--- ============================================
--- Alertas de ejemplo
--- ============================================
+-- Alertas
 INSERT INTO alertas (dispositivo_id, tipo, severidad, mensaje, leida, fecha_creacion) VALUES 
-(@dispositivo_id, 'sensor_fuera_rango', 'media', 'Humedad del suelo por debajo del 30%', FALSE, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-(@dispositivo_id, 'bajo_nivel_agua', 'alta', 'Nivel de agua en tanque bajo (130 cm)', FALSE, NOW());
+(@dispositivo1_id, 'sensor_fuera_rango', 'baja', 'Temperatura levemente baja (18°C)', TRUE, DATE_SUB(NOW(), INTERVAL 2 DAY));
 
--- ============================================
--- Logs del sistema
--- ============================================
+-- Logs
 INSERT INTO logs_sistema (nivel, modulo, mensaje, dispositivo_id, usuario_id, fecha_log) VALUES 
-('info', 'auth', 'Login exitoso: admin@sistemariego.com', NULL, 1, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-('info', 'devices', 'Nuevo dispositivo creado: Arduino Jardín Principal', @dispositivo_id, 1, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-('info', 'irrigation', 'Riego automático iniciado en Bomba Principal', @dispositivo_id, NULL, DATE_SUB(NOW(), INTERVAL 12 HOUR)),
-('info', 'irrigation', 'Riego automático detenido en Bomba Principal', @dispositivo_id, NULL, DATE_SUB(NOW(), INTERVAL 12 HOUR) + INTERVAL 15 MINUTE),
-('warning', 'sensors', 'Sensor Humedad Suelo Zona 1: Valor bajo (32.5%)', @dispositivo_id, NULL, DATE_SUB(NOW(), INTERVAL 3 HOUR));
+('info', 'system', 'Sistema iniciado correctamente', NULL, NULL, NOW());
 
 -- ============================================
--- Verificar datos insertados
+-- Verificación
 -- ============================================
-SELECT 'Datos de ejemplo insertados correctamente' AS status;
-SELECT COUNT(*) as total_usuarios FROM usuarios;
-SELECT COUNT(*) as total_dispositivos FROM dispositivos;
-SELECT COUNT(*) as total_sensores FROM sensores;
-SELECT COUNT(*) as total_actuadores FROM actuadores;
-SELECT COUNT(*) as total_lecturas FROM lecturas;
-SELECT COUNT(*) as total_configuraciones FROM configuraciones_riego;
-SELECT COUNT(*) as total_eventos FROM eventos_riego;
-SELECT COUNT(*) as total_alertas FROM alertas;
+SELECT 'Datos completos insertados correctamente' AS status;
+SELECT COUNT(*) as invernaderos FROM invernaderos;
+SELECT COUNT(*) as plantas FROM plantas;
+SELECT COUNT(*) as dispositivos FROM dispositivos;

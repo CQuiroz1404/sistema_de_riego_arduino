@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     rol ENUM('admin', 'usuario') DEFAULT 'usuario',
+    rut VARCHAR(20) UNIQUE,
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ultima_conexion TIMESTAMP NULL,
@@ -185,6 +186,112 @@ CREATE TABLE IF NOT EXISTS alertas (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- NUEVAS TABLAS SEGUN DIAGRAMA (MODELO DE NEGOCIO)
+-- ============================================
+
+-- Tabla: tipo_planta
+CREATE TABLE IF NOT EXISTS tipo_planta (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    estado BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: rango_temperatura (TEMPERATURA en diagrama)
+CREATE TABLE IF NOT EXISTS rango_temperatura (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    temp_min DECIMAL(5,2) NOT NULL,
+    temp_max DECIMAL(5,2) NOT NULL,
+    estado BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: rango_humedad (HUMEDAD en diagrama)
+CREATE TABLE IF NOT EXISTS rango_humedad (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    hum_min DECIMAL(5,2) NOT NULL,
+    hum_max DECIMAL(5,2) NOT NULL,
+    estado BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: plantas (PLANTA en diagrama)
+CREATE TABLE IF NOT EXISTS plantas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    tipo_planta_id INT,
+    rango_temperatura_id INT,
+    rango_humedad_id INT,
+    estado BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (tipo_planta_id) REFERENCES tipo_planta(id) ON DELETE SET NULL,
+    FOREIGN KEY (rango_temperatura_id) REFERENCES rango_temperatura(id) ON DELETE SET NULL,
+    FOREIGN KEY (rango_humedad_id) REFERENCES rango_humedad(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: invernaderos (INVERNADERO en diagrama)
+CREATE TABLE IF NOT EXISTS invernaderos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    descripcion TEXT,
+    planta_id INT,
+    riego BOOLEAN DEFAULT FALSE,
+    temp_actual DECIMAL(5,2),
+    hum_actual DECIMAL(5,2),
+    estado BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (planta_id) REFERENCES plantas(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: semanas (SEMANA en diagrama)
+CREATE TABLE IF NOT EXISTS semanas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: acciones (ACCIONES en diagrama)
+CREATE TABLE IF NOT EXISTS acciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: calendario (CALENDARIO en diagrama)
+CREATE TABLE IF NOT EXISTS calendario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    invernadero_id INT,
+    semana_id INT,
+    hora_inicial TIME,
+    usuario_id INT, -- Referencia a usuarios (RUT_USUARI)
+    hora_final TIME,
+    estado BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (invernadero_id) REFERENCES invernaderos(id) ON DELETE CASCADE,
+    FOREIGN KEY (semana_id) REFERENCES semanas(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: historial_automatico (HISTORIAL - AUT en diagrama)
+CREATE TABLE IF NOT EXISTS historial_automatico (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invernadero_id INT,
+    fecha DATE,
+    hora TIME,
+    temp DECIMAL(5,2),
+    humedad DECIMAL(5,2),
+    estado VARCHAR(50),
+    FOREIGN KEY (invernadero_id) REFERENCES invernaderos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: historial_acciones (HISTORIAL - ACC en diagrama)
+CREATE TABLE IF NOT EXISTS historial_acciones (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invernadero_id INT,
+    fecha DATE,
+    hora TIME,
+    temp DECIMAL(5,2),
+    humedad DECIMAL(5,2),
+    usuario_id INT, -- MANDANTE
+    accion_id INT,
+    estado VARCHAR(50),
+    FOREIGN KEY (invernadero_id) REFERENCES invernaderos(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+    FOREIGN KEY (accion_id) REFERENCES acciones(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- Datos iniciales
 -- ============================================
 
@@ -195,119 +302,6 @@ INSERT INTO usuarios (nombre, email, password, rol) VALUES
 -- Usuario de prueba (password: usuario123)
 INSERT INTO usuarios (nombre, email, password, rol) VALUES 
 ('Usuario Demo', 'usuario@sistemariego.com', '$2a$10$OQvCO1kfH3rENq39f8P4A.paftefaep/vOuI48VdRLmBx6EvGTrgu', 'usuario');
-
--- ============================================
--- Vistas útiles
--- ============================================
-
--- Vista: Estado actual de dispositivos
-CREATE OR REPLACE VIEW vista_estado_dispositivos AS
-SELECT 
-    d.id,
-    d.nombre,
-    d.ubicacion,
-    d.estado,
-    d.ultima_conexion,
-    COUNT(DISTINCT s.id) as total_sensores,
-    COUNT(DISTINCT a.id) as total_actuadores,
-    u.nombre as propietario
-FROM dispositivos d
-LEFT JOIN sensores s ON d.id = s.dispositivo_id AND s.activo = TRUE
-LEFT JOIN actuadores a ON d.id = a.dispositivo_id AND a.activo = TRUE
-LEFT JOIN usuarios u ON d.usuario_id = u.id
-GROUP BY d.id;
-
--- Vista: Últimas lecturas de sensores
-CREATE OR REPLACE VIEW vista_ultimas_lecturas AS
-SELECT 
-    s.id as sensor_id,
-    s.nombre as sensor_nombre,
-    s.tipo,
-    s.unidad,
-    l.valor,
-    l.fecha_lectura,
-    d.id as dispositivo_id,
-    d.nombre as dispositivo_nombre
-FROM sensores s
-INNER JOIN dispositivos d ON s.dispositivo_id = d.id
-LEFT JOIN lecturas l ON s.id = l.sensor_id
-WHERE l.id IN (
-    SELECT MAX(l2.id) 
-    FROM lecturas l2 
-    WHERE l2.sensor_id = s.id
-)
-ORDER BY l.fecha_lectura DESC;
-
--- Vista: Resumen de riegos del día
-CREATE OR REPLACE VIEW vista_riegos_hoy AS
-SELECT 
-    d.nombre as dispositivo,
-    a.nombre as actuador,
-    COUNT(*) / 2 as veces_regado,
-    SUM(CASE WHEN er.accion = 'fin' THEN er.duracion_segundos ELSE 0 END) as tiempo_total_segundos,
-    MAX(er.fecha_evento) as ultimo_riego
-FROM eventos_riego er
-JOIN dispositivos d ON er.dispositivo_id = d.id
-JOIN actuadores a ON er.actuador_id = a.id
-WHERE DATE(er.fecha_evento) = CURDATE()
-GROUP BY d.id, a.id;
-
--- ============================================
--- Procedimientos almacenados
--- ============================================
-
-DELIMITER //
-
--- Procedimiento: Registrar evento de riego
-CREATE PROCEDURE IF NOT EXISTS sp_registrar_evento_riego(
-    IN p_dispositivo_id INT,
-    IN p_actuador_id INT,
-    IN p_accion ENUM('inicio', 'fin'),
-    IN p_modo ENUM('manual', 'automatico', 'programado'),
-    IN p_duracion_segundos INT,
-    IN p_usuario_id INT
-)
-BEGIN
-    INSERT INTO eventos_riego (dispositivo_id, actuador_id, accion, modo, duracion_segundos, usuario_id)
-    VALUES (p_dispositivo_id, p_actuador_id, p_accion, p_modo, p_duracion_segundos, p_usuario_id);
-    
-    -- Actualizar estado del actuador
-    UPDATE actuadores 
-    SET estado = IF(p_accion = 'inicio', 'encendido', 'apagado')
-    WHERE id = p_actuador_id;
-END //
-
--- Procedimiento: Limpiar lecturas antiguas (más de 30 días)
-CREATE PROCEDURE IF NOT EXISTS sp_limpiar_lecturas_antiguas()
-BEGIN
-    DECLARE registros_eliminados INT;
-    
-    DELETE FROM lecturas 
-    WHERE fecha_lectura < DATE_SUB(NOW(), INTERVAL 30 DAY);
-    
-    SET registros_eliminados = ROW_COUNT();
-    
-    INSERT INTO logs_sistema (nivel, modulo, mensaje)
-    VALUES ('info', 'mantenimiento', CONCAT('Lecturas antiguas eliminadas: ', registros_eliminados));
-END //
-
-DELIMITER ;
-
--- ============================================
--- Eventos programados
--- ============================================
-
--- Limpiar lecturas antiguas cada semana
--- CREATE EVENT IF NOT EXISTS evt_limpiar_lecturas
--- ON SCHEDULE EVERY 1 WEEK
--- STARTS CURRENT_TIMESTAMP
--- DO CALL sp_limpiar_lecturas_antiguas();
-
--- ============================================
--- Permisos (ajustar según necesidad)
--- ============================================
--- GRANT ALL PRIVILEGES ON sistema_riego.* TO 'usuario_riego'@'localhost' IDENTIFIED BY 'password_seguro';
--- FLUSH PRIVILEGES;
 
 -- ============================================
 -- Fin del script

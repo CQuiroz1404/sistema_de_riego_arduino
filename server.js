@@ -147,6 +147,8 @@ const deviceRoutes = require('./src/routes/devices');
 const sensorRoutes = require('./src/routes/sensors');
 const arduinoRoutes = require('./src/routes/arduino');
 const calendarRoutes = require('./src/routes/calendar');
+const invernaderoRoutes = require('./src/routes/invernaderos');
+const plantaRoutes = require('./src/routes/plantas');
 
 // Usar rutas
 app.use('/auth', authRoutes);
@@ -155,6 +157,8 @@ app.use('/devices', deviceRoutes);
 app.use('/sensors', sensorRoutes);
 app.use('/api/arduino', arduinoRoutes);
 app.use('/calendar', calendarRoutes);
+app.use('/invernaderos', invernaderoRoutes);
+app.use('/plantas', plantaRoutes);
 
 // Ruta API para verificar estado de dispositivos
 const DeviceController = require('./src/controllers/DeviceController');

@@ -97,7 +97,7 @@ class AuthController {
   // Procesar registro
   static async register(req, res) {
     try {
-      const { nombre, email, password, confirmPassword } = req.body;
+      const { nombre, email, password, confirmPassword, rut } = req.body;
 
       // Validar datos
       if (!nombre || !email || !password) {
@@ -130,6 +130,17 @@ class AuthController {
         });
       }
 
+      // Verificar si el RUT ya existe (si se proporciona)
+      if (rut) {
+        const existingRut = await Usuarios.findOne({ where: { rut } });
+        if (existingRut) {
+          return res.status(409).json({ 
+            success: false, 
+            message: 'El RUT ya está registrado' 
+          });
+        }
+      }
+
       // Encriptar contraseña
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -138,7 +149,8 @@ class AuthController {
         nombre,
         email,
         password: hashedPassword,
-        rol: 'usuario'
+        rol: 'usuario',
+        rut: rut || null
       });
 
       // Log de registro
