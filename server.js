@@ -75,6 +75,23 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parser
 app.use(cookieParser());
 
+// Middleware global para exponer usuario autenticado a las vistas
+const jwt = require('jsonwebtoken');
+app.use((req, res, next) => {
+  try {
+    const token = req.cookies && req.cookies.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+    }
+  } catch (e) {
+    req.user = null;
+  }
+
+  res.locals.user = req.user;
+  next();
+});
+
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -115,7 +132,12 @@ hbs.registerHelper('json', function(context) {
 
 // Ruta raíz
 app.get('/', (req, res) => {
-  res.redirect('/auth/login');
+  if (req.user) {
+    // Si ya hay sesión, ir directo al dashboard
+    return res.redirect('/dashboard');
+  }
+  // Si no hay sesión, mostrar login
+  return res.redirect('/auth/login');
 });
 
 // Importar rutas
