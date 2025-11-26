@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     rol ENUM('admin', 'usuario') DEFAULT 'usuario',
+    rut VARCHAR(20) UNIQUE,
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ultima_conexion TIMESTAMP NULL,
@@ -182,6 +183,112 @@ CREATE TABLE IF NOT EXISTS alertas (
     INDEX idx_dispositivo_id (dispositivo_id),
     INDEX idx_leida (leida),
     INDEX idx_fecha_creacion (fecha_creacion)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- NUEVAS TABLAS SEGUN DIAGRAMA (MODELO DE NEGOCIO)
+-- ============================================
+
+-- Tabla: tipo_planta
+CREATE TABLE IF NOT EXISTS tipo_planta (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    estado BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: rango_temperatura (TEMPERATURA en diagrama)
+CREATE TABLE IF NOT EXISTS rango_temperatura (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    temp_min DECIMAL(5,2) NOT NULL,
+    temp_max DECIMAL(5,2) NOT NULL,
+    estado BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: rango_humedad (HUMEDAD en diagrama)
+CREATE TABLE IF NOT EXISTS rango_humedad (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    hum_min DECIMAL(5,2) NOT NULL,
+    hum_max DECIMAL(5,2) NOT NULL,
+    estado BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: plantas (PLANTA en diagrama)
+CREATE TABLE IF NOT EXISTS plantas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    tipo_planta_id INT,
+    rango_temperatura_id INT,
+    rango_humedad_id INT,
+    estado BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (tipo_planta_id) REFERENCES tipo_planta(id) ON DELETE SET NULL,
+    FOREIGN KEY (rango_temperatura_id) REFERENCES rango_temperatura(id) ON DELETE SET NULL,
+    FOREIGN KEY (rango_humedad_id) REFERENCES rango_humedad(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: invernaderos (INVERNADERO en diagrama)
+CREATE TABLE IF NOT EXISTS invernaderos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    descripcion TEXT,
+    planta_id INT,
+    riego BOOLEAN DEFAULT FALSE,
+    temp_actual DECIMAL(5,2),
+    hum_actual DECIMAL(5,2),
+    estado BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (planta_id) REFERENCES plantas(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: semanas (SEMANA en diagrama)
+CREATE TABLE IF NOT EXISTS semanas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: acciones (ACCIONES en diagrama)
+CREATE TABLE IF NOT EXISTS acciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: calendario (CALENDARIO en diagrama)
+CREATE TABLE IF NOT EXISTS calendario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    invernadero_id INT,
+    semana_id INT,
+    hora_inicial TIME,
+    usuario_id INT, -- Referencia a usuarios (RUT_USUARI)
+    hora_final TIME,
+    estado BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (invernadero_id) REFERENCES invernaderos(id) ON DELETE CASCADE,
+    FOREIGN KEY (semana_id) REFERENCES semanas(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: historial_automatico (HISTORIAL - AUT en diagrama)
+CREATE TABLE IF NOT EXISTS historial_automatico (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invernadero_id INT,
+    fecha DATE,
+    hora TIME,
+    temp DECIMAL(5,2),
+    humedad DECIMAL(5,2),
+    estado VARCHAR(50),
+    FOREIGN KEY (invernadero_id) REFERENCES invernaderos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla: historial_acciones (HISTORIAL - ACC en diagrama)
+CREATE TABLE IF NOT EXISTS historial_acciones (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invernadero_id INT,
+    fecha DATE,
+    hora TIME,
+    temp DECIMAL(5,2),
+    humedad DECIMAL(5,2),
+    usuario_id INT, -- MANDANTE
+    accion_id INT,
+    estado VARCHAR(50),
+    FOREIGN KEY (invernadero_id) REFERENCES invernaderos(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+    FOREIGN KEY (accion_id) REFERENCES acciones(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
