@@ -99,12 +99,34 @@ app.use(cookieParser());
 
 // Middleware global para exponer usuario autenticado a las vistas
 const jwt = require('jsonwebtoken');
-app.use((req, res, next) => {
+
+app.use(async (req, res, next) => {
   try {
     const token = req.cookies && req.cookies.token;
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
+      
+      // Obtener datos frescos del usuario desde la BD (incluye avatar actualizado)
+      try {
+        const { Usuarios } = require('./src/models');
+        const user = await Usuarios.findByPk(decoded.id, {
+          attributes: ['id', 'nombre', 'email', 'avatar', 'rol']
+        });
+        
+        if (user) {
+          req.user = user.toJSON();
+          // DEBUG: Log temporal para verificar avatar
+          if (process.env.NODE_ENV === 'development') {
+            logger.debug(`User avatar: ${req.user.avatar || 'NO AVATAR'}`);
+          }
+        } else {
+          req.user = decoded; // Fallback si no se encuentra en BD
+        }
+      } catch (dbError) {
+        logger.error('Error obteniendo usuario desde BD:', dbError.message);
+        // Si hay error con la BD, usar solo el token decodificado
+        req.user = decoded;
+      }
     }
   } catch (e) {
     req.user = null;

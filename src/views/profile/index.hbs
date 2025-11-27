@@ -43,8 +43,8 @@
             <div class="lg:col-span-1">
                 <!-- Profile Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 dark:border-gray-700 text-center">
-                    <!-- Avatar con opción de cambiar -->
-                    <div class="relative inline-block mb-3 md:mb-4">
+                    <!-- Avatar con opciones -->
+                    <div class="relative inline-block mb-3 md:mb-4 group">
                         <div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-lg border-4 border-white dark:border-gray-700">
                             {{#if user.avatar}}
                                 <img id="avatarImage" src="{{user.avatar}}" alt="Avatar" class="w-full h-full object-cover">
@@ -54,19 +54,21 @@
                                 </div>
                             {{/if}}
                         </div>
-                        <!-- Botón para cambiar foto -->
-                        <label for="avatarInput" class="absolute bottom-0 right-0 bg-green-500 hover:bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-lg transition-colors">
-                            <i class="fas fa-camera text-xs"></i>
-                        </label>
+                        
+                        <!-- Overlay con opciones (aparece al hacer hover) -->
+                        <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                            <label for="avatarInput" class="bg-green-500 hover:bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer shadow-lg transition-colors" title="Cambiar foto">
+                                <i class="fas fa-camera text-sm"></i>
+                            </label>
+                            {{#if user.avatar}}
+                            <button id="deleteAvatarBtn" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition-colors" title="Eliminar foto">
+                                <i class="fas fa-trash-alt text-sm"></i>
+                            </button>
+                            {{/if}}
+                        </div>
+                        
                         <input type="file" id="avatarInput" accept="image/*" class="hidden">
                     </div>
-
-                    <!-- Botón eliminar foto (solo si tiene foto) -->
-                    {{#if user.avatar}}
-                    <button id="deleteAvatarBtn" class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 mb-2 transition-colors">
-                        <i class="fas fa-trash-alt mr-1"></i> Eliminar foto
-                    </button>
-                    {{/if}}
 
                     <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white break-words">{{user.nombre}}</h2>
                     <p class="text-gray-500 dark:text-gray-400 text-xs md:text-sm mt-1 break-all">{{user.email}}</p>
@@ -306,22 +308,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Actualizar imagen en la vista
-                    const avatarContainer = document.querySelector('.w-20.h-20.md\\:w-24.md\\:h-24');
-                    avatarContainer.innerHTML = `<img id="avatarImage" src="${data.avatar}" alt="Avatar" class="w-full h-full object-cover">`;
-                    
-                    // Agregar botón de eliminar si no existe
-                    if (!document.getElementById('deleteAvatarBtn')) {
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.id = 'deleteAvatarBtn';
-                        deleteBtn.className = 'text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 mb-2 transition-colors';
-                        deleteBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i> Eliminar foto';
-                        avatarContainer.parentElement.parentElement.insertBefore(deleteBtn, avatarContainer.parentElement.nextSibling);
-                        setupDeleteButton();
-                    }
-
-                    alert(data.message);
-                    setTimeout(() => location.reload(), 1000);
+                    // Recargar página para actualizar avatar en todas las vistas (navbar incluido)
+                    location.reload();
                 } else {
                     alert(data.message);
                 }
