@@ -1,4 +1,14 @@
-const { Invernaderos, Plantas, TipoPlanta, RangoTemperatura, RangoHumedad } = require('../models');
+const { Op } = require('sequelize');
+const {
+  Invernaderos,
+  Plantas,
+  TipoPlanta,
+  RangoTemperatura,
+  RangoHumedad,
+  Dispositivos,
+  Sensores,
+  Lecturas
+} = require('../models');
 
 class InvernaderoController {
   // Listar todos los invernaderos
@@ -86,6 +96,83 @@ class InvernaderoController {
     } catch (error) {
       console.error('Error al mostrar invernadero:', error);
       res.status(500).render('error', { message: 'Error interno' });
+    }
+  }
+
+  // Vista virtual 3D con sensores y dispositivos
+  static async virtualView(req, res) {
+    try {
+      const { id } = req.params;
+      const invernadero = await Invernaderos.findByPk(id, {
+        include: [{
+          model: Plantas,
+          include: [TipoPlanta, RangoTemperatura, RangoHumedad]
+        }]
+      });
+
+      if (!invernadero) {
+        return res.status(404).render('error', { message: 'Invernadero no encontrado' });
+      }
+
+      const dispositivos = await Dispositivos.findAll({
+        where: { usuario_id: req.user.id },
+        attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado']
+      });
+
+      const dispositivosPlain = dispositivos.map(d => (d.toJSON ? d.toJSON() : d));
+
+      const deviceIds = dispositivosPlain.map(device => device.id);
+
+      const sensores = deviceIds.length ? await Sensores.findAll({
+        where: {
+          dispositivo_id: { [Op.in]: deviceIds }
+        }
+      }) : [];
+
+      const sensorIds = sensores.map(sensor => sensor.id);
+
+      const lecturas = sensorIds.length ? await Lecturas.findAll({
+        where: { sensor_id: { [Op.in]: sensorIds } },
+        order: [['fecha_lectura', 'DESC']],
+        raw: true
+      }) : [];
+
+      const deviceMap = dispositivosPlain.reduce((acc, device) => {
+        acc[device.id] = device;
+        return acc;
+      }, {});
+
+      const lastReadingBySensor = {};
+      for (const lectura of lecturas) {
+        if (!lastReadingBySensor[lectura.sensor_id]) {
+          lastReadingBySensor[lectura.sensor_id] = lectura;
+        }
+      }
+
+      const sensoresDetallados = sensores.map(sensor => {
+        const sensorPlain = sensor.toJSON ? sensor.toJSON() : sensor;
+        const ultimaLectura = lastReadingBySensor[sensorPlain.id] || null;
+        return {
+          ...sensorPlain,
+          ultimaLectura: ultimaLectura ? parseFloat(ultimaLectura.valor) : null,
+          fechaLectura: ultimaLectura ? ultimaLectura.fecha_lectura : null,
+          dispositivo: deviceMap[sensorPlain.dispositivo_id] || null
+        };
+      });
+
+      const invernaderoJson = invernadero.toJSON();
+
+      res.render('invernaderos/virtual', {
+        invernadero: invernaderoJson,
+        user: req.user,
+        sensores: sensoresDetallados,
+        sensoresJson: JSON.stringify(sensoresDetallados),
+        dispositivos: dispositivosPlain,
+        invernaderoJson: JSON.stringify(invernaderoJson)
+      });
+    } catch (error) {
+      console.error('Error al cargar vista virtual del invernadero:', error);
+      res.status(500).render('error', { message: 'Error al generar vista virtual' });
     }
   }
 
