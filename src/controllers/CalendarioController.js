@@ -54,7 +54,15 @@ const CalendarioController = {
     async store(req, res) {
         try {
             const { invernaderoId } = req.params;
-            const { semana_id, hora_inicio, duracion_minutos } = req.body;
+            const { semana_id, hora_inicio, duracion_minutos, dias_semana } = req.body;
+
+            // Validar que se haya seleccionado al menos un día
+            if (!dias_semana || (Array.isArray(dias_semana) && dias_semana.length === 0)) {
+                return res.status(400).render('error', { message: 'Debe seleccionar al menos un día de la semana.' });
+            }
+
+            // Asegurar que dias_semana sea un array
+            const dias = Array.isArray(dias_semana) ? dias_semana : [dias_semana];
 
             // Calcular hora_final
             const [hours, minutes] = hora_inicio.split(':').map(Number);
@@ -62,13 +70,19 @@ const CalendarioController = {
             date.setHours(hours, minutes + parseInt(duracion_minutos), 0);
             const hora_final = date.toTimeString().slice(0, 5);
 
-            await Calendario.create({
-                invernadero_id: invernaderoId,
-                semana_id,
-                hora_inicial: hora_inicio,
-                hora_final: hora_final,
-                usuario_id: req.user ? req.user.id : null
+            // Crear entradas para cada día seleccionado
+            const promesas = dias.map(dia => {
+                return Calendario.create({
+                    invernadero_id: invernaderoId,
+                    semana_id,
+                    dia_semana: dia,
+                    hora_inicial: hora_inicio,
+                    hora_final: hora_final,
+                    usuario_id: req.user ? req.user.id : null
+                });
             });
+
+            await Promise.all(promesas);
 
             res.redirect(`/invernaderos/${invernaderoId}/calendario`);
         } catch (error) {
