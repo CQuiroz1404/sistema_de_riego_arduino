@@ -41,19 +41,40 @@
                 <form action="/plantas/{{planta.id}}/schedule" method="POST" class="p-6 space-y-6">
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Día -->
-                        <div>
-                            <label for="dia_semana" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Día de la Semana</label>
-                            <select id="dia_semana" name="dia_semana" required
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-                                <option value="Lunes">Lunes</option>
-                                <option value="Martes">Martes</option>
-                                <option value="Miércoles">Miércoles</option>
-                                <option value="Jueves">Jueves</option>
-                                <option value="Viernes">Viernes</option>
-                                <option value="Sábado">Sábado</option>
-                                <option value="Domingo">Domingo</option>
-                            </select>
+                        <!-- Días de la Semana (Multi-select) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Días de Riego</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Lunes" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Lunes</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Martes" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Martes</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Miércoles" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Miércoles</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Jueves" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Jueves</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Viernes" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Viernes</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Sábado" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Sábado</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="dias_semana[]" value="Domingo" class="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Domingo</span>
+                                </label>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Selecciona uno o más días para repetir el riego.</p>
                         </div>
 
                         <!-- Hora Inicio -->

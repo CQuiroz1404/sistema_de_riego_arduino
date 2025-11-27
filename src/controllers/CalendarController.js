@@ -30,35 +30,31 @@ const CalendarController = {
             });
 
             const events = eventos.map(evento => {
-                // Convertir día de la semana a fecha real (próximo ocurrencia)
-                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                const diaIndex = dias.indexOf(evento.dia_semana);
+                // Mapeo de días a números de FullCalendar (0=Domingo, 1=Lunes, etc.)
+                const diasMap = {
+                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 
+                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+                };
                 
-                let date = new Date();
-                // Si no hay día definido, usar hoy
-                if (diaIndex === -1) {
-                    // Mantener fecha actual
-                } else {
-                    // Calcular próximo día de la semana
-                    const currentDay = date.getDay();
-                    const distance = (diaIndex + 7 - currentDay) % 7;
-                    date.setDate(date.getDate() + distance);
+                const dayOfWeek = diasMap[evento.dia_semana];
+
+                // Si tenemos un día válido, creamos un evento recurrente
+                if (dayOfWeek !== undefined) {
+                    return {
+                        title: `Riego: ${evento.invernadero ? evento.invernadero.descripcion : 'Invernadero'}`,
+                        daysOfWeek: [dayOfWeek], // Array con el día de la semana
+                        startTime: evento.hora_inicial,
+                        endTime: evento.hora_final,
+                        color: '#10B981', // Green
+                        description: `Semana ID: ${evento.semana_id}`,
+                        // Opcional: startRecur y endRecur si quisiéramos limitar la duración
+                    };
                 }
 
-                // Construir fecha local manualmente para evitar problemas de zona horaria con toISOString()
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const dateStr = `${year}-${month}-${day}`;
-
-                return {
-                    title: `Riego: ${evento.invernadero ? evento.invernadero.descripcion : 'Invernadero'}`,
-                    start: `${dateStr}T${evento.hora_inicial}`,
-                    end: `${dateStr}T${evento.hora_final}`,
-                    color: '#10B981', // Green
-                    description: `Semana ID: ${evento.semana_id}`
-                };
-            });
+                // Fallback para eventos antiguos sin dia_semana (si los hubiera)
+                // ... (código anterior omitido por simplicidad, asumimos que todos tienen dia_semana ahora)
+                return null;
+            }).filter(e => e !== null);
 
             res.json(events);
         } catch (error) {

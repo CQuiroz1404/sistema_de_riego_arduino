@@ -79,7 +79,15 @@ class PlantaController {
   static async saveSchedule(req, res) {
     try {
       const { id } = req.params;
-      const { dia_semana, hora_inicio, duracion_minutos, semana_id } = req.body;
+      const { dias_semana, hora_inicio, duracion_minutos, semana_id } = req.body;
+
+      // Validar que se haya seleccionado al menos un día
+      if (!dias_semana || (Array.isArray(dias_semana) && dias_semana.length === 0)) {
+          return res.status(400).render('error', { message: 'Debe seleccionar al menos un día de la semana.' });
+      }
+
+      // Asegurar que dias_semana sea un array (si viene uno solo es string)
+      const dias = Array.isArray(dias_semana) ? dias_semana : [dias_semana];
 
       // 1. Buscar la planta
       const planta = await Plantas.findByPk(id);
@@ -110,15 +118,19 @@ class PlantaController {
       date.setHours(hours, minutes + parseInt(duracion_minutos), 0);
       const hora_final = date.toTimeString().slice(0, 5);
 
-      // 4. Crear entrada en Calendario (Actualización Automática)
-      await Calendario.create({
-        invernadero_id: invernadero.id,
-        semana_id: semana_id,
-        dia_semana: dia_semana, // Ahora sí lo guardamos
-        hora_inicial: hora_inicio,
-        hora_final: hora_final,
-        usuario_id: req.user ? req.user.id : null
+      // 4. Crear entradas en Calendario para cada día seleccionado
+      const promesas = dias.map(dia => {
+          return Calendario.create({
+            invernadero_id: invernadero.id,
+            semana_id: semana_id,
+            dia_semana: dia,
+            hora_inicial: hora_inicio,
+            hora_final: hora_final,
+            usuario_id: req.user ? req.user.id : null
+          });
       });
+
+      await Promise.all(promesas);
 
       // Redirigir al calendario para confirmar visualmente
       res.redirect(`/invernaderos/${invernadero.id}/calendario`);
