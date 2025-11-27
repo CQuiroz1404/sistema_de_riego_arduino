@@ -277,15 +277,36 @@
             controls.target.set(0, 1.5, 0);
             controls.update();
 
-            // Luces básicas
+            // Luces básicas (ajustables según hora del día)
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
             dirLight.position.set(10, 12, 5);
             scene.add(dirLight);
 
+            function updateLighting(isDaytime, cloudCover) {
+                if (isDaytime) {
+                    const intensity = cloudCover > 70 ? 0.5 : 0.8;
+                    ambientLight.intensity = intensity;
+                    dirLight.intensity = cloudCover > 70 ? 0.3 : 0.6;
+                    scene.background = new THREE.Color(cloudCover > 70 ? '#a8b8c8' : '#e0f2fe');
+                } else {
+                    ambientLight.intensity = 0.2;
+                    dirLight.intensity = 0.1;
+                    scene.background = new THREE.Color('#1e293b');
+                }
+            }
+
             const greenhouseGroup = new THREE.Group();
             const breathingElements = [];
+            const rainParticles = [];
+            let sun = null;
+            let environmentState = {
+                isRaining: false,
+                isDaytime: true,
+                heatLevel: 'normal',
+                cloudCover: 0
+            };
             scene.add(greenhouseGroup);
 
             function moistureColor(value) {
@@ -424,6 +445,93 @@
                 });
             }
 
+            function createSun() {
+                if (sun) {
+                    scene.remove(sun);
+                }
+                const sunGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+                const sunMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffdd44,
+                    emissive: 0xffaa00,
+                    emissiveIntensity: 1
+                });
+                sun = new THREE.Mesh(sunGeometry, sunMaterial);
+                sun.position.set(-15, 15, -10);
+                scene.add(sun);
+            }
+
+            function removeSun() {
+                if (sun) {
+                    scene.remove(sun);
+                    sun = null;
+                }
+            }
+
+            function createRain() {
+                // Limpiar lluvia existente
+                rainParticles.forEach(p => scene.remove(p));
+                rainParticles.length = 0;
+
+                const rainCount = 300;
+                const rainGeometry = new THREE.BufferGeometry();
+                const rainPositions = [];
+
+                for (let i = 0; i < rainCount; i++) {
+                    const x = (Math.random() - 0.5) * 30;
+                    const y = Math.random() * 20;
+                    const z = (Math.random() - 0.5) * 20;
+                    rainPositions.push(x, y, z);
+                }
+
+                rainGeometry.setAttribute('position', new THREE.Float32BufferAttribute(rainPositions, 3));
+                const rainMaterial = new THREE.PointsMaterial({
+                    color: 0x88ccff,
+                    size: 0.15,
+                    transparent: true,
+                    opacity: 0.6
+                });
+
+                const rain = new THREE.Points(rainGeometry, rainMaterial);
+                scene.add(rain);
+                rainParticles.push(rain);
+            }
+
+            function removeRain() {
+                rainParticles.forEach(p => scene.remove(p));
+                rainParticles.length = 0;
+            }
+
+            function updateRainAnimation() {
+                rainParticles.forEach(rain => {
+                    const positions = rain.geometry.attributes.position.array;
+                    for (let i = 1; i < positions.length; i += 3) {
+                        positions[i] -= 0.3; // Caída de gotas
+                        if (positions[i] < 0) {
+                            positions[i] = 20; // Reset al tope
+                        }
+                    }
+                    rain.geometry.attributes.position.needsUpdate = true;
+                });
+            }
+
+            function applyEnvironment(env) {
+                environmentState = { ...env };
+
+                updateLighting(env.isDaytime, env.cloudCover);
+
+                if (env.isRaining) {
+                    if (rainParticles.length === 0) createRain();
+                } else {
+                    removeRain();
+                }
+
+                if (env.isDaytime && env.heatLevel === 'high') {
+                    if (!sun) createSun();
+                } else {
+                    removeSun();
+                }
+            }
+
             function sensorColor(sensor) {
                 if (!sensor) return '#3b82f6';
                 if (sensor.ultimaLectura != null && inAlert(sensor)) {
@@ -550,8 +658,39 @@
                     const scale = 1 + 0.03 * Math.sin(time + offset);
                     mesh.scale.set(scale, scale, scale);
                 });
+
+                // Animar lluvia si está activa
+                if (environmentState.isRaining) {
+                    updateRainAnimation();
+                }
+
+                // Pulsar sol si está visible
+                if (sun) {
+                    const pulse = 1 + 0.05 * Math.sin(time * 0.5);
+                    sun.scale.set(pulse, pulse, pulse);
+                }
+
                 controls.update();
                 renderer.render(scene, camera);
+            }
+
+            async function fetchEnvironment() {
+                try {
+                    const response = await fetch(`/invernaderos/${invernadero.id}/environment`);
+                    if (!response.ok) return;
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const { weather, sensors } = result.data;
+                        applyEnvironment({
+                            isRaining: weather.isRaining,
+                            isDaytime: weather.isDaytime,
+                            heatLevel: sensors.heatLevel,
+                            cloudCover: weather.cloudCover
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Error al cargar datos de entorno:', error);
+                }
             }
 
             function setupRealtimeUpdates() {
@@ -571,6 +710,16 @@
                         refreshMarkers();
                         refreshSensorCards();
                     }
+                });
+
+                socket.on('environment:update', data => {
+                    if (!data) return;
+                    applyEnvironment({
+                        isRaining: data.isRaining || false,
+                        isDaytime: data.isDaytime !== false,
+                        heatLevel: data.heatLevel || 'normal',
+                        cloudCover: data.cloudCover || 0
+                    });
                 });
             }
 
@@ -593,6 +742,11 @@
             buildSensorMarkers();
             refreshSensorCards();
             setupRealtimeUpdates();
+            
+            // Cargar entorno inicial y actualizar cada 5 minutos
+            fetchEnvironment();
+            setInterval(fetchEnvironment, 5 * 60 * 1000);
+            
             animate();
         })();
     </script>

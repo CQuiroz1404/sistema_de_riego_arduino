@@ -272,6 +272,35 @@ async function startServer() {
       logger.info('El servidor continuará sin MQTT. Los dispositivos no podrán comunicarse.');
     }
 
+    // Configurar actualización periódica del entorno (clima) cada 10 minutos
+    const weatherService = require('./src/services/weatherService');
+    setInterval(async () => {
+      try {
+        const lat = process.env.WEATHER_LAT || '-33.4489';
+        const lon = process.env.WEATHER_LON || '-70.6693';
+        const forecast = await weatherService.getForecast(lat, lon);
+        
+        if (forecast && forecast.list && forecast.list.length > 0) {
+          const current = forecast.list[0];
+          const weatherId = current.weather[0].id;
+          const isRaining = weatherId >= 200 && weatherId < 600;
+          const cloudCover = current.clouds?.all || 0;
+          const hour = new Date().getHours();
+          const isDaytime = hour >= 6 && hour < 20;
+
+          io.emit('environment:update', {
+            isRaining,
+            cloudCover,
+            isDaytime,
+            heatLevel: 'normal', // Se podría calcular según temperatura
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        logger.warn('Error actualizando entorno para clientes WebSocket: %s', error.message);
+      }
+    }, 10 * 60 * 1000); // Cada 10 minutos
+
     // Iniciar servidor en todas las interfaces (0.0.0.0)
     server.listen(PORT, '0.0.0.0', () => {
       logger.info('');

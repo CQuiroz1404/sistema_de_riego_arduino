@@ -231,6 +231,70 @@ class InvernaderoController {
       res.status(500).json({ success: false, message: 'Error al eliminar' });
     }
   }
+
+  // API: Obtener datos de entorno (clima + sensores) para simulación 3D
+  static async getEnvironment(req, res) {
+    try {
+      const { id } = req.params;
+      const weatherService = require('../services/weatherService');
+
+      const invernadero = await Invernaderos.findByPk(id);
+      if (!invernadero) {
+        return res.status(404).json({ success: false, message: 'Invernadero no encontrado' });
+      }
+
+      // Obtener pronóstico del clima (por defecto Santiago, Chile)
+      const lat = process.env.WEATHER_LAT || '-33.4489';
+      const lon = process.env.WEATHER_LON || '-70.6693';
+      const forecast = await weatherService.getForecast(lat, lon);
+
+      let isRaining = false;
+      let rainIntensity = 0;
+      let cloudCover = 0;
+      let currentTemp = invernadero.temp_actual || 20;
+
+      if (forecast && forecast.list && forecast.list.length > 0) {
+        const current = forecast.list[0];
+        const weatherId = current.weather[0].id;
+        isRaining = weatherId >= 200 && weatherId < 600;
+        rainIntensity = current.rain?.['3h'] || 0;
+        cloudCover = current.clouds?.all || 0;
+      }
+
+      // Determinar si es día o noche basándose en la hora local
+      const hour = new Date().getHours();
+      const isDaytime = hour >= 6 && hour < 20;
+
+      // Determinar intensidad de calor basándose en temperatura
+      let heatLevel = 'normal';
+      if (currentTemp > 30) heatLevel = 'high';
+      else if (currentTemp > 25) heatLevel = 'warm';
+      else if (currentTemp < 15) heatLevel = 'cool';
+
+      res.json({
+        success: true,
+        data: {
+          invernaderoId: id,
+          weather: {
+            isRaining,
+            rainIntensity,
+            cloudCover,
+            isDaytime,
+            hour
+          },
+          sensors: {
+            temperature: currentTemp,
+            humidity: invernadero.hum_actual || 50,
+            heatLevel
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener datos de entorno:', error);
+      res.status(500).json({ success: false, message: 'Error al consultar entorno' });
+    }
+  }
 }
 
 module.exports = InvernaderoController;
