@@ -540,7 +540,7 @@
 
             function animate() {
                 requestAnimationFrame(animate);
-                greenhouseGroup.rotation.y += 0.0015;
+                // greenhouseGroup.rotation.y += 0.0015;
                 markerState.forEach(marker => {
                     marker.scale.setScalar(1 + 0.08 * Math.sin(Date.now() * 0.003 + marker.position.x));
                 });
