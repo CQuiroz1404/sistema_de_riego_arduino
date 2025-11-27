@@ -79,7 +79,7 @@ class PlantaController {
   static async saveSchedule(req, res) {
     try {
       const { id } = req.params;
-      const { dias_semana, hora_inicio, duracion_minutos, semana_id } = req.body;
+      const { dias_semana, hora_inicio, duracion_minutos, semana_id, fecha_inicio, fecha_fin } = req.body;
 
       // Validar que se haya seleccionado al menos un día
       if (!dias_semana || (Array.isArray(dias_semana) && dias_semana.length === 0)) {
@@ -124,6 +124,8 @@ class PlantaController {
             invernadero_id: invernadero.id,
             semana_id: semana_id,
             dia_semana: dia,
+            fecha_inicio: fecha_inicio,
+            fecha_fin: fecha_fin,
             hora_inicial: hora_inicio,
             hora_final: hora_final,
             usuario_id: req.user ? req.user.id : null

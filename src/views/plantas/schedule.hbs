@@ -91,16 +91,33 @@
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
                         </div>
 
-                        <!-- Semana (Oculto o Default) -->
-                        <!-- Asumimos semana 1 por defecto o permitimos seleccionar si es necesario. Para simplificar, lo dejaremos fijo o seleccionable si hay datos -->
+                        <!-- Semana -->
                         <div>
                              <label for="semana_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Semana del Ciclo</label>
                             <select id="semana_id" name="semana_id" required
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
                                 {{#each semanas}}
-                                    <option value="{{this.id}}">Semana {{this.numero_semana}}</option>
+                                    <option value="{{this.id}}">{{this.nombre}}</option>
                                 {{/each}}
                             </select>
+                        </div>
+
+                        <!-- Rango de Fechas (Temporada) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Temporada de Riego</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="fecha_inicio" class="block text-xs text-gray-500 mb-1">Fecha Inicio</label>
+                                    <input type="date" id="fecha_inicio" name="fecha_inicio" required
+                                        class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                </div>
+                                <div>
+                                    <label for="fecha_fin" class="block text-xs text-gray-500 mb-1">Fecha Fin</label>
+                                    <input type="date" id="fecha_fin" name="fecha_fin" required
+                                        class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Define el periodo durante el cual se aplicará este horario.</p>
                         </div>
                     </div>
 

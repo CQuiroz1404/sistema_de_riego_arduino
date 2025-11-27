@@ -6,6 +6,8 @@ const Calendario = sequelize.define('calendario', {
   invernadero_id: { type: DataTypes.INTEGER },
   semana_id: { type: DataTypes.INTEGER },
   dia_semana: { type: DataTypes.STRING(20) }, // Agregado para FullCalendar
+  fecha_inicio: { type: DataTypes.DATEONLY }, // Rango de fechas para la temporada
+  fecha_fin: { type: DataTypes.DATEONLY },
   hora_inicial: { type: DataTypes.TIME },
   usuario_id: { type: DataTypes.INTEGER },
   hora_final: { type: DataTypes.TIME },

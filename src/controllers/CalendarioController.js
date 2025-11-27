@@ -54,7 +54,7 @@ const CalendarioController = {
     async store(req, res) {
         try {
             const { invernaderoId } = req.params;
-            const { semana_id, hora_inicio, duracion_minutos, dias_semana } = req.body;
+            const { semana_id, hora_inicio, duracion_minutos, dias_semana, fecha_inicio, fecha_fin } = req.body;
 
             // Validar que se haya seleccionado al menos un día
             if (!dias_semana || (Array.isArray(dias_semana) && dias_semana.length === 0)) {
@@ -76,6 +76,8 @@ const CalendarioController = {
                     invernadero_id: invernaderoId,
                     semana_id,
                     dia_semana: dia,
+                    fecha_inicio: fecha_inicio,
+                    fecha_fin: fecha_fin,
                     hora_inicial: hora_inicio,
                     hora_final: hora_final,
                     usuario_id: req.user ? req.user.id : null

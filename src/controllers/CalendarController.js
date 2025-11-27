@@ -45,9 +45,10 @@ const CalendarController = {
                         daysOfWeek: [dayOfWeek], // Array con el día de la semana
                         startTime: evento.hora_inicial,
                         endTime: evento.hora_final,
+                        startRecur: evento.fecha_inicio, // Fecha de inicio de la recurrencia
+                        endRecur: evento.fecha_fin,     // Fecha de fin de la recurrencia
                         color: '#10B981', // Green
                         description: `Semana ID: ${evento.semana_id}`,
-                        // Opcional: startRecur y endRecur si quisiéramos limitar la duración
                     };
                 }
 
