@@ -1,16 +1,31 @@
-const { Calendario, Invernaderos } = require('../models');
+const { Calendario, Invernaderos, Semanas } = require('../models');
 
 const CalendarController = {
-    index: (req, res) => {
-        res.render('calendar/index', {
-            title: 'Calendario de Riego',
-            user: req.user
-        });
+    index: async (req, res) => {
+        try {
+            const semanas = await Semanas.findAll();
+            res.render('calendar/index', {
+                title: 'Calendario de Riego',
+                user: req.user,
+                semanas
+            });
+        } catch (error) {
+            console.error('Error al cargar calendario:', error);
+            res.status(500).render('error', { message: 'Error al cargar el calendario' });
+        }
     },
 
     getEvents: async (req, res) => {
         try {
+            const { semana_id } = req.query;
+            const whereClause = {};
+            
+            if (semana_id) {
+                whereClause.semana_id = semana_id;
+            }
+
             const eventos = await Calendario.findAll({
+                where: whereClause,
                 include: [{ model: Invernaderos }]
             });
 
