@@ -21,7 +21,13 @@ const verifyToken = (req, res, next) => {
 
     // Verificar el token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+
+    // Si el middleware global ya cargó la información fresca del usuario,
+    // no la sobreescribimos. Solo guardamos el payload por si se necesita.
+    if (!req.user) {
+      req.user = decoded;
+    }
+    req.authPayload = decoded;
     next();
   } catch (error) {
     if (req.xhr || req.headers.accept.indexOf('json') > -1) {
