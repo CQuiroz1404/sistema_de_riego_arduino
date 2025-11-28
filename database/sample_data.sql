@@ -88,14 +88,14 @@ INSERT INTO historial_acciones (invernadero_id, fecha, hora, temp, humedad, usua
 -- ============================================
 
 -- Dispositivo 1: Vinculado lógicamente al "Invernadero Principal"
-INSERT INTO dispositivos (nombre, ubicacion, descripcion, mac_address, api_key, estado, usuario_id) VALUES 
-('Controlador Invernadero 1', 'Invernadero Principal', 'Control de riego para Tomates', 'AA:BB:CC:DD:EE:FF', 'api_key_inv_principal_001', 'activo', 1);
+INSERT INTO dispositivos (nombre, ubicacion, descripcion, api_key, estado, usuario_id) VALUES 
+('Controlador Invernadero 1', 'Invernadero Principal', 'Control de riego para Tomates', 'api_key_inv_principal_001', 'activo', 1);
 
 SET @dispositivo1_id = LAST_INSERT_ID();
 
 -- Dispositivo 2: Vinculado lógicamente al "Invernadero Semilleros"
-INSERT INTO dispositivos (nombre, ubicacion, descripcion, mac_address, api_key, estado, usuario_id) VALUES 
-('Controlador Semilleros', 'Invernadero Semilleros', 'Control de humedad para Lechugas', '11:22:33:44:55:66', 'api_key_inv_semilleros_002', 'activo', 1);
+INSERT INTO dispositivos (nombre, ubicacion, descripcion, api_key, estado, usuario_id) VALUES 
+('Controlador Semilleros', 'Invernadero Semilleros', 'Control de humedad para Lechugas', 'api_key_inv_semilleros_002', 'activo', 1);
 
 SET @dispositivo2_id = LAST_INSERT_ID();
 
