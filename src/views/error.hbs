@@ -1,28 +1,4 @@
-<!DOCTYPE html>
-<html lang="es" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - Sistema de Riego IoT</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#10B981',
-                        secondary: '#3B82F6',
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="/js/theme.js"></script>
-    <script src="/js/main.js"></script>
-</head>
-<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200 flex items-center justify-center">
+﻿<div class="h-full flex items-center justify-center">
     <div class="max-w-md w-full mx-auto p-6">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center border border-gray-100 dark:border-gray-700">
             <div class="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -43,7 +19,8 @@
             </div>
             {{/if}}
             
-            <a href="/dashboard" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-green-600 transition-colors shadow-sm w-full">
+            <a href="/dashboard"
+                class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-green-600 transition-colors shadow-sm w-full">
                 <i class="fas fa-home mr-2"></i> Volver al Dashboard
             </a>
         </div>
@@ -54,5 +31,4 @@
             </p>
         </div>
     </div>
-</body>
-</html>
+</div>

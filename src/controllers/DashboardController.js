@@ -21,6 +21,8 @@ class DashboardController {
       const stats = await DashboardController.getGeneralStats(req.user);
 
       res.render('dashboard/index', {
+        title: 'Dashboard',
+        useSocketIO: true,
         user: req.user,
         devices: devices.map(d => d.toJSON()),
         alerts: alerts.map(a => a.toJSON()),

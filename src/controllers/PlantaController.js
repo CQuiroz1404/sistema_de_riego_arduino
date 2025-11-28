@@ -1,4 +1,4 @@
-const { Plantas, TipoPlanta, RangoTemperatura, RangoHumedad, Invernaderos, Calendario, Semanas, Acciones } = require('../models');
+﻿const { Plantas, TipoPlanta, RangoTemperatura, RangoHumedad, Invernaderos, Calendario, Semanas, Acciones } = require('../models');
 
 class PlantaController {
   static async index(req, res) {
@@ -53,7 +53,7 @@ class PlantaController {
     }
   }
 
-  // Mostrar formulario de programación de riego
+  // Mostrar formulario de programaciÃ³n de riego
   static async schedule(req, res) {
     try {
       const { id } = req.params;
@@ -75,15 +75,15 @@ class PlantaController {
     }
   }
 
-  // Guardar programación y actualizar calendario automáticamente
+  // Guardar programaciÃ³n y actualizar calendario automÃ¡ticamente
   static async saveSchedule(req, res) {
     try {
       const { id } = req.params;
       const { dias_semana, hora_inicio, duracion_minutos, semana_id, fecha_inicio, fecha_fin } = req.body;
 
-      // Validar que se haya seleccionado al menos un día
+      // Validar que se haya seleccionado al menos un dÃ­a
       if (!dias_semana || (Array.isArray(dias_semana) && dias_semana.length === 0)) {
-          return res.status(400).render('error', { message: 'Debe seleccionar al menos un día de la semana.' });
+          return res.status(400).render('error', { message: 'Debe seleccionar al menos un dÃ­a de la semana.' });
       }
 
       // Asegurar que dias_semana sea un array (si viene uno solo es string)
@@ -105,7 +105,7 @@ class PlantaController {
         });
       }
 
-      // 3. Buscar o crear la acción de "Riego"
+      // 3. Buscar o crear la acciÃ³n de "Riego"
       // Corregido: El modelo Acciones usa 'nombre', no 'descripcion'
       let accion = await Acciones.findOne({ where: { nombre: 'Riego' } });
       if (!accion) {
@@ -118,7 +118,7 @@ class PlantaController {
       date.setHours(hours, minutes + parseInt(duracion_minutos), 0);
       const hora_final = date.toTimeString().slice(0, 5);
 
-      // 4. Crear entradas en Calendario para cada día seleccionado
+      // 4. Crear entradas en Calendario para cada dÃ­a seleccionado
       const promesas = dias.map(dia => {
           return Calendario.create({
             invernadero_id: invernadero.id,
@@ -138,8 +138,8 @@ class PlantaController {
       res.redirect(`/invernaderos/${invernadero.id}/calendario`);
 
     } catch (error) {
-      console.error('Error al guardar programación:', error);
-      res.status(500).render('error', { message: 'Error al guardar programación' });
+      console.error('Error al guardar programaciÃ³n:', error);
+      res.status(500).render('error', { message: 'Error al guardar programaciÃ³n' });
     }
   }
 }

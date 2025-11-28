@@ -1,0 +1,20 @@
+<!-- Componente Card Reutilizable -->
+<!-- Uso: {{> card title="Título" icon="fa-icon" color="blue"}} content {{/card}} -->
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow {{class}}">
+    {{#if title}}
+    <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            {{#if icon}}
+            <i class="fas {{icon}} text-{{color}}-500"></i>
+            {{/if}}
+            {{title}}
+        </h3>
+        {{#if subtitle}}
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{subtitle}}</p>
+        {{/if}}
+    </div>
+    {{/if}}
+    <div class="{{#if noPadding}}{{else}}p-4 sm:p-6{{/if}}">
+        {{{content}}}
+    </div>
+</div>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if title}}{{title}}{{else}}Sistema de Riego IoT{{/if}}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/images/favicon.png" type="image/png">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    
+    <!-- Tailwind CSS precompilado -->
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Scripts base -->
+    <script src="/js/theme.js"></script>
+    
+    <!-- Socket.IO solo si se requiere -->
+    {{#if useSocketIO}}
+    <script src="/socket.io/socket.io.js"></script>
+    {{/if}}
+    
+    <!-- Three.js solo si se requiere -->
+    {{#if useThreeJS}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    {{/if}}
+    
+    <!-- FullCalendar solo si se requiere -->
+    {{#if useFullCalendar}}
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    {{/if}}
+    
+    <!-- Estilos adicionales por página -->
+    {{{styles}}}
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{#unless noNavbar}}
+    {{> navbar}}
+    <div class="pt-16">
+    {{{body}}}
+    </div>
+    {{else}}
+    {{{body}}}
+    {{/unless}}
+    
+    <!-- Scripts base -->
+    <script src="/js/main.js"></script>
+    <script src="/js/components/validation.js"></script>
+    
+    <!-- Scripts adicionales por página -->
+    {{{scripts}}}
+</body>
+</html>

@@ -1,4 +1,4 @@
-const { HistorialAutomatico, HistorialAcciones, Invernaderos, Acciones } = require('../models');
+﻿const { HistorialAutomatico, HistorialAcciones, Invernaderos, Acciones } = require('../models');
 
 const HistorialController = {
     // Obtener historial de un invernadero
@@ -21,7 +21,7 @@ const HistorialController = {
                 });
                 view = 'historial/acciones';
             } else {
-                // Por defecto historial automático (sensores)
+                // Por defecto historial automÃ¡tico (sensores)
                 historial = await HistorialAutomatico.findAll({
                     where: { invernadero_id: invernaderoId },
                     order: [['fecha_registro', 'DESC']],

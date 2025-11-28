@@ -38,7 +38,7 @@ class DeviceController {
 
   // Mostrar formulario de creación
   static async create(req, res) {
-    res.render('devices/create', { user: req.user });
+    res.render('devices/create', { title: 'Nuevo Dispositivo', user: req.user });
   }
 
   // Crear nuevo dispositivo
