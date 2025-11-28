@@ -109,11 +109,11 @@
                         <div class="flex justify-between items-start mb-4">
                             <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{this.nombre}}</h3>
                             <div class="flex items-center gap-2">
-                                <div class="connection-status flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium text-gray-600 dark:text-gray-300" data-connection-status="{{this.id}}">
-                                    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                    <span class="connection-text">Verificando...</span>
-                                </div>
-                                <span class="px-2 py-1 rounded text-xs font-medium bg-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-100 text-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-800 dark:bg-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-900/30 dark:text-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-400">
+                                <span class="px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 bg-{{#if (eq this.estadoConexion 'encendido')}}green{{else}}red{{/if}}-100 text-{{#if (eq this.estadoConexion 'encendido')}}green{{else}}red{{/if}}-800 dark:bg-{{#if (eq this.estadoConexion 'encendido')}}green{{else}}red{{/if}}-900/30 dark:text-{{#if (eq this.estadoConexion 'encendido')}}green{{else}}red{{/if}}-400" data-connection-status="{{this.id}}">
+                                    <i class="fas fa-circle text-xs"></i>
+                                    <span class="connection-text">{{this.estadoConexion}}</span>
+                                </span>
+                                <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                     {{this.estado}}
                                 </span>
                             </div>

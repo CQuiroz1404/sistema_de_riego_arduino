@@ -14,6 +14,21 @@ class DashboardController {
         devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
 
+      // Calcular estado de conexión (encendido/apagado) para cada dispositivo
+      const now = new Date();
+      const devicesWithStatus = devices.map(d => {
+        const device = d.toJSON();
+        const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
+        const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
+        
+        // Estado de encendido: está enviando datos (última conexión < 30 segundos)
+        device.isOnline = lastConnection && secondsAgo < 30;
+        device.estadoConexion = device.isOnline ? 'encendido' : 'apagado';
+        device.secondsAgo = secondsAgo;
+        
+        return device;
+      });
+
       // Obtener alertas no leídas
       const alerts = await Alertas.findAll({ where: { leida: false } });
 
@@ -24,7 +39,7 @@ class DashboardController {
         title: 'Dashboard',
         useSocketIO: true,
         user: req.user,
-        devices: devices.map(d => d.toJSON()),
+        devices: devicesWithStatus,
         alerts: alerts.map(a => a.toJSON()),
         stats
       });

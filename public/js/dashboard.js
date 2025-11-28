@@ -72,24 +72,30 @@ function updateConnectionStatus(deviceId, data) {
         return;
     }
     
-    const dot = statusElement.querySelector('.connection-dot');
     const text = statusElement.querySelector('.connection-text');
     const lastConnectionElement = document.querySelector(`[data-last-connection="${deviceId}"]`);
     
     console.log(`[Device ${deviceId}] Estado:`, data);
     
-    if (data.connected) {
-        dot.classList.remove('offline');
-        dot.classList.add('online');
-        text.textContent = 'Conectado';
+    // Actualizar clases y texto basado en si está encendido (online) o apagado
+    const isOnline = data.online || data.estadoConexion === 'encendido';
+    
+    if (isOnline) {
+        // Remover clases de apagado
+        statusElement.classList.remove('bg-red-100', 'text-red-800', 'dark:bg-red-900/30', 'dark:text-red-400');
+        // Agregar clases de encendido
+        statusElement.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-400');
+        text.textContent = 'encendido';
         
         if (lastConnectionElement && data.last_connection) {
             lastConnectionElement.textContent = `Hace ${getTimeAgo(data.last_connection)}`;
         }
     } else {
-        dot.classList.remove('online');
-        dot.classList.add('offline');
-        text.textContent = 'Desconectado';
+        // Remover clases de encendido
+        statusElement.classList.remove('bg-green-100', 'text-green-800', 'dark:bg-green-900/30', 'dark:text-green-400');
+        // Agregar clases de apagado
+        statusElement.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-900/30', 'dark:text-red-400');
+        text.textContent = 'apagado';
         
         if (lastConnectionElement && data.last_connection) {
             lastConnectionElement.textContent = `Última vez: ${getTimeAgo(data.last_connection)}`;
