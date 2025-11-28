@@ -65,6 +65,7 @@ class PlantaController {
       }
 
       res.render('plantas/schedule', { 
+        layout: false,
         planta: planta.toJSON(),
         semanas: semanas.map(s => s.toJSON()),
         user: req.user 

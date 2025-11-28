@@ -163,6 +163,7 @@ class InvernaderoController {
       const invernaderoJson = invernadero.toJSON();
 
       res.render('invernaderos/virtual', {
+        layout: false,
         title: 'Vista 3D',
         useThreeJS: true,
         invernadero: invernaderoJson,
