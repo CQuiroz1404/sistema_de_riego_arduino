@@ -31,26 +31,34 @@ const CalendarController = {
             });
 
             const events = eventos.map(evento => {
-                // Mapeo de dÃ­as a nÃºmeros de FullCalendar (0=Domingo, 1=Lunes, etc.)
+                // Mapeo de días a números de FullCalendar (0=Domingo, 1=Lunes, etc.)
                 const diasMap = {
-                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'MiÃ©rcoles': 3, 
-                    'Jueves': 4, 'Viernes': 5, 'SÃ¡bado': 6
+                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 
+                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
                 };
                 
                 const dayOfWeek = diasMap[evento.dia_semana];
 
-                // Si tenemos un dÃ­a vÃ¡lido, creamos un evento recurrente
+                // Si tenemos un día válido, creamos un evento recurrente
                 if (dayOfWeek !== undefined) {
-                    return {
+                    const eventData = {
                         title: `Riego: ${evento.invernadero ? evento.invernadero.descripcion : 'Invernadero'}`,
-                        daysOfWeek: [dayOfWeek], // Array con el dÃ­a de la semana
+                        daysOfWeek: [dayOfWeek], // Array con el día de la semana
                         startTime: evento.hora_inicial,
                         endTime: evento.hora_final,
-                        startRecur: evento.fecha_inicio, // Fecha de inicio de la recurrencia
-                        endRecur: evento.fecha_fin,     // Fecha de fin de la recurrencia
                         color: '#10B981', // Green
                         description: `Semana ID: ${evento.semana_id}`,
                     };
+
+                    // Agregar rango de fechas solo si existen
+                    if (evento.fecha_inicio) {
+                        eventData.startRecur = evento.fecha_inicio;
+                    }
+                    if (evento.fecha_fin) {
+                        eventData.endRecur = evento.fecha_fin;
+                    }
+
+                    return eventData;
                 }
 
                 // Fallback para eventos antiguos sin dia_semana (si los hubiera)
