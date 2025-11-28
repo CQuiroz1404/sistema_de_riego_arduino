@@ -1,4 +1,4 @@
-const { Calendario, Invernaderos, Semanas } = require('../models');
+﻿const { Calendario, Invernaderos, Semanas } = require('../models');
 
 const CalendarioController = {
     // Obtener calendario de un invernadero
@@ -18,7 +18,8 @@ const CalendarioController = {
             
             const invernadero = await Invernaderos.findByPk(invernaderoId);
             
-            res.render('calendario/index', { 
+            res.render('calendario/index', {
+                title: 'Calendario', 
                 calendario: calendario.map(c => c.toJSON()), 
                 invernadero: invernadero.toJSON(),
                 user: req.user 
@@ -40,6 +41,7 @@ const CalendarioController = {
             const invernadero = await Invernaderos.findByPk(invernaderoId);
 
             res.render('calendario/create', {
+                title: 'Programar Evento',
                 invernadero: invernadero.toJSON(),
                 semanas: semanas.map(s => s.toJSON()),
                 user: req.user
@@ -56,9 +58,9 @@ const CalendarioController = {
             const { invernaderoId } = req.params;
             const { semana_id, hora_inicio, duracion_minutos, dias_semana, fecha_inicio, fecha_fin } = req.body;
 
-            // Validar que se haya seleccionado al menos un día
+            // Validar que se haya seleccionado al menos un dÃ­a
             if (!dias_semana || (Array.isArray(dias_semana) && dias_semana.length === 0)) {
-                return res.status(400).render('error', { message: 'Debe seleccionar al menos un día de la semana.' });
+                return res.status(400).render('error', { message: 'Debe seleccionar al menos un dÃ­a de la semana.' });
             }
 
             // Asegurar que dias_semana sea un array
@@ -70,7 +72,7 @@ const CalendarioController = {
             date.setHours(hours, minutes + parseInt(duracion_minutos), 0);
             const hora_final = date.toTimeString().slice(0, 5);
 
-            // Crear entradas para cada día seleccionado
+            // Crear entradas para cada dÃ­a seleccionado
             const promesas = dias.map(dia => {
                 return Calendario.create({
                     invernadero_id: invernaderoId,

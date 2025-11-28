@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+﻿const { Op } = require('sequelize');
 const {
   Invernaderos,
   Plantas,
@@ -21,7 +21,7 @@ class InvernaderoController {
         }]
       });
       
-      // Si es una petición API, devolver JSON
+      // Si es una peticiÃ³n API, devolver JSON
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.json({ success: true, data: invernaderos });
       }
@@ -36,7 +36,7 @@ class InvernaderoController {
     }
   }
 
-  // Mostrar formulario de creación
+  // Mostrar formulario de creaciÃ³n
   static async create(req, res) {
     try {
       const plantas = await Plantas.findAll();
@@ -163,6 +163,8 @@ class InvernaderoController {
       const invernaderoJson = invernadero.toJSON();
 
       res.render('invernaderos/virtual', {
+        title: 'Vista 3D',
+        useThreeJS: true,
         invernadero: invernaderoJson,
         user: req.user,
         sensores: sensoresDetallados,
@@ -232,7 +234,7 @@ class InvernaderoController {
     }
   }
 
-  // API: Obtener datos de entorno (clima + sensores) para simulación 3D
+  // API: Obtener datos de entorno (clima + sensores) para simulaciÃ³n 3D
   static async getEnvironment(req, res) {
     try {
       const { id } = req.params;
@@ -243,7 +245,7 @@ class InvernaderoController {
         return res.status(404).json({ success: false, message: 'Invernadero no encontrado' });
       }
 
-      // Obtener pronóstico del clima (por defecto Santiago, Chile)
+      // Obtener pronÃ³stico del clima (por defecto Santiago, Chile)
       const lat = process.env.WEATHER_LAT || '-33.4489';
       const lon = process.env.WEATHER_LON || '-70.6693';
       const forecast = await weatherService.getForecast(lat, lon);
@@ -261,11 +263,11 @@ class InvernaderoController {
         cloudCover = current.clouds?.all || 0;
       }
 
-      // Determinar si es día o noche basándose en la hora local
+      // Determinar si es dÃ­a o noche basÃ¡ndose en la hora local
       const hour = new Date().getHours();
       const isDaytime = hour >= 6 && hour < 20;
 
-      // Determinar intensidad de calor basándose en temperatura
+      // Determinar intensidad de calor basÃ¡ndose en temperatura
       let heatLevel = 'normal';
       if (currentTemp > 30) heatLevel = 'high';
       else if (currentTemp > 25) heatLevel = 'warm';

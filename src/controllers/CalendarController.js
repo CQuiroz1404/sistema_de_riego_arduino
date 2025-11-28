@@ -1,4 +1,4 @@
-const { Calendario, Invernaderos, Semanas } = require('../models');
+﻿const { Calendario, Invernaderos, Semanas } = require('../models');
 
 const CalendarController = {
     index: async (req, res) => {
@@ -6,6 +6,7 @@ const CalendarController = {
             const semanas = await Semanas.findAll();
             res.render('calendar/index', {
                 title: 'Calendario de Riego',
+                useFullCalendar: true,
                 user: req.user,
                 semanas
             });
@@ -30,19 +31,19 @@ const CalendarController = {
             });
 
             const events = eventos.map(evento => {
-                // Mapeo de días a números de FullCalendar (0=Domingo, 1=Lunes, etc.)
+                // Mapeo de dÃ­as a nÃºmeros de FullCalendar (0=Domingo, 1=Lunes, etc.)
                 const diasMap = {
-                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 
-                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'MiÃ©rcoles': 3, 
+                    'Jueves': 4, 'Viernes': 5, 'SÃ¡bado': 6
                 };
                 
                 const dayOfWeek = diasMap[evento.dia_semana];
 
-                // Si tenemos un día válido, creamos un evento recurrente
+                // Si tenemos un dÃ­a vÃ¡lido, creamos un evento recurrente
                 if (dayOfWeek !== undefined) {
                     return {
                         title: `Riego: ${evento.invernadero ? evento.invernadero.descripcion : 'Invernadero'}`,
-                        daysOfWeek: [dayOfWeek], // Array con el día de la semana
+                        daysOfWeek: [dayOfWeek], // Array con el dÃ­a de la semana
                         startTime: evento.hora_inicial,
                         endTime: evento.hora_final,
                         startRecur: evento.fecha_inicio, // Fecha de inicio de la recurrencia
@@ -53,7 +54,7 @@ const CalendarController = {
                 }
 
                 // Fallback para eventos antiguos sin dia_semana (si los hubiera)
-                // ... (código anterior omitido por simplicidad, asumimos que todos tienen dia_semana ahora)
+                // ... (cÃ³digo anterior omitido por simplicidad, asumimos que todos tienen dia_semana ahora)
                 return null;
             }).filter(e => e !== null);
 

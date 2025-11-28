@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Dispositivo - Sistema de Riego IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981',
+                        secondary: '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{> navbar}}
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <i class="fas fa-plus-circle text-green-500"></i> Nuevo Dispositivo Arduino
+            </h1>
+            <a href="/devices" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+        
+        <div class="max-w-3xl mx-auto">
+            <form id="deviceForm" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-100 dark:border-gray-700">
+                <div class="space-y-6">
+                    <div>
+                        <label for="nombre" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="fas fa-microchip mr-1"></i> Nombre del Dispositivo *
+                        </label>
+                        <input type="text" id="nombre" name="nombre" required 
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
+                               placeholder="Ej: Arduino Jardín Principal">
+                    </div>
+                    
+                    <div>
+                        <label for="ubicacion" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i> Ubicación
+                        </label>
+                        <input type="text" id="ubicacion" name="ubicacion" 
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
+                               placeholder="Ej: Jardín trasero">
+                    </div>
+                    
+                    <div>
+                        <label for="descripcion" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="fas fa-comment mr-1"></i> Descripción
+                        </label>
+                        <textarea id="descripcion" name="descripcion" rows="3" 
+                                  class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
+                                  placeholder="Descripción del dispositivo..."></textarea>
+                    </div>
+                </div>
+                
+                <div id="errorMessage" class="mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative hidden" role="alert"></div>
+                <div id="successMessage" class="mt-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative hidden" role="alert"></div>
+                
+                <div class="mt-8 flex gap-4">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i> Crear Dispositivo
+                    </button>
+                    <a href="/devices" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+            
+            <div id="apiKeyResult" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-100 dark:border-gray-700 text-center mt-8">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2"><i class="fas fa-key text-yellow-500"></i> API Key Generada</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Guarda esta clave, la necesitarás para configurar tu Arduino:</p>
+                
+                <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
+                    <code id="apiKeyValue" class="flex-1 font-mono text-sm text-gray-800 dark:text-gray-200 break-all"></code>
+                    <button onclick="copyApiKey()" class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                </div>
+                
+                <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 p-4 rounded-lg mb-6 flex items-start gap-3 text-left">
+                    <i class="fas fa-info-circle mt-0.5"></i>
+                    <p class="text-sm">Esta clave solo se muestra una vez. Asegúrate de copiarla antes de continuar.</p>
+                </div>
+                
+                <a href="/devices" class="inline-flex bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm items-center gap-2">
+                    <i class="fas fa-arrow-left"></i> Volver a Dispositivos
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('deviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                nombre: document.getElementById('nombre').value,
+                ubicacion: document.getElementById('ubicacion').value,
+                descripcion: document.getElementById('descripcion').value
+            };
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            const form = document.getElementById('deviceForm');
+            const result = document.getElementById('apiKeyResult');
+            
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/devices', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    form.classList.add('hidden');
+                    result.classList.remove('hidden');
+                    document.getElementById('apiKeyValue').textContent = data.api_key;
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error al crear dispositivo';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+        
+        function copyApiKey() {
+            const apiKey = document.getElementById('apiKeyValue').textContent;
+            navigator.clipboard.writeText(apiKey).then(() => {
+                alert('API Key copiada al portapapeles');
+            });
+        }
+    </script>
+</body>
+</html>

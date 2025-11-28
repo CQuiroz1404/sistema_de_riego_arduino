@@ -76,6 +76,17 @@ const limiter = rateLimit({
   legacyHeaders: false,
   message: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo después de 15 minutos'
 });
+
+// Rate Limiter específico para autenticación
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // Máximo 5 intentos de login por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiados intentos de inicio de sesión. Por favor intente de nuevo después de 15 minutos',
+  skipSuccessfulRequests: true // No contar peticiones exitosas
+});
+
 app.use('/api/', limiter); // Aplicar solo a rutas API
 
 // Logging
@@ -140,35 +151,35 @@ app.use(async (req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Motor de vistas Handlebars
+const hbs = require('hbs');
+const expressHbs = require('express-handlebars');
+
+// Configurar express-handlebars con layout por defecto
+const hbsEngine = expressHbs.create({
+  extname: '.hbs',
+  defaultLayout: 'main',
+  layoutsDir: path.join(__dirname, 'src', 'views', 'layouts'),
+  partialsDir: path.join(__dirname, 'src', 'views', 'partials'),
+  helpers: {
+    eq: function(a, b) { return a === b; },
+    gt: function(a, b) { return a > b; },
+    formatDate: function(date) {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleString('es');
+    },
+    limit: function(array, limit) {
+      if (!Array.isArray(array)) return [];
+      return array.slice(0, limit);
+    },
+    json: function(context) {
+      return JSON.stringify(context);
+    }
+  }
+});
+
+app.engine('hbs', hbsEngine.engine);
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'src', 'views'));
-
-// Configurar Handlebars
-const hbs = require('hbs');
-hbs.registerPartials(path.join(__dirname, 'src', 'views', 'partials'));
-
-// Registrar helpers de Handlebars
-hbs.registerHelper('eq', function(a, b) {
-  return a === b;
-});
-
-hbs.registerHelper('gt', function(a, b) {
-  return a > b;
-});
-
-hbs.registerHelper('formatDate', function(date) {
-  if (!date) return 'N/A';
-  return new Date(date).toLocaleString('es');
-});
-
-hbs.registerHelper('limit', function(array, limit) {
-  if (!Array.isArray(array)) return [];
-  return array.slice(0, limit);
-});
-
-hbs.registerHelper('json', function(context) {
-  return JSON.stringify(context);
-});
 
 // ============================================
 // Rutas
