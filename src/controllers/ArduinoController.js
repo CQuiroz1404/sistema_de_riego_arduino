@@ -296,6 +296,43 @@ class ArduinoController {
       });
     }
   }
+
+  // Obtener datos actualizados de sensores (para actualización en tiempo real)
+  static async getSensoresActualizados(req, res) {
+    try {
+      const { dispositivo_id } = req.params;
+
+      const sensores = await Sensores.findAll({ where: { dispositivo_id } });
+
+      const sensoresConDatos = await Promise.all(sensores.map(async (s) => {
+        const sensor = s.toJSON();
+        const ultimaLectura = await Lecturas.findOne({
+          where: { sensor_id: sensor.id },
+          order: [['fecha_lectura', 'DESC']],
+          limit: 1
+        });
+
+        if (ultimaLectura) {
+          sensor.ultimo_valor = ultimaLectura.valor;
+          sensor.ultima_fecha = ultimaLectura.fecha_lectura;
+        }
+
+        return sensor;
+      }));
+
+      res.json({
+        success: true,
+        sensores: sensoresConDatos
+      });
+
+    } catch (error) {
+      console.error('Error al obtener sensores:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener datos'
+      });
+    }
+  }
 }
 
 module.exports = ArduinoController;

@@ -96,16 +96,41 @@ class DeviceController {
       const sensors = await Sensores.findAll({ where: { dispositivo_id: id } });
       const actuators = await Actuadores.findAll({ where: { dispositivo_id: id } });
       
-      // Calcular estadísticas básicas (ejemplo)
+      logger.info(`🔍 Dispositivo ${id}: ${sensors.length} sensores encontrados`);
+      
+      // Obtener última lectura de cada sensor
+      const sensorsWithData = await Promise.all(sensors.map(async (s) => {
+        const sensor = s.toJSON();
+        const ultimaLectura = await Lecturas.findOne({
+          where: { sensor_id: sensor.id },
+          order: [['fecha_lectura', 'DESC']],
+          limit: 1
+        });
+        
+        if (ultimaLectura) {
+          sensor.ultimo_valor = ultimaLectura.valor;
+          sensor.ultima_fecha = ultimaLectura.fecha_lectura;
+        }
+        
+        logger.info(`   Sensor: ${sensor.nombre} (ID: ${sensor.id}) - Último valor: ${sensor.ultimo_valor || 'N/A'}`);
+        return sensor;
+      }));
+      
+      // Calcular estadísticas básicas
+      const totalLecturas = await Lecturas.count({
+        where: { sensor_id: sensors.map(s => s.id) }
+      });
+      
       const stats = {
         total_sensores: sensors.length,
         total_actuadores: actuators.length,
+        total_lecturas: totalLecturas,
         ultima_conexion: device.ultima_conexion
       };
 
       res.render('devices/show', { 
         device: device.toJSON(), 
-        sensors: sensors.map(s => s.toJSON()), 
+        sensors: sensorsWithData, 
         actuators: actuators.map(a => a.toJSON()), 
         stats,
         user: req.user 
