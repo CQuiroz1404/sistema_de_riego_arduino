@@ -130,3 +130,55 @@ async function apiRequest(url, options = {}) {
         return { success: false, error: error.message };
     }
 }
+
+// --- Sistema de Notificaciones ---
+
+// Solicitar permiso para notificaciones del navegador
+function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        console.log("Este navegador no soporta notificaciones de escritorio");
+        return;
+    }
+
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("Permiso de notificaciones concedido");
+            }
+        });
+    }
+}
+
+// Mostrar notificación del sistema (navegador)
+function showSystemNotification(title, body, icon = '/favicon.ico') {
+    if (Notification.permission === "granted") {
+        new Notification(title, {
+            body: body,
+            icon: icon
+        });
+    }
+}
+
+// Inicializar listeners de Socket.io para notificaciones
+document.addEventListener('DOMContentLoaded', () => {
+    // Solicitar permisos
+    requestNotificationPermission();
+
+    // Verificar si socket está definido (globalmente en layout)
+    if (typeof socket !== 'undefined') {
+        
+        // Alerta: Sugerencia de Riego
+        socket.on('alert:riego_sugerido', (data) => {
+            console.log('Sugerencia de riego:', data);
+            showNotification(data.message, 'warning');
+            showSystemNotification('Sugerencia de Riego', data.message);
+        });
+
+        // Alerta: Riego Activo
+        socket.on('alert:riego_activo', (data) => {
+            console.log('Riego activo:', data);
+            showNotification(data.message, 'success');
+            showSystemNotification('Riego Iniciado', data.message);
+        });
+    }
+});

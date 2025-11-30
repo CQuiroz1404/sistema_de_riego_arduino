@@ -10,6 +10,7 @@ class MQTTService {
     this.connected = false;
     this.devicesByApiKey = new Map(); // Cache de dispositivos
     this.io = null; // Instancia de Socket.io
+    this.lastSuggestionTime = new Map(); // Cache para evitar spam de sugerencias
   }
 
   /**
@@ -215,11 +216,11 @@ class MQTTService {
    */
   async checkAutoIrrigation(deviceId, sensorId, valor) {
     try {
+      // Buscar configuraciones activas (tanto manuales como automáticas)
       const configs = await ConfiguracionesRiego.findAll({
         where: {
           dispositivo_id: deviceId,
-          activo: true,
-          modo: 'automatico'
+          activo: true
         }
       });
       
@@ -227,26 +228,52 @@ class MQTTService {
         if (config.sensor_id === sensorId) {
           const actuator = await Actuadores.findByPk(config.actuador_id);
           
-          // Activar riego si valor está por debajo del umbral inferior
-          if (valor < config.umbral_inferior && actuator.estado === 'apagado') {
+          if (config.modo === 'automatico') {
+            // --- Lógica Automática ---
             
-            // Verificar clima antes de regar
-            // Nota: Aquí usamos coordenadas hardcodeadas, idealmente vendrían del dispositivo
-            const canWater = await weatherService.shouldWater();
-            
-            if (canWater) {
-              await this.controlActuator(deviceId, config.actuador_id, 'encendido', 'automatico');
-              logger.info(`[INFO] [irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
-            } else {
-              logger.info(`[INFO] [irrigation] Riego pospuesto por lluvia en ${actuator.nombre} (Disp: ${deviceId})`);
-              // Opcional: Crear alerta informativa
+            // Activar riego si valor está por debajo del umbral inferior
+            if (valor < config.umbral_inferior && actuator.estado === 'apagado') {
+              
+              // Verificar clima antes de regar
+              const canWater = await weatherService.shouldWater();
+              
+              if (canWater) {
+                await this.controlActuator(deviceId, config.actuador_id, 'encendido', 'automatico');
+                logger.info(`[INFO] [irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
+              } else {
+                logger.info(`[INFO] [irrigation] Riego pospuesto por lluvia en ${actuator.nombre} (Disp: ${deviceId})`);
+              }
             }
-          }
-          
-          // Desactivar riego si valor está por encima del umbral superior
-          if (valor > config.umbral_superior && actuator.estado === 'encendido') {
-            await this.controlActuator(deviceId, config.actuador_id, 'apagado', 'automatico');
-            logger.info(`[INFO] [irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
+            
+            // Desactivar riego si valor está por encima del umbral superior
+            if (valor > config.umbral_superior && actuator.estado === 'encendido') {
+              await this.controlActuator(deviceId, config.actuador_id, 'apagado', 'automatico');
+              logger.info(`[INFO] [irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
+            }
+
+          } else {
+            // --- Lógica Manual (Sugerencias) ---
+            
+            // Si la humedad es baja y no se está regando, sugerir riego
+            if (valor < config.umbral_inferior && actuator.estado === 'apagado') {
+               const key = `${deviceId}-${config.actuador_id}`;
+               const now = Date.now();
+               const lastTime = this.lastSuggestionTime.get(key) || 0;
+               
+               // Solo sugerir cada 30 minutos (1800000 ms)
+               if (now - lastTime > 1800000) {
+                   if (this.io) {
+                     this.io.emit('alert:riego_sugerido', {
+                       deviceId: deviceId,
+                       actuatorName: actuator.nombre,
+                       sensorValue: valor,
+                       threshold: config.umbral_inferior,
+                       message: `Se sugiere regar: ${actuator.nombre} (Humedad: ${valor}%)`
+                     });
+                     this.lastSuggestionTime.set(key, now);
+                   }
+               }
+            }
           }
         }
       }
@@ -341,6 +368,16 @@ class MQTTService {
         detalle: `Riego ${modo} ${estado}`,
         usuario_id: userId
       });
+
+      // Notificar inicio de riego vía Socket.io
+      if (this.io && estado === 'encendido') {
+        this.io.emit('alert:riego_activo', {
+          deviceId: deviceId,
+          actuatorName: actuator.nombre,
+          modo: modo,
+          message: `Riego iniciado en ${actuator.nombre} (${modo})`
+        });
+      }
 
       // Publicar comando MQTT al dispositivo
       const topic = `riego/${device.api_key}/comandos`;
