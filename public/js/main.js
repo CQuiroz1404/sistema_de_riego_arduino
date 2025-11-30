@@ -1,5 +1,10 @@
 // Funciones globales para el sistema
 
+// Cargar componente de validación si existe
+if (document.querySelector('script[src*="validation.js"]')) {
+    console.log('Validation component loaded');
+}
+
 // Logout
 async function logout() {
     try {

@@ -103,12 +103,17 @@ class MQTTService {
       const payload = JSON.parse(message.toString());
       const [, apiKey, type] = topic.split('/'); // riego/{apiKey}/{type}
 
+      logger.info(`📨 Mensaje MQTT recibido - Topic: ${topic}, Tipo: ${type}`);
+      logger.debug(`   Payload: ${JSON.stringify(payload)}`);
+
       // Verificar dispositivo por API Key
       const device = await this.getDeviceByApiKey(apiKey);
       if (!device) {
         logger.warn(`⚠️  Mensaje rechazado: API Key inválida (${apiKey})`);
         return;
       }
+
+      logger.info(`✅ Dispositivo encontrado: ${device.nombre} (ID: ${device.id})`);
 
       // Actualizar última conexión
       await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
@@ -140,23 +145,37 @@ class MQTTService {
     try {
       const { sensores } = payload;
 
+      logger.info(`🔍 Procesando datos de sensores - Dispositivo: ${device.nombre}`);
+      
       if (!sensores || !Array.isArray(sensores)) {
-        logger.warn('Formato de datos de sensores inválido');
+        logger.warn('⚠️  Formato de datos de sensores inválido - Se esperaba array "sensores"');
+        logger.warn(`   Payload recibido: ${JSON.stringify(payload)}`);
         return;
       }
+
+      logger.info(`📊 Total de sensores en payload: ${sensores.length}`);
 
       for (const sensorData of sensores) {
         const { sensor_id, valor, estado, conectado } = sensorData;
 
+        logger.debug(`   Procesando sensor_id: ${sensor_id}, valor: ${valor}`);
+
         const sensor = await Sensores.findByPk(sensor_id);
         
-        if (!sensor || sensor.dispositivo_id !== device.id) {
-          logger.warn(`Sensor ${sensor_id} no encontrado o no pertenece al dispositivo ${device.id}`);
+        if (!sensor) {
+          logger.warn(`❌ Sensor ${sensor_id} NO EXISTE en la base de datos`);
+          continue;
+        }
+        
+        if (sensor.dispositivo_id !== device.id) {
+          logger.warn(`❌ Sensor ${sensor_id} no pertenece al dispositivo ${device.id} (pertenece a ${sensor.dispositivo_id})`);
           continue;
         }
 
-        // Verificar estado del sensor
-        if (conectado === false || estado !== 'ok') {
+        logger.info(`✅ Sensor válido: ${sensor.nombre} (ID: ${sensor_id})`);
+
+        // Verificar estado del sensor (solo si se envían los campos opcionales)
+        if (conectado === false || (estado && estado !== 'ok')) {
           const estadoMsg = estado === 'desconectado' ? 'DESCONECTADO' : 
                           estado === 'fuera_rango' ? 'FUERA DE RANGO' : 
                           estado === 'lectura_anormal' ? 'LECTURA ANORMAL' : 'ERROR';
@@ -176,7 +195,7 @@ class MQTTService {
           continue;
         }
 
-        // Registrar lectura solo si el sensor está válido
+        // Registrar lectura
         await Lecturas.create({
           sensor_id: sensor_id,
           valor: valor

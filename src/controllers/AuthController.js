@@ -7,12 +7,12 @@ const emailService = require('../services/emailService');
 class AuthController {
   // Mostrar página de login
   static async showLogin(req, res) {
-    res.render('auth/login', { error: null });
+    res.render('auth/login', { title: 'Iniciar Sesión', noNavbar: true, error: null });
   }
 
   // Mostrar página de registro
   static async showRegister(req, res) {
-    res.render('auth/register', { error: null });
+    res.render('auth/register', { title: 'Registro', noNavbar: true, error: null });
   }
 
   // Procesar login

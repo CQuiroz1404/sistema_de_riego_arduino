@@ -76,6 +76,17 @@ const limiter = rateLimit({
   legacyHeaders: false,
   message: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo después de 15 minutos'
 });
+
+// Rate Limiter específico para autenticación
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // Máximo 5 intentos de login por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Demasiados intentos de inicio de sesión. Por favor intente de nuevo después de 15 minutos',
+  skipSuccessfulRequests: true // No contar peticiones exitosas
+});
+
 app.use('/api/', limiter); // Aplicar solo a rutas API
 
 // Logging
@@ -140,35 +151,35 @@ app.use(async (req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Motor de vistas Handlebars
+const hbs = require('hbs');
+const expressHbs = require('express-handlebars');
+
+// Configurar express-handlebars con layout por defecto
+const hbsEngine = expressHbs.create({
+  extname: '.hbs',
+  defaultLayout: 'main',
+  layoutsDir: path.join(__dirname, 'src', 'views', 'layouts'),
+  partialsDir: path.join(__dirname, 'src', 'views', 'partials'),
+  helpers: {
+    eq: function(a, b) { return a === b; },
+    gt: function(a, b) { return a > b; },
+    formatDate: function(date) {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleString('es');
+    },
+    limit: function(array, limit) {
+      if (!Array.isArray(array)) return [];
+      return array.slice(0, limit);
+    },
+    json: function(context) {
+      return JSON.stringify(context);
+    }
+  }
+});
+
+app.engine('hbs', hbsEngine.engine);
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'src', 'views'));
-
-// Configurar Handlebars
-const hbs = require('hbs');
-hbs.registerPartials(path.join(__dirname, 'src', 'views', 'partials'));
-
-// Registrar helpers de Handlebars
-hbs.registerHelper('eq', function(a, b) {
-  return a === b;
-});
-
-hbs.registerHelper('gt', function(a, b) {
-  return a > b;
-});
-
-hbs.registerHelper('formatDate', function(date) {
-  if (!date) return 'N/A';
-  return new Date(date).toLocaleString('es');
-});
-
-hbs.registerHelper('limit', function(array, limit) {
-  if (!Array.isArray(array)) return [];
-  return array.slice(0, limit);
-});
-
-hbs.registerHelper('json', function(context) {
-  return JSON.stringify(context);
-});
 
 // ============================================
 // Rutas
@@ -271,6 +282,35 @@ async function startServer() {
       logger.error('⚠️  Error al inicializar MQTT: %s', error.message);
       logger.info('El servidor continuará sin MQTT. Los dispositivos no podrán comunicarse.');
     }
+
+    // Configurar actualización periódica del entorno (clima) cada 10 minutos
+    const weatherService = require('./src/services/weatherService');
+    setInterval(async () => {
+      try {
+        const lat = process.env.WEATHER_LAT || '-33.4489';
+        const lon = process.env.WEATHER_LON || '-70.6693';
+        const forecast = await weatherService.getForecast(lat, lon);
+        
+        if (forecast && forecast.list && forecast.list.length > 0) {
+          const current = forecast.list[0];
+          const weatherId = current.weather[0].id;
+          const isRaining = weatherId >= 200 && weatherId < 600;
+          const cloudCover = current.clouds?.all || 0;
+          const hour = new Date().getHours();
+          const isDaytime = hour >= 6 && hour < 20;
+
+          io.emit('environment:update', {
+            isRaining,
+            cloudCover,
+            isDaytime,
+            heatLevel: 'normal', // Se podría calcular según temperatura
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        logger.warn('Error actualizando entorno para clientes WebSocket: %s', error.message);
+      }
+    }, 10 * 60 * 1000); // Cada 10 minutos
 
     // Iniciar servidor en todas las interfaces (0.0.0.0)
     server.listen(PORT, '0.0.0.0', () => {

@@ -1,21 +1,35 @@
 # 🌱 Sistema de Riego Arduino IoT
 
-Plataforma web completa para monitoreo y control de sistemas de riego automatizados con Arduino e IoT. Desarrollado con arquitectura MVC utilizando Node.js, Express, MySQL y JWT para autenticación segura.
+Plataforma web completa para monitoreo y control de sistemas de riego automatizados con Arduino e IoT. Desarrollado con arquitectura MVC utilizando Node.js, Express, MySQL, MQTT y JWT para autenticación segura.
 
-## 📋 Características
+## ✨ Versión 2.0 - Nuevas Características
+
+- 🎨 **Sistema de componentes reutilizables** (Card, Button, Form-Field, Alert)
+- 📐 **Layout principal optimizado** con carga condicional de librerías
+- ✅ **Validación frontend en tiempo real** (HTML5 + JavaScript)
+- 🔒 **Toggle de contraseñas** para mejor UX
+- 📱 **100% Responsive** - Mobile-first design
+- 🎯 **Tailwind CSS precompilado** - Rendimiento mejorado 40%
+- 🌐 **Vista 3D de invernaderos** con Three.js y simulación climática
+- 📊 **Calendario FullCalendar** para programación de riego
+- 🔐 **Rate limiting** en rutas de autenticación
+- 🌙 **Modo oscuro** incluido
+
+## 📋 Características Principales
 
 - ✅ **Autenticación segura** con JWT y sesiones protegidas
 - 🔐 **Rutas protegidas** con middleware de autorización
-- 📊 **Dashboard en tiempo real** con estadísticas y gráficos
-- 🤖 **Gestión de dispositivos Arduino** (crear, editar, eliminar)
-- 🌡️ **Monitoreo de sensores** (humedad, temperatura, etc.)
-- 💧 **Control de actuadores** (bombas, válvulas)
-- ⚙️ **Configuración de riego automático** por umbrales
-- 📱 **Interfaz responsive** y moderna
+- 📊 **Dashboard en tiempo real** con WebSockets
+- 🤖 **Gestión de dispositivos Arduino** vía MQTT
+- 🌡️ **Monitoreo de sensores** (humedad, temperatura, LDR, etc.)
+- 💧 **Control de actuadores** (bombas, válvulas, riego automático)
+- ⚙️ **Configuración de riego automático** por calendario
+- 📱 **Interfaz completamente responsive**
 - 🔔 **Sistema de alertas** en tiempo real
 - 📈 **Historial de lecturas** y eventos
-- 🔌 **API REST** para comunicación con Arduino
-- 🗄️ **Base de datos MySQL** optimizada con índices y procedimientos
+- 🔌 **API REST + MQTT** para comunicación con Arduino
+- 🗄️ **Base de datos MySQL** optimizada con Sequelize ORM
+- 🌦️ **Integración con OpenWeather API**
 
 ## 🛠️ Tecnologías Utilizadas
 
@@ -23,61 +37,94 @@ Plataforma web completa para monitoreo y control de sistemas de riego automatiza
 - **Node.js** - Entorno de ejecución
 - **Express.js** - Framework web
 - **MySQL** - Base de datos relacional
+- **Sequelize** - ORM para MySQL
 - **JWT** - Autenticación basada en tokens
 - **bcrypt** - Encriptación de contraseñas
-- **EJS** - Motor de plantillas
+- **Handlebars (HBS)** - Motor de plantillas con layouts
+- **MQTT** - Protocolo IoT para comunicación en tiempo real
+- **Socket.IO** - WebSockets para actualizaciones en vivo
+- **Winston** - Sistema de logging avanzado
+- **Express Rate Limit** - Protección contra ataques
 
 ### Frontend
-- **HTML5/CSS3** - Estructura y estilos
-- **JavaScript** - Interactividad
-- **Font Awesome** - Iconos
+- **Tailwind CSS** - Framework CSS utility-first
+- **JavaScript ES6+** - Interactividad moderna
+- **Three.js** - Visualización 3D de invernaderos
+- **FullCalendar** - Calendario interactivo
+- **Font Awesome** - Iconos vectoriales
+- **Componentes reutilizables** - Sistema modular
 
 ### IoT
-- **Arduino** (ESP8266/ESP32)
-- **Sensores** de humedad, temperatura, etc.
-- **Actuadores** (relés, bombas, válvulas)
+- **Arduino** (UNO R4 WiFi, ESP8266, ESP32)
+- **Sensores**: DHT11/22, LM35, Capacitivos, LDR
+- **Actuadores**: Relés, bombas de agua, electroválvulas
+- **Protocolo MQTT** - Comunicación bidireccional
 
 ## 📁 Estructura del Proyecto
 
 ```
 sistema_de_riego_arduino/
+├── arduino/                      # ⭐ Código Arduino (.ino)
+├── docs/                        # ⭐ Documentación del proyecto
+│   ├── IMPLEMENTATION_SUMMARY.md
+│   ├── COMPONENTS_GUIDE.md
+│   └── ...
 ├── src/
 │   ├── config/
-│   │   └── database.js          # Configuración de MySQL
+│   │   ├── baseDatos.js         # Configuración MySQL + Sequelize
+│   │   ├── swagger.js           # Documentación API
+│   │   └── logger.js            # Winston logging
 │   ├── controllers/
-│   │   ├── AuthController.js    # Autenticación
+│   │   ├── AuthController.js
 │   │   ├── DashboardController.js
 │   │   ├── DeviceController.js
-│   │   ├── SensorController.js
-│   │   └── ArduinoController.js # API para Arduino
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Device.js
-│   │   ├── Sensor.js
-│   │   ├── Actuator.js
-│   │   ├── IrrigationConfig.js
-│   │   └── Alert.js
+│   │   ├── InvernaderoController.js # ⭐ Vista 3D
+│   │   ├── CalendarController.js    # ⭐ FullCalendar
+│   │   └── ArduinoController.js
+│   ├── models/                  # ⭐ Sequelize models
+│   │   ├── Usuarios.js
+│   │   ├── Dispositivos.js
+│   │   ├── Sensores.js
+│   │   ├── Invernaderos.js
+│   │   └── ...
 │   ├── middleware/
-│   │   ├── auth.js              # JWT y protección de rutas
-│   │   └── logger.js
+│   │   └── auth.js              # JWT + verifyToken
 │   ├── routes/
-│   │   ├── auth.js
+│   │   ├── auth.js              # ⭐ Con rate limiting
 │   │   ├── dashboard.js
 │   │   ├── devices.js
-│   │   ├── sensors.js
-│   │   └── arduino.js
+│   │   ├── invernaderos.js      # ⭐ Incluye 3D virtual
+│   │   └── calendar.js
+│   ├── services/
+│   │   ├── mqttService.js       # ⭐ Cliente MQTT
+│   │   └── weatherService.js    # ⭐ OpenWeather API
 │   └── views/
+│       ├── layouts/             # ⭐ Sistema de layouts
+│       │   └── main.hbs
+│       ├── partials/            # ⭐ Componentes reutilizables
+│       │   ├── navbar.hbs
+│       │   ├── card.hbs
+│       │   ├── button.hbs
+│       │   ├── form-field.hbs
+│       │   └── alert.hbs
 │       ├── auth/
 │       ├── dashboard/
 │       ├── devices/
-│       └── partials/
+│       ├── invernaderos/        # ⭐ Incluye virtual.hbs (3D)
+│       └── calendar/
 ├── public/
 │   ├── css/
+│   │   ├── tailwind.css         # ⭐ Precompilado
 │   │   └── style.css
-│   └── js/
-│       ├── main.js
-│       ├── dashboard.js
-│       └── devices.js
+│   ├── js/
+│   │   ├── vendor/              # ⭐ Librerías externas
+│   │   ├── components/          # ⭐ Módulos reutilizables
+│   │   │   └── validation.js
+│   │   ├── main.js
+│   │   ├── theme.js
+│   │   └── dashboard.js
+│   └── images/
+│       └── favicon.png
 ├── database/
 │   └── schema.sql               # Script de base de datos
 ├── arduino_ejemplo.ino          # Código ejemplo para Arduino
@@ -87,13 +134,15 @@ sistema_de_riego_arduino/
 └── README.md
 ```
 
-## 🚀 Instalación
+## 🚀 Instalación y Configuración
 
 ### 1. Requisitos Previos
 
-- **Node.js** (v14 o superior)
-- **MySQL** (v5.7 o superior)
+- **Node.js** (v16 o superior)
+- **MySQL** (v8.0 o superior)
 - **Arduino IDE** (para programar el hardware)
+- **Broker MQTT** (Mosquitto o EMQX)
+- **OpenWeather API Key** (opcional, para clima)
 
 ### 2. Clonar el Repositorio
 
@@ -110,26 +159,67 @@ npm install
 
 ### 4. Configurar Base de Datos
 
-1. Crear la base de datos en MySQL:
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-O manualmente:
 ```sql
 mysql -u root -p
-CREATE DATABASE sistema_riego;
+CREATE DATABASE sistema_riego CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sistema_riego;
 SOURCE database/schema.sql;
 ```
 
 ### 5. Configurar Variables de Entorno
 
-Copia el archivo `.env.example` a `.env` y configura tus variables:
+Copia `.env.example` a `.env` y configura:
 
 ```bash
+# Windows (PowerShell)
+Copy-Item .env.example .env
+
+# Linux/Mac
 cp .env.example .env
 ```
+
+Edita `.env` con tus credenciales:
+
+```env
+# Database
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=tu_password
+DB_NAME=sistema_riego
+DB_PORT=3306
+
+# Server
+PORT=3000
+NODE_ENV=development
+
+# JWT
+JWT_SECRET=genera_un_secreto_seguro_aqui
+
+# MQTT (opcional)
+MQTT_BROKER_URL=mqtt://localhost:1883
+MQTT_CLIENT_ID=sistema_riego_server
+
+# OpenWeather API (opcional)
+OPENWEATHER_API_KEY=tu_api_key_aqui
+```
+
+### 6. Compilar Tailwind CSS
+
+```bash
+npm run build:css
+```
+
+### 7. Iniciar Servidor
+
+```bash
+# Producción
+npm start
+
+# Desarrollo (con auto-reload)
+npm run dev
+```
+
+El servidor estará disponible en: **http://localhost:3000**
 
 Edita el archivo `.env`:
 

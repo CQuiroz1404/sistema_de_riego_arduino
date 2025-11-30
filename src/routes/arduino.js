@@ -11,4 +11,7 @@ router.get('/ping', verifyApiKey, ArduinoController.ping);
 // Rutas para control manual (requieren autenticación de usuario)
 router.post('/control', verifyToken, ArduinoController.controlActuator);
 
+// Ruta para obtener sensores actualizados (para dashboard en tiempo real)
+router.get('/devices/:dispositivo_id/sensores', verifyToken, ArduinoController.getSensoresActualizados);
+
 module.exports = router;

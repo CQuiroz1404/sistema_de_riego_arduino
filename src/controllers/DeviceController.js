@@ -14,13 +14,18 @@ class DeviceController {
         devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
       }
       
-      // Calcular estado de conexión en tiempo real (conectado si última conexión < 30 segundos)
+      // Calcular estado de conexión en tiempo real (encendido si última conexión < 30 segundos)
       const now = new Date();
       const devicesWithStatus = devices.map(d => {
         const device = d.toJSON();
         const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
-        device.isConnected = lastConnection && (now - lastConnection) < 30000;
-        device.secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
+        const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
+        
+        // Estado de encendido: está enviando datos (última conexión < 30 segundos)
+        device.isOnline = lastConnection && secondsAgo < 30;
+        device.estadoConexion = device.isOnline ? 'encendido' : 'apagado';
+        device.secondsAgo = secondsAgo;
+        
         return device;
       });
       
@@ -38,7 +43,7 @@ class DeviceController {
 
   // Mostrar formulario de creación
   static async create(req, res) {
-    res.render('devices/create', { user: req.user });
+    res.render('devices/create', { title: 'Nuevo Dispositivo', user: req.user });
   }
 
   // Crear nuevo dispositivo
@@ -96,7 +101,18 @@ class DeviceController {
       const sensors = await Sensores.findAll({ where: { dispositivo_id: id } });
       const actuators = await Actuadores.findAll({ where: { dispositivo_id: id } });
       
-      // Calcular estadísticas básicas (ejemplo)
+      // Calcular estado de conexión
+      const now = new Date();
+      const deviceJson = device.toJSON();
+      const lastConnection = deviceJson.ultima_conexion ? new Date(deviceJson.ultima_conexion) : null;
+      const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
+      
+      // Estado de encendido: está enviando datos (última conexión < 30 segundos)
+      deviceJson.isOnline = lastConnection && secondsAgo < 30;
+      deviceJson.estadoConexion = deviceJson.isOnline ? 'encendido' : 'apagado';
+      deviceJson.secondsAgo = secondsAgo;
+      
+      // Calcular estadísticas básicas
       const stats = {
         total_sensores: sensors.length,
         total_actuadores: actuators.length,
@@ -104,7 +120,7 @@ class DeviceController {
       };
 
       res.render('devices/show', { 
-        device: device.toJSON(), 
+        device: deviceJson, 
         sensors: sensors.map(s => s.toJSON()), 
         actuators: actuators.map(a => a.toJSON()), 
         stats,
@@ -267,20 +283,22 @@ class DeviceController {
         });
       }
 
-      // Considerar conectado si la última conexión fue hace menos de 30 segundos
+      // Considerar encendido si la última conexión fue hace menos de 30 segundos
       const now = new Date();
       const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
-      const isConnected = lastConnection && (now - lastConnection) < 30000;
+      const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
+      const isOnline = lastConnection && secondsAgo < 30;
 
-      logger.debug(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isConnected: ${isConnected}`);
+      logger.debug(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isOnline: ${isOnline}, secondsAgo: ${secondsAgo}`);
 
       res.json({ 
         success: true, 
         data: {
-          connected: isConnected,
+          online: isOnline,
+          estadoConexion: isOnline ? 'encendido' : 'apagado',
           last_connection: device.ultima_conexion,
           estado: device.estado,
-          seconds_ago: lastConnection ? Math.floor((now - lastConnection) / 1000) : null
+          seconds_ago: secondsAgo
         }
       });
     } catch (error) {

@@ -1,0 +1,203 @@
+<div class="container mx-auto px-4 py-6 sm:py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <i class="fas fa-chart-line text-green-500"></i> Dashboard
+            </h1>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <div class="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                    <span class="pulse-dot"></span>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-300">EN VIVO</span>
+                </div>
+                <button onclick="refreshData()" class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+        
+        <!-- Estadísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Dispositivos</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{#if stats.total_dispositivos}}{{stats.total_dispositivos}}{{else}}0{{/if}}</h3>
+                    </div>
+                    <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <i class="fas fa-microchip text-blue-600 dark:text-blue-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Activos</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{#if stats.dispositivos_activos}}{{stats.dispositivos_activos}}{{else}}0{{/if}}</h3>
+                    </div>
+                    <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                        <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Sensores</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{#if stats.total_sensores}}{{stats.total_sensores}}{{else}}0{{/if}}</h3>
+                    </div>
+                    <div class="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                        <i class="fas fa-thermometer-half text-orange-600 dark:text-orange-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Alertas</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{#if stats.alertas_no_leidas}}{{stats.alertas_no_leidas}}{{else}}0{{/if}}</h3>
+                    </div>
+                    <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                        <i class="fas fa-bell text-red-600 dark:text-red-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alertas -->
+        {{#if alerts}}
+        {{#if (gt alerts.length 0)}}
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle text-yellow-500"></i> Alertas Recientes
+            </h2>
+            <div class="space-y-3">
+                {{#each (limit alerts 5)}}
+                <div class="bg-white dark:bg-gray-800 border-l-4 border-{{this.severidad}} p-4 rounded-r-lg shadow-sm flex items-start gap-4">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <i class="fas fa-exclamation-circle text-{{this.severidad}}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-800 dark:text-gray-200 font-medium">{{this.mensaje}}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{formatDate this.fecha_creacion}}</p>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+        {{/if}}
+        {{/if}}
+        
+        <!-- Dispositivos -->
+        <div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="fas fa-microchip text-blue-500"></i> Dispositivos
+                </h2>
+                <a href="/devices/create" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Agregar Dispositivo
+                </a>
+            </div>
+            
+            {{#if devices}}
+            {{#if (gt devices.length 0)}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {{#each devices}}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow" data-device-id="{{this.id}}">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{this.nombre}}</h3>
+                            <div class="flex items-center gap-2">
+                                <div class="connection-status flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium text-gray-600 dark:text-gray-300" data-connection-status="{{this.id}}">
+                                    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                                    <span class="connection-text">Verificando...</span>
+                                </div>
+                                <span class="px-2 py-1 rounded text-xs font-medium bg-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-100 text-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-800 dark:bg-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-900/30 dark:text-{{#if (eq this.estado 'activo')}}green{{else}}gray{{/if}}-400">
+                                    {{this.estado}}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-6">
+                            <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                                <i class="fas fa-map-marker-alt w-4 text-center"></i> 
+                                {{#if this.ubicacion}}{{this.ubicacion}}{{else}}Sin ubicación{{/if}}
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                                <i class="fas fa-clock w-4 text-center"></i> 
+                                <span class="last-connection-time" data-last-connection="{{this.id}}">
+                                    {{#if this.ultima_conexion}}
+                                        Última vez: {{formatDate this.ultima_conexion}}
+                                    {{else}}
+                                        Sin conexión
+                                    {{/if}}
+                                </span>
+                            </p>
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-4 mb-4">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fas fa-thermometer-half"></i> {{#if this.total_sensores}}{{this.total_sensores}}{{else}}0{{/if}} sensores
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <i class="fas fa-tint"></i> {{#if this.total_actuadores}}{{this.total_actuadores}}{{else}}0{{/if}} actuadores
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <a href="/devices/{{this.id}}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1">
+                                Ver Detalles <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+            {{else}}
+            <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No hay dispositivos</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Comienza agregando tu primer dispositivo Arduino</p>
+                <a href="/devices/create" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm inline-flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Agregar Dispositivo
+                </a>
+            </div>
+            {{/if}}
+            {{else}}
+            <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No hay dispositivos</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Comienza agregando tu primer dispositivo Arduino</p>
+                <a href="/devices/create" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm inline-flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Agregar Dispositivo
+                </a>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+</div>
+
+{{{styles}}}
+<style>
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background-color: #ef4444;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+</style>
+
+{{{scripts}}}
+<script src="/js/dashboard.js"></script>

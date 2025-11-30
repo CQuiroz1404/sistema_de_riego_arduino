@@ -1,0 +1,29 @@
+<!-- Componente Alert Reutilizable -->
+<!-- Uso: {{> alert type="success" message="Operación exitosa"}} -->
+{{#if message}}
+<div class="mb-4 p-4 rounded-lg border {{#if dismissible}}relative pr-12{{/if}} {{class}}
+            {{#eq type "success"}}bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300{{/eq}}
+            {{#eq type "error"}}bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300{{/eq}}
+            {{#eq type "warning"}}bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300{{/eq}}
+            {{#eq type "info"}}bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300{{/eq}}">
+    <div class="flex items-start gap-3">
+        <div class="flex-shrink-0 mt-0.5">
+            {{#eq type "success"}}<i class="fas fa-check-circle text-green-500"></i>{{/eq}}
+            {{#eq type "error"}}<i class="fas fa-exclamation-circle text-red-500"></i>{{/eq}}
+            {{#eq type "warning"}}<i class="fas fa-exclamation-triangle text-yellow-500"></i>{{/eq}}
+            {{#eq type "info"}}<i class="fas fa-info-circle text-blue-500"></i>{{/eq}}
+        </div>
+        <div class="flex-1">
+            {{#if title}}
+            <h4 class="font-semibold mb-1">{{title}}</h4>
+            {{/if}}
+            <p class="text-sm">{{message}}</p>
+        </div>
+    </div>
+    {{#if dismissible}}
+    <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+        <i class="fas fa-times"></i>
+    </button>
+    {{/if}}
+</div>
+{{/if}}

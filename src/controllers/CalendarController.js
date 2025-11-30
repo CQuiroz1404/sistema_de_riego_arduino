@@ -1,4 +1,4 @@
-const { Calendario, Invernaderos, Semanas } = require('../models');
+﻿const { Calendario, Invernaderos, Semanas } = require('../models');
 
 const CalendarController = {
     index: async (req, res) => {
@@ -6,6 +6,7 @@ const CalendarController = {
             const semanas = await Semanas.findAll();
             res.render('calendar/index', {
                 title: 'Calendario de Riego',
+                useFullCalendar: true,
                 user: req.user,
                 semanas
             });
@@ -40,20 +41,28 @@ const CalendarController = {
 
                 // Si tenemos un día válido, creamos un evento recurrente
                 if (dayOfWeek !== undefined) {
-                    return {
+                    const eventData = {
                         title: `Riego: ${evento.invernadero ? evento.invernadero.descripcion : 'Invernadero'}`,
                         daysOfWeek: [dayOfWeek], // Array con el día de la semana
                         startTime: evento.hora_inicial,
                         endTime: evento.hora_final,
-                        startRecur: evento.fecha_inicio, // Fecha de inicio de la recurrencia
-                        endRecur: evento.fecha_fin,     // Fecha de fin de la recurrencia
                         color: '#10B981', // Green
                         description: `Semana ID: ${evento.semana_id}`,
                     };
+
+                    // Agregar rango de fechas solo si existen
+                    if (evento.fecha_inicio) {
+                        eventData.startRecur = evento.fecha_inicio;
+                    }
+                    if (evento.fecha_fin) {
+                        eventData.endRecur = evento.fecha_fin;
+                    }
+
+                    return eventData;
                 }
 
                 // Fallback para eventos antiguos sin dia_semana (si los hubiera)
-                // ... (código anterior omitido por simplicidad, asumimos que todos tienen dia_semana ahora)
+                // ... (cÃ³digo anterior omitido por simplicidad, asumimos que todos tienen dia_semana ahora)
                 return null;
             }).filter(e => e !== null);
 

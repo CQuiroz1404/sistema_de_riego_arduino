@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invernadero Virtual - Sistema de Riego IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#059669',
+                        secondary: '#2563EB',
+                        accent: '#F97316'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/js/theme.js"></script>
+    <script src="/js/main.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    {{> navbar}}
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-4">
+                <a href="/invernaderos/{{invernadero.id}}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <p class="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400">Invernadero Virtual</p>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <i class="fas fa-vr-cardboard text-green-500"></i>
+                        Gemelo digital #{{invernadero.id}}
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">Visualización 3D en tiempo real del estado de tus sensores y dispositivos Arduino.</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <span class="px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    {{#if invernadero.planta}}
+                        {{invernadero.planta.nombre}}
+                    {{else}}
+                        Sin planta asignada
+                    {{/if}}
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Temperatura</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-4xl font-bold text-gray-900 dark:text-white">{{#if invernadero.temp_actual}}{{invernadero.temp_actual}}{{else}}--{{/if}}</span>
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">°C</span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Último ajuste registrado</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Humedad</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-4xl font-bold text-gray-900 dark:text-white">{{#if invernadero.hum_actual}}{{invernadero.hum_actual}}{{else}}--{{/if}}</span>
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">%</span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Sensores ambientales</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Riego</p>
+                <div class="flex items-center gap-3 mt-1">
+                    {{#if invernadero.riego}}
+                        <span class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="text-lg font-semibold text-green-600 dark:text-green-400">Activo</span>
+                    {{else}}
+                        <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                        <span class="text-lg font-semibold text-gray-600 dark:text-gray-300">En espera</span>
+                    {{/if}}
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Sincronizado con actuadores</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div class="xl:col-span-2 space-y-6">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <i class="fas fa-cubes text-green-500"></i>
+                                Modelo 3D interactivo
+                            </h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Orbita, acerca y monitorea sensores en la maqueta virtual.</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                            <span class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-green-400"></span> En rango
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-red-400"></span> Alertas
+                            </span>
+                        </div>
+                    </div>
+                    <div id="greenhouseCanvas" class="h-[520px] bg-gradient-to-b from-white via-white to-gray-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 relative">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-seedling text-4xl mb-3 text-green-400"></i>
+                            <p>Cargando escena 3D...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-microchip text-blue-500"></i>
+                            Dispositivos Arduino vinculados
+                        </h3>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{dispositivos.length}} dispositivos</span>
+                    </div>
+                    {{#if dispositivos.length}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {{#each dispositivos}}
+                                <div class="border border-gray-100 dark:border-gray-700 rounded-xl p-4 bg-gray-50/60 dark:bg-gray-900/40">
+                                    <div class="flex items-start justify-between">
+                                        <div>
+                                            <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{estado}}</p>
+                                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">{{nombre}}</h4>
+                                            {{#if ubicacion}}
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ubicacion}}</p>
+                                            {{/if}}
+                                        </div>
+                                        <span class="text-sm font-medium px-3 py-1 rounded-full {{#if (eq estado 'activo')}}bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300{{else}}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300{{/if}}">
+                                            {{estado}}
+                                        </span>
+                                    </div>
+                                    {{#if descripcion}}
+                                        <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">{{descripcion}}</p>
+                                    {{/if}}
+                                </div>
+                            {{/each}}
+                        </div>
+                    {{else}}
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-robot text-4xl mb-3 text-gray-300 dark:text-gray-600"></i>
+                            <p>No hay dispositivos registrados aún.</p>
+                            <a href="/devices/create" class="mt-3 inline-flex items-center gap-2 text-primary font-semibold">
+                                <i class="fas fa-plus-circle"></i> Registrar dispositivo
+                            </a>
+                        </div>
+                    {{/if}}
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-satellite-dish text-purple-500"></i>
+                            Sensores sincronizados
+                        </h3>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{sensores.length}} activos</span>
+                    </div>
+
+                    {{#if sensores.length}}
+                        <div id="sensorCards" class="space-y-4 max-h-[520px] overflow-y-auto pr-2">
+                            {{#each sensores}}
+                                <div class="sensor-card border border-gray-100 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900/40" data-sensor-id="{{id}}">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{{tipo}}</p>
+                                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">{{nombre}}</h4>
+                                            {{#if dispositivo}}
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">{{dispositivo.nombre}}</p>
+                                            {{/if}}
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="sensor-value text-2xl font-bold text-gray-900 dark:text-white">
+                                                {{#if ultimaLectura}}{{ultimaLectura}}{{else}}--{{/if}}
+                                                <span class="text-base font-medium text-gray-500 dark:text-gray-400">{{unidad}}</span>
+                                            </p>
+                                            <p class="sensor-updated text-xs text-gray-500 dark:text-gray-400">
+                                                {{#if fechaLectura}}
+                                                    {{fechaLectura}}
+                                                {{else}}
+                                                    Sin lecturas recientes
+                                                {{/if}}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {{#if valor_minimo}}
+                                        <div class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                            <i class="fas fa-wave-square text-primary"></i>
+                                            Rango ideal: {{valor_minimo}} - {{valor_maximo}} {{unidad}}
+                                        </div>
+                                    {{/if}}
+                                </div>
+                            {{/each}}
+                        </div>
+                    {{else}}
+                        <div class="text-center py-10 text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-thermometer-half text-4xl mb-3 text-gray-300 dark:text-gray-600"></i>
+                            <p>Conecta sensores a tus dispositivos Arduino para visualizar datos aquí.</p>
+                        </div>
+                    {{/if}}
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">Tips de interacción</h3>
+                    <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-mouse-pointer text-primary mt-1"></i>
+                            Arrastra para orbitar la cámara alrededor del invernadero.
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-magnifying-glass text-primary mt-1"></i>
+                            Usa la rueda del mouse o gesto de pinza para acercar o alejar.
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-satellite text-primary mt-1"></i>
+                            Los nodos luminosos representan sensores; su color indica el estado.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const sensores = {{{sensoresJson}}};
+            const invernadero = {{{invernaderoJson}}} || {};
+
+            const sensorState = sensores.map(sensor => ({ ...sensor }));
+            const markerState = [];
+
+            const greenhouseContainer = document.getElementById('greenhouseCanvas');
+            if (!greenhouseContainer || !window.THREE) {
+                console.warn('No se pudo inicializar la escena 3D');
+                return;
+            }
+
+            const sceneBackground = invernadero.riego ? '#e0f2fe' : '#eefcf6';
+            function containerDimensions() {
+                const rect = greenhouseContainer.getBoundingClientRect();
+                const width = rect.width || greenhouseContainer.offsetWidth || greenhouseContainer.parentElement?.clientWidth || 640;
+                const height = rect.height || greenhouseContainer.offsetHeight || greenhouseContainer.parentElement?.clientHeight || 360;
+                return { width, height };
+            }
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(sceneBackground);
+
+            const initialDims = containerDimensions();
+            const camera = new THREE.PerspectiveCamera(
+                45,
+                initialDims.width / Math.max(initialDims.height, 1),
+                0.1,
+                100
+            );
+            camera.position.set(10, 8, 12);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio || 1);
+            renderer.setSize(initialDims.width, initialDims.height);
+            greenhouseContainer.innerHTML = '';
+            greenhouseContainer.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.maxPolarAngle = Math.PI / 2;
+            controls.target.set(0, 1.5, 0);
+            controls.update();
+
+            // Luces básicas (ajustables según hora del día)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(10, 12, 5);
+            scene.add(dirLight);
+
+            function updateLighting(isDaytime, cloudCover) {
+                if (isDaytime) {
+                    const intensity = cloudCover > 70 ? 0.5 : 0.8;
+                    ambientLight.intensity = intensity;
+                    dirLight.intensity = cloudCover > 70 ? 0.3 : 0.6;
+                    scene.background = new THREE.Color(cloudCover > 70 ? '#a8b8c8' : '#e0f2fe');
+                } else {
+                    ambientLight.intensity = 0.2;
+                    dirLight.intensity = 0.1;
+                    scene.background = new THREE.Color('#1e293b');
+                }
+            }
+
+            const greenhouseGroup = new THREE.Group();
+            const breathingElements = [];
+            const rainParticles = [];
+            let sun = null;
+            let environmentState = {
+                isRaining: false,
+                isDaytime: true,
+                heatLevel: 'normal',
+                cloudCover: 0
+            };
+            scene.add(greenhouseGroup);
+
+            function moistureColor(value) {
+                if (value == null || isNaN(value)) return 0xe8f5e9;
+                if (value < 30) return 0xfef3c7;
+                if (value < 60) return 0xd1fae5;
+                return 0xbfdbfe;
+            }
+
+            function createGreenhouseStructure() {
+                breathingElements.length = 0;
+                const floorColor = moistureColor(invernadero.hum_actual);
+                const floor = new THREE.Mesh(
+                    new THREE.PlaneGeometry(18, 12),
+                    new THREE.MeshStandardMaterial({ color: floorColor })
+                );
+                floor.rotation.x = -Math.PI / 2;
+                greenhouseGroup.add(floor);
+
+                const grid = new THREE.GridHelper(18, 9, 0x34d399, 0x0ea5e9);
+                grid.rotation.x = Math.PI;
+                grid.position.y = 0.01;
+                greenhouseGroup.add(grid);
+
+                const frameMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x94a3b8,
+                    metalness: 0.3,
+                    roughness: 0.2
+                });
+
+                const wallMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.25,
+                    roughness: 0.1,
+                    metalness: 0.0
+                });
+
+                const walls = [
+                    { size: [12, 5], position: [-9, 2.5, 0], rotation: [0, Math.PI / 2, 0] },
+                    { size: [12, 5], position: [9, 2.5, 0], rotation: [0, -Math.PI / 2, 0] },
+                    { size: [18, 5], position: [0, 2.5, -6], rotation: [0, 0, 0] },
+                    { size: [18, 5], position: [0, 2.5, 6], rotation: [0, Math.PI, 0] }
+                ];
+
+                walls.forEach(({ size, position, rotation }) => {
+                    const wall = new THREE.Mesh(new THREE.PlaneGeometry(size[0], size[1]), wallMaterial);
+                    wall.position.set(...position);
+                    wall.rotation.set(...rotation);
+                    greenhouseGroup.add(wall);
+                });
+
+                const roofMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.3,
+                    roughness: 0.1,
+                    metalness: 0.1,
+                    side: THREE.DoubleSide
+                });
+
+                const roofGeometry = new THREE.PlaneGeometry(18, 8);
+
+                const roof1 = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof1.rotation.x = -Math.PI / 2 - Math.PI / 6;
+                roof1.position.set(0, 6.7, -3.1);
+                greenhouseGroup.add(roof1);
+
+                const roof2 = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof2.rotation.x = -Math.PI / 2 + Math.PI / 6;
+                roof2.position.set(0, 6.7, 3.1);
+                greenhouseGroup.add(roof2);
+
+                // Add triangular gables
+                const gableGeometry = new THREE.ConeGeometry(6, 3.5, 3); // Approx triangle
+                // Actually a cylinder with 3 sides is easier, or a custom shape.
+                // Let's stick to just fixing the roof planes first as that was the main issue.
+
+                const beams = new THREE.BoxGeometry(0.2, 5, 0.2);
+                [ -8, -4, 0, 4, 8 ].forEach(x => {
+                    const beam = new THREE.Mesh(beams, frameMaterial);
+                    beam.position.set(x, 2.5, -6);
+                    greenhouseGroup.add(beam);
+                    const beamBack = beam.clone();
+                    beamBack.position.set(x, 2.5, 6);
+                    greenhouseGroup.add(beamBack);
+                });
+
+                const walkway = new THREE.Mesh(
+                    new THREE.PlaneGeometry(18, 2),
+                    new THREE.MeshStandardMaterial({ color: 0xd1d5db })
+                );
+                walkway.rotation.x = -Math.PI / 2;
+                walkway.position.y = 0.02;
+                greenhouseGroup.add(walkway);
+
+                createPlanterBeds();
+            }
+
+            function createPlanterBeds() {
+                const bedMaterial = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
+                const soilMaterial = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
+
+                const bedGeometry = new THREE.BoxGeometry(3.2, 0.4, 1.2);
+                const soilGeometry = new THREE.BoxGeometry(3.0, 0.2, 1.0);
+
+                const rows = [ -2.5, 0, 2.5 ];
+                const cols = [ -6, -2, 2, 6 ];
+
+                rows.forEach((z, rowIndex) => {
+                    cols.forEach((x, colIndex) => {
+                        const bed = new THREE.Mesh(bedGeometry, bedMaterial.clone());
+                        bed.position.set(x, 0.25, z);
+                        greenhouseGroup.add(bed);
+
+                        const soil = new THREE.Mesh(soilGeometry, soilMaterial.clone());
+                        soil.position.set(x, 0.5, z);
+                        greenhouseGroup.add(soil);
+
+                        const stem = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.06, 0.06, 0.8, 12),
+                            new THREE.MeshStandardMaterial({ color: 0x22c55e })
+                        );
+                        stem.position.set(x, 0.9, z);
+                        greenhouseGroup.add(stem);
+
+                        const canopy = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.3, 16, 16),
+                            new THREE.MeshStandardMaterial({ color: 0x65a30d, emissive: 0x3f6212, emissiveIntensity: 0.2 })
+                        );
+                        canopy.position.set(x, 1.3, z);
+                        greenhouseGroup.add(canopy);
+
+                        breathingElements.push({ mesh: canopy, offset: rowIndex + colIndex });
+                    });
+                });
+            }
+
+            function createSun() {
+                if (sun) {
+                    scene.remove(sun);
+                }
+                const sunGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+                const sunMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffdd44,
+                    emissive: 0xffaa00,
+                    emissiveIntensity: 1
+                });
+                sun = new THREE.Mesh(sunGeometry, sunMaterial);
+                sun.position.set(-15, 15, -10);
+                scene.add(sun);
+            }
+
+            function removeSun() {
+                if (sun) {
+                    scene.remove(sun);
+                    sun = null;
+                }
+            }
+
+            function createRain() {
+                // Limpiar lluvia existente
+                rainParticles.forEach(p => scene.remove(p));
+                rainParticles.length = 0;
+
+                const rainCount = 300;
+                const rainGeometry = new THREE.BufferGeometry();
+                const rainPositions = [];
+
+                for (let i = 0; i < rainCount; i++) {
+                    const x = (Math.random() - 0.5) * 30;
+                    const y = Math.random() * 20;
+                    const z = (Math.random() - 0.5) * 20;
+                    rainPositions.push(x, y, z);
+                }
+
+                rainGeometry.setAttribute('position', new THREE.Float32BufferAttribute(rainPositions, 3));
+                const rainMaterial = new THREE.PointsMaterial({
+                    color: 0x88ccff,
+                    size: 0.15,
+                    transparent: true,
+                    opacity: 0.6
+                });
+
+                const rain = new THREE.Points(rainGeometry, rainMaterial);
+                scene.add(rain);
+                rainParticles.push(rain);
+            }
+
+            function removeRain() {
+                rainParticles.forEach(p => scene.remove(p));
+                rainParticles.length = 0;
+            }
+
+            function updateRainAnimation() {
+                rainParticles.forEach(rain => {
+                    const positions = rain.geometry.attributes.position.array;
+                    for (let i = 1; i < positions.length; i += 3) {
+                        positions[i] -= 0.3; // Caída de gotas
+                        if (positions[i] < 0) {
+                            positions[i] = 20; // Reset al tope
+                        }
+                    }
+                    rain.geometry.attributes.position.needsUpdate = true;
+                });
+            }
+
+            function applyEnvironment(env) {
+                environmentState = { ...env };
+
+                updateLighting(env.isDaytime, env.cloudCover);
+
+                if (env.isRaining) {
+                    if (rainParticles.length === 0) createRain();
+                } else {
+                    removeRain();
+                }
+
+                if (env.isDaytime && env.heatLevel === 'high') {
+                    if (!sun) createSun();
+                } else {
+                    removeSun();
+                }
+            }
+
+            function sensorColor(sensor) {
+                if (!sensor) return '#3b82f6';
+                if (sensor.ultimaLectura != null && inAlert(sensor)) {
+                    return '#f87171';
+                }
+                const colorByType = {
+                    temperatura: '#fb923c',
+                    humedad_suelo: '#34d399',
+                    humedad_ambiente: '#38bdf8',
+                    nivel_agua: '#6366f1',
+                    lluvia: '#818cf8',
+                    luz: '#facc15'
+                };
+                return colorByType[sensor.tipo] || '#3b82f6';
+            }
+
+            function inAlert(sensor) {
+                if (sensor.ultimaLectura == null) return false;
+                const min = sensor.valor_minimo;
+                const max = sensor.valor_maximo;
+                if (min == null && max == null) return false;
+                if (min != null && sensor.ultimaLectura < parseFloat(min)) return true;
+                if (max != null && sensor.ultimaLectura > parseFloat(max)) return true;
+                return false;
+            }
+
+            function buildSensorMarkers() {
+                while (greenhouseGroup.children.length > 0) {
+                    greenhouseGroup.remove(greenhouseGroup.children[0]);
+                }
+                createGreenhouseStructure();
+
+                markerState.length = 0;
+                const positions = distributePositions(sensorState.length);
+                sensorState.forEach((sensor, index) => {
+                    const pos = positions[index];
+                    const sphere = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.35, 24, 24),
+                        new THREE.MeshStandardMaterial({
+                            color: sensorColor(sensor),
+                            emissive: new THREE.Color(sensorColor(sensor)).multiplyScalar(0.4),
+                            roughness: 0.4,
+                            metalness: 0.1
+                        })
+                    );
+                    sphere.position.set(pos.x, 0.6, pos.z);
+                    sphere.userData.sensorId = sensor.id;
+                    greenhouseGroup.add(sphere);
+                    markerState.push(sphere);
+                });
+            }
+
+            function distributePositions(count) {
+                if (!count) return [];
+                const cols = Math.ceil(Math.sqrt(count));
+                const rows = Math.ceil(count / cols);
+                const spacingX = 4;
+                const spacingZ = 3;
+                const offsetX = ((cols - 1) * spacingX) / 2;
+                const offsetZ = ((rows - 1) * spacingZ) / 2;
+
+                return Array.from({ length: count }, (_, index) => {
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    return {
+                        x: col * spacingX - offsetX,
+                        z: row * spacingZ - offsetZ
+                    };
+                });
+            }
+
+            function refreshMarkers() {
+                markerState.forEach(marker => {
+                    const sensor = sensorState.find(s => s.id === marker.userData.sensorId);
+                    if (!sensor) return;
+                    const color = new THREE.Color(sensorColor(sensor));
+                    marker.material.color.copy(color);
+                    marker.material.emissive.copy(color.clone().multiplyScalar(0.4));
+                });
+            }
+
+            function refreshSensorCards() {
+                const cards = document.querySelectorAll('.sensor-card');
+                cards.forEach(card => {
+                    const sensorId = Number(card.dataset.sensorId);
+                    const sensor = sensorState.find(s => s.id === sensorId);
+                    if (!sensor) return;
+
+                    const valueEl = card.querySelector('.sensor-value');
+                    if (valueEl) {
+                        const unidad = sensor.unidad ? ` ${sensor.unidad}` : '';
+                        valueEl.innerHTML = `${sensor.ultimaLectura ?? '--'} <span class="text-base font-medium text-gray-500 dark:text-gray-400">${unidad}</span>`;
+                    }
+
+                    const updatedEl = card.querySelector('.sensor-updated');
+                    if (updatedEl) {
+                        if (sensor.fechaLectura) {
+                            updatedEl.textContent = typeof formatDate === 'function'
+                                ? formatDate(sensor.fechaLectura)
+                                : new Date(sensor.fechaLectura).toLocaleString();
+                        } else {
+                            updatedEl.textContent = 'Sin lecturas recientes';
+                        }
+                    }
+
+                    card.classList.remove('border-gray-100', 'border-green-300', 'border-red-300');
+                    if (inAlert(sensor)) {
+                        card.classList.add('border-red-300');
+                    } else {
+                        card.classList.add('border-green-300');
+                    }
+                });
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                // greenhouseGroup.rotation.y += 0.0015;
+                markerState.forEach(marker => {
+                    marker.scale.setScalar(1 + 0.08 * Math.sin(Date.now() * 0.003 + marker.position.x));
+                });
+                const time = Date.now() * 0.002;
+                breathingElements.forEach(({ mesh, offset }) => {
+                    if (!mesh) return;
+                    const scale = 1 + 0.03 * Math.sin(time + offset);
+                    mesh.scale.set(scale, scale, scale);
+                });
+
+                // Animar lluvia si está activa
+                if (environmentState.isRaining) {
+                    updateRainAnimation();
+                }
+
+                // Pulsar sol si está visible
+                if (sun) {
+                    const pulse = 1 + 0.05 * Math.sin(time * 0.5);
+                    sun.scale.set(pulse, pulse, pulse);
+                }
+
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+            async function fetchEnvironment() {
+                try {
+                    const response = await fetch(`/invernaderos/${invernadero.id}/environment`);
+                    if (!response.ok) return;
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const { weather, sensors } = result.data;
+                        applyEnvironment({
+                            isRaining: weather.isRaining,
+                            isDaytime: weather.isDaytime,
+                            heatLevel: sensors.heatLevel,
+                            cloudCover: weather.cloudCover
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Error al cargar datos de entorno:', error);
+                }
+            }
+
+            function setupRealtimeUpdates() {
+                if (typeof io !== 'function') return;
+                const socket = io();
+                socket.on('sensor:update', payload => {
+                    if (!payload || !Array.isArray(payload.sensores)) return;
+                    let requiresRefresh = false;
+                    payload.sensores.forEach(update => {
+                        const sensor = sensorState.find(s => s.id === update.sensor_id);
+                        if (!sensor) return;
+                        sensor.ultimaLectura = parseFloat(update.valor);
+                        sensor.fechaLectura = new Date().toISOString();
+                        requiresRefresh = true;
+                    });
+                    if (requiresRefresh) {
+                        refreshMarkers();
+                        refreshSensorCards();
+                    }
+                });
+
+                socket.on('environment:update', data => {
+                    if (!data) return;
+                    applyEnvironment({
+                        isRaining: data.isRaining || false,
+                        isDaytime: data.isDaytime !== false,
+                        heatLevel: data.heatLevel || 'normal',
+                        cloudCover: data.cloudCover || 0
+                    });
+                });
+            }
+
+            function applyDimensions() {
+                const { width, height } = containerDimensions();
+                camera.aspect = width / Math.max(height, 1);
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+
+            function onResize() {
+                applyDimensions();
+            }
+
+            window.addEventListener('resize', onResize);
+            if (initialDims.width === 0 || initialDims.height === 0) {
+                requestAnimationFrame(applyDimensions);
+            }
+
+            buildSensorMarkers();
+            refreshSensorCards();
+            setupRealtimeUpdates();
+            
+            // Cargar entorno inicial y actualizar cada 5 minutos
+            fetchEnvironment();
+            setInterval(fetchEnvironment, 5 * 60 * 1000);
+            
+            animate();
+        })();
+    </script>
+</body>
+</html>
