@@ -1,5 +1,6 @@
 const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego } = require('../models');
 const mqttService = require('../services/mqttService');
+const logger = require('../config/logger');
 
 class ArduinoController {
   // Endpoint para que Arduino envíe datos de sensores
@@ -103,7 +104,7 @@ class ArduinoController {
 
     } catch (error) {
       console.error('Error al recibir datos de Arduino:', error);
-      console.log(`[ERROR] [arduino] Error al recibir datos: ${error.message} (IP: ${req.ip})`);
+      logger.error(`[arduino] Error al recibir datos: ${error.message} (IP: ${req.ip})`);
       res.status(500).json({
         success: false,
         message: 'Error al procesar datos'
@@ -138,7 +139,7 @@ class ArduinoController {
               usuario_id: null
             });
             
-            console.log(`[INFO] [irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
+            logger.info(`[irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
           }
           
           // Si el valor está por encima del umbral superior y el actuador está encendido
@@ -153,7 +154,7 @@ class ArduinoController {
               usuario_id: null
             });
             
-            console.log(`[INFO] [irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
+            logger.info(`[irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
           }
         }
       }
@@ -245,7 +246,7 @@ class ArduinoController {
         req.user.id
       );
 
-      console.log(`[INFO] [irrigation] Control manual: ${actuator.nombre} ${accion} (Disp: ${actuator.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+      logger.info(`[irrigation] Control manual: ${actuator.nombre} ${accion} (Disp: ${actuator.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({
         success: true,

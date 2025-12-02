@@ -1,5 +1,7 @@
 const { Sensores, Dispositivos, Lecturas } = require('../models');
 const { Op } = require('sequelize');
+const logger = require('../config/logger');
+const PaginationHelper = require('../utils/paginationHelper');
 
 class SensorController {
   // Crear nuevo sensor
@@ -33,7 +35,7 @@ class SensorController {
         valor_maximo
       });
 
-      console.log(`[INFO] [sensors] Nuevo sensor creado: ${nombre} (Disp: ${dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+      logger.info(`[sensors] Nuevo sensor creado: ${nombre} (Disp: ${dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -84,12 +86,12 @@ class SensorController {
     }
   }
 
-  // Listar sensores por dispositivo
+  // List sensors by device (with pagination)
   static async listByDevice(req, res) {
     try {
       const { deviceId } = req.params;
 
-      // Verificar permisos
+      // Verify permissions
       const device = await Dispositivos.findByPk(deviceId);
       if (!device) {
         return res.status(404).json({ 
@@ -105,11 +107,22 @@ class SensorController {
         });
       }
 
-      const sensors = await Sensores.findAll({ where: { dispositivo_id: deviceId } });
+      // Build pagination
+      const { limit, offset, page } = PaginationHelper.buildQueryOptions(req, 20);
+
+      const result = await Sensores.findAndCountAll({
+        where: { dispositivo_id: deviceId },
+        limit,
+        offset,
+        order: [['id', 'ASC']]
+      });
+
+      const pagination = PaginationHelper.calculate(result.count, page, limit);
 
       res.json({ 
         success: true, 
-        sensors: sensors.map(s => s.toJSON()) 
+        sensors: result.rows.map(s => s.toJSON()),
+        pagination
       });
     } catch (error) {
       console.error('Error al obtener sensores:', error);
@@ -143,7 +156,7 @@ class SensorController {
       }
 
       await sensor.update(req.body);
-      console.log(`[INFO] [sensors] Sensor actualizado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+      logger.info(`[sensors] Sensor actualizado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 
@@ -181,7 +194,7 @@ class SensorController {
       }
 
       await sensor.destroy();
-      console.log(`[WARNING] [sensors] Sensor eliminado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+      logger.warn(`[sensors] Sensor eliminado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 
         success: true, 

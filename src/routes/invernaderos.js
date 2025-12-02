@@ -17,11 +17,11 @@ router.get('/:id/edit', InvernaderoController.edit);
 router.post('/:id', InvernaderoController.update); // Using POST for update (HTML form simplicity)
 router.delete('/:id', InvernaderoController.destroy);
 
-// Schedule routes for greenhouse (migrated from CalendarioController)
-router.get('/:greenhouseId/calendario', ScheduleController.getByGreenhouse);
-router.get('/:greenhouseId/calendario/create', ScheduleController.create);
-router.post('/:greenhouseId/calendario', ScheduleController.store);
-router.post('/:greenhouseId/calendario/:id/delete', ScheduleController.delete); // Using POST for delete (HTML form)
+// Schedule routes for greenhouse
+router.get('/:greenhouseId/schedule', ScheduleController.getByGreenhouse);
+router.get('/:greenhouseId/schedule/create', ScheduleController.create);
+router.post('/:greenhouseId/schedule', ScheduleController.store);
+router.post('/:greenhouseId/schedule/:id/delete', ScheduleController.delete); // Using POST for delete (HTML form)
 
 // History routes for greenhouse
 router.get('/:invernaderoId/historial', HistorialController.getByInvernadero);

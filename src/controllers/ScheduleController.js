@@ -112,7 +112,7 @@ const ScheduleController = {
                 });
             }
             
-            res.render('calendario/index', {
+            res.render('calendar/greenhouse', {
                 title: 'Calendario', 
                 calendario: calendario.map(c => c.toJSON()), 
                 invernadero: invernadero.toJSON(),
@@ -143,7 +143,7 @@ const ScheduleController = {
                 });
             }
 
-            res.render('calendario/create', {
+            res.render('calendar/create', {
                 title: 'Programar Evento',
                 invernadero: invernadero.toJSON(),
                 semanas: semanas.map(s => s.toJSON()),
@@ -280,7 +280,7 @@ const ScheduleController = {
                 });
             }
 
-            res.render('calendario/show', {
+            res.render('calendar/show', {
                 title: 'Detalle de Evento',
                 evento: evento.toJSON(),
                 user: req.user

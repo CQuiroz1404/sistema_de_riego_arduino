@@ -318,7 +318,9 @@ class DeviceController {
       const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
       const isOnline = lastConnection && secondsAgo < 30;
 
-      logger.debug(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isOnline: ${isOnline}, secondsAgo: ${secondsAgo}`);
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug(`[Device ${id}] ultima_conexion: ${device.ultima_conexion}, isOnline: ${isOnline}, secondsAgo: ${secondsAgo}`);
+      }
 
       res.json({ 
         success: true, 

@@ -414,7 +414,9 @@ class MQTTService {
    */
   async processPing(device, payload) {
     try {
-      logger.debug(`💓 Ping recibido de ${device.nombre}`);
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug(`💓 Ping recibido de ${device.nombre}`);
+      }
       await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
     } catch (error) {
       logger.error('Error al procesar ping: %o', error);
@@ -520,18 +522,31 @@ class MQTTService {
   }
 
   /**
-   * Obtiene dispositivo por API Key (con caché)
+   * Get device by API Key (with cache integration)
+   * @param {string} apiKey - Device API key
+   * @returns {Promise<Object>} Device object
    */
   async getDeviceByApiKey(apiKey) {
-    if (this.devicesByApiKey.has(apiKey)) {
-      return this.devicesByApiKey.get(apiKey);
+    const cacheService = require('./cacheService');
+    
+    // 1. Try cache first
+    const cached = await cacheService.getDevice(apiKey);
+    if (cached) {
+      return cached;
     }
 
-    const device = await Dispositivos.findOne({ where: { api_key: apiKey } });
+    // 2. Query database
+    const device = await Dispositivos.findOne({ 
+      where: { api_key: apiKey },
+      include: [
+        { model: Sensores, as: 'sensores' },
+        { model: Actuadores, as: 'actuadores' }
+      ]
+    });
+    
+    // 3. Store in cache
     if (device) {
-      this.devicesByApiKey.set(apiKey, device);
-      // Limpiar caché después de 5 minutos
-      setTimeout(() => this.devicesByApiKey.delete(apiKey), 5 * 60 * 1000);
+      cacheService.setDevice(apiKey, device);
     }
 
     return device;

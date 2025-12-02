@@ -25,6 +25,10 @@ Thumbs.db
 *.swo
 *~
 
+# Backups
+src/views_backup/
+coverage/
+
 # Temporal
 tmp/
 temp/

@@ -126,10 +126,6 @@ app.use(async (req, res, next) => {
         
         if (user) {
           req.user = user.toJSON();
-          // DEBUG: Log temporal para verificar avatar
-          if (process.env.NODE_ENV === 'development') {
-            logger.debug(`User avatar: ${req.user.avatar || 'NO AVATAR'}`);
-          }
         } else {
           req.user = decoded; // Fallback si no se encuentra en BD
         }
