@@ -106,7 +106,7 @@ class DashboardController {
             sensors.map(async (sensor) => {
               const lastReading = await Lecturas.findOne({ 
                 where: { sensor_id: sensor.id },
-                order: [['fecha_registro', 'DESC']]
+                order: [['fecha_lectura', 'DESC']]
               });
               return { ...sensor.toJSON(), lastReading: lastReading ? lastReading.toJSON() : null };
             })

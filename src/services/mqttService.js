@@ -100,11 +100,9 @@ class MQTTService {
    */
   async handleMessage(topic, message) {
     try {
+      logger.info(`[MQTT] Mensaje recibido en ${topic}: ${message.toString()}`);
       const payload = JSON.parse(message.toString());
       const [, apiKey, type] = topic.split('/'); // riego/{apiKey}/{type}
-
-      logger.info(`📨 Mensaje MQTT recibido - Topic: ${topic}, Tipo: ${type}`);
-      logger.debug(`   Payload: ${JSON.stringify(payload)}`);
 
       // Verificar dispositivo por API Key
       const device = await this.getDeviceByApiKey(apiKey);
@@ -112,8 +110,8 @@ class MQTTService {
         logger.warn(`⚠️  Mensaje rechazado: API Key inválida (${apiKey})`);
         return;
       }
-
-      logger.info(`✅ Dispositivo encontrado: ${device.nombre} (ID: ${device.id})`);
+      
+      logger.info(`[MQTT] Dispositivo identificado: ${device.nombre} (ID: ${device.id})`);
 
       // Actualizar última conexión
       await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
@@ -154,25 +152,83 @@ class MQTTService {
       }
 
       logger.info(`📊 Total de sensores en payload: ${sensores.length}`);
+      
+      const processedSensors = [];
 
       for (const sensorData of sensores) {
-        const { sensor_id, valor, estado, conectado } = sensorData;
+        const { sensor_id, pin, tipo, valor, estado, conectado } = sensorData;
 
-        logger.debug(`   Procesando sensor_id: ${sensor_id}, valor: ${valor}`);
+        let sensor = null;
 
-        const sensor = await Sensores.findByPk(sensor_id);
-        
+        // Estrategia 1: Buscar por ID directo (Legacy/Rápido)
+        if (sensor_id) {
+            sensor = await Sensores.findByPk(sensor_id);
+        } 
+        // Estrategia 2: Buscar por Pin + Tipo (Escalable)
+        else if (pin && tipo) {
+            sensor = await Sensores.findOne({
+                where: {
+                    dispositivo_id: device.id,
+                    pin: pin.toString(),
+                    tipo: tipo
+                }
+            });
+
+            // Estrategia 3: Auto-Provisioning (Crear si no existe)
+            if (!sensor) {
+                logger.info(`✨ Detectado nuevo sensor en ${device.nombre}: ${tipo} en pin ${pin}. Creando...`);
+                
+                let nombreSensor = `Sensor ${tipo} (${pin})`;
+                let unidad = '';
+                let min = 0; 
+                let max = 100;
+
+                // Configurar defaults según tipo
+                switch(tipo) {
+                    case 'temperatura': 
+                        nombreSensor = pin === 'A1' ? 'Temperatura Suelo' : 'Temperatura Aire';
+                        unidad = '°C'; min = -10; max = 50; 
+                        break;
+                    case 'humedad_ambiente': 
+                        nombreSensor = 'Humedad Aire';
+                        unidad = '%'; 
+                        break;
+                    case 'humedad_suelo': 
+                        nombreSensor = 'Humedad Suelo';
+                        unidad = '%'; 
+                        break;
+                    case 'nivel_agua': 
+                        nombreSensor = 'Nivel Tanque';
+                        unidad = '%'; 
+                        break;
+                }
+
+                sensor = await Sensores.create({
+                    dispositivo_id: device.id,
+                    nombre: nombreSensor,
+                    tipo: tipo,
+                    pin: pin.toString(),
+                    unidad: unidad,
+                    valor_minimo: min,
+                    valor_maximo: max,
+                    activo: true
+                });
+                
+                logger.info(`✅ Sensor creado automáticamente: ${sensor.nombre} (ID: ${sensor.id})`);
+            }
+        }
+
         if (!sensor) {
-          logger.warn(`❌ Sensor ${sensor_id} NO EXISTE en la base de datos`);
+          logger.warn(`❌ Sensor no identificado y no se pudo crear (ID: ${sensor_id}, Pin: ${pin}, Tipo: ${tipo})`);
           continue;
         }
         
         if (sensor.dispositivo_id !== device.id) {
-          logger.warn(`❌ Sensor ${sensor_id} no pertenece al dispositivo ${device.id} (pertenece a ${sensor.dispositivo_id})`);
+          logger.warn(`❌ Sensor ${sensor.id} no pertenece al dispositivo ${device.id}`);
           continue;
         }
 
-        logger.info(`✅ Sensor válido: ${sensor.nombre} (ID: ${sensor_id})`);
+        // logger.info(`✅ Sensor válido: ${sensor.nombre} (ID: ${sensor.id})`);
 
         // Verificar estado del sensor (solo si se envían los campos opcionales)
         if (conectado === false || (estado && estado !== 'ok')) {
@@ -197,7 +253,7 @@ class MQTTService {
 
         // Registrar lectura
         await Lecturas.create({
-          sensor_id: sensor_id,
+          sensor_id: sensor.id,
           valor: valor
         });
 
@@ -211,16 +267,24 @@ class MQTTService {
         }
 
         // Verificar configuraciones de riego automático (solo con sensor conectado)
-        await this.checkAutoIrrigation(device.id, sensor_id, valor);
+        await this.checkAutoIrrigation(device.id, sensor.id, valor);
 
         logger.info(`📊 Sensor ${sensor.nombre} (${device.nombre}): ${valor} ${sensor.unidad} ✅`);
+        
+        processedSensors.push({
+            sensor_id: sensor.id,
+            valor: valor,
+            tipo: sensor.tipo,
+            pin: sensor.pin
+        });
       }
 
       // Emitir evento WebSocket con todos los datos
       if (this.io) {
+        logger.info(`📡 Emitiendo actualización WebSocket para dispositivo ${device.id} con ${processedSensors.length} sensores`);
         this.io.emit('sensor:update', {
           deviceId: device.id,
-          sensores: payload.sensores,
+          sensores: processedSensors,
           timestamp: Date.now()
         });
       }
