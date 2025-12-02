@@ -1,143 +1,519 @@
 /*
- * Sistema de Riego IoT con MQTT
+ * Sistema de Riego IoT Completo - MQTT + Sensores + LCD + Control Local
  * Hardware: Arduino UNO R4 WiFi
- * Protocolo: MQTT (Broker: EMQX o broker.emqx.io)
- * 
- * IMPORTANTE: Este código usa WiFiS3.h (específico para Arduino UNO R4 WiFi)
- * NO usar ESP8266WiFi.h o WiFi.h estándar
- * 
- * SENSORES CONFIGURADOS:
- * - Temperatura LM35DZ/CZ: Pin A1 (analógico)
- *   Compatible con LM35DZ y LM35CZ (funcionan igual)
- *   Conexión LM35DZ/CZ:
- *   - Pin 1 (Vout) → Arduino A1
- *   - Pin 2 (GND)  → Arduino GND
- *   - Pin 3 (Vcc)  → Arduino 5V
- *   Salida: 10mV/°C (0°C = 0V, 100°C = 1V)
+ * Sensores: DHT11 (temperatura/humedad aire)
+ * Actuador: Relé para bomba de agua
+ * Display: LCD I2C 16x2
+ * Control: Botón para cambiar pantallas LCD
+ * Conectividad: MQTT SSL/TLS con EMQX Serverless
  */
 
 #include <WiFiS3.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "Arduino_LED_Matrix.h"
-
-#include <WiFiClientSecure.h>
-
-// Configuración TLS MQTT
-// Habilitar si quieres conectar al puerto 8883 con TLS
-#define MQTT_USE_TLS true
-// Para pruebas rápidas puedes usar setInsecure() (no recomendado para producción)
-#define MQTT_TLS_INSECURE true
-
-// Si vas a usar verificación de certificado, pega aquí el certificado CA en formato PEM.
-// Ejemplo mínimo (no real):
-// const char ca_cert[] PROGMEM = "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n";
-// Si dejas el array vacío y MQTT_TLS_INSECURE==true, el cliente usará setInsecure().
-const char ca_cert[] PROGMEM = "";
-
-// Modo de prueba: cambia a broker público y deshabilita credenciales para pruebas rápidas
-#define TEST_MODE true
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "DHT.h"
+#include <SPI.h>
+#include <MFRC522.h>
 
 // ============================================
-// CONFIGURACIÓN - MODIFICAR SEGÚN TU ENTORNO
+// 1. CONFIGURACIÓN WIFI
 // ============================================
-
-// WiFi (Usar red 2.4GHz - NO 5GHz)
-const char* WIFI_SSID = "TU_RED_Wifi_SSID";     // ← CAMBIAR: Tu red WiFi
-const char* WIFI_PASSWORD = "TU_WIFI_PASSWORD";   // ← CAMBIAR: Contraseña WiFi
-
-// MQTT Broker - EMQX Cloud
-// Opción 1: Broker público (para pruebas)
-// const char* MQTT_BROKER = "broker.emqx.io";
-// const int MQTT_PORT = 1883;
-// const char* MQTT_USER = "";
-// const char* MQTT_PASSWORD = "";
-
-// Opción 2: EMQX Cloud privado (RECOMENDADO)
-const char* MQTT_BROKER = "m0020126.ala.eu-central-1.emqxsl.com";  // ← CAMBIAR: Tu deployment de EMQX Cloud
-const int MQTT_PORT = 8883;                             // 1883 (TCP) o 8883 (TLS)
-const char* MQTT_USER = "riegoTeam";             // ← CAMBIAR: Usuario de EMQX
-const char* MQTT_PASSWORD = "Cu7WhT6gnZfZgz8";        // ← CAMBIAR: Contraseña de EMQX
-
-// API Key del dispositivo (obtener de la base de datos)
-// SELECT api_key FROM dispositivos WHERE id = 1;
-const char* API_KEY = "d4d6b2bdfdb606e35287ef099910abf0c1cfdf598f14d4fcd0da1804b1ea4808";  // ← CAMBIAR: API Key de la BD
-
-// IDs de sensores (obtener de la base de datos)
-// SELECT id, nombre FROM sensores WHERE dispositivo_id = 1;
-const int SENSOR_TEMPERATURA_ID = 2;  // ← CAMBIAR: ID del sensor de temperatura en tu BD
-
-// Pin del sensor de temperatura
-const int PIN_LM35 = A1;  // Sensor de temperatura LM35DZ/CZ (compatible con ambos)
-
-// Actuadores (obtener de la base de datos)
-// SELECT id, pin FROM actuadores WHERE dispositivo_id = 1;
-const int ACTUADOR_BOMBA_ID = 1;  // ← CAMBIAR: ID del actuador en tu BD
-const int PIN_BOMBA = 7;          // ← CAMBIAR: Pin físico donde conectaste la bomba
-
-// Intervalos de tiempo
-const unsigned long INTERVALO_SENSORES = 5000;   // 5 segundos (actualización rápida)
-const unsigned long INTERVALO_PING = 30000;      // 30 segundos
+const char* WIFI_SSID = "wifi";
+const char* WIFI_PASSWORD = "contraseña";
 
 // ============================================
-// VARIABLES GLOBALES
+// 2. CONFIGURACIÓN MQTT (EMQX SERVERLESS)
 // ============================================
+const char* MQTT_BROKER = "m0020126.ala.eu-central-1.emqxsl.com";
+const int MQTT_PORT = 8883;  // Puerto Seguro SSL
+const char* MQTT_USER = "riegoTeam";
+const char* MQTT_PASSWORD = "Cu7WhT6gnZfZgz8";
 
-WiFiClient wifiClient;
+// ============================================
+// 3. IDENTIFICACIÓN DEL DISPOSITIVO
+// ============================================
+const char* API_KEY = "api key";
+
+// ============================================
+// 4. CONFIGURACIÓN HARDWARE - PINES
+// ============================================
+const int PIN_AGUA   = A2;    // Sensor de Nivel de Agua
+const int PIN_RELAY  = 7;     // Relé de la bomba
+const int PIN_BTN    = 8;     // Botón (entre D8 y GND)
+#define DHTPIN 2              // DHT11 en D2
+#define DHTTYPE DHT11
+
+// Configuración RFID RC522 (SPI)
+#define SS_PIN  10  // Slave Select
+#define RST_PIN 9   // Reset
+// MOSI -> 11
+// MISO -> 12
+// SCK  -> 13
+
+// NOTA: Ya no se necesitan IDs hardcodeados. 
+// El servidor resolverá los IDs basándose en el PIN y el TIPO de sensor.
+
+// ============================================
+// 5. PARÁMETROS DE RIEGO AUTOMÁTICO
+// ============================================
+const float HUM_ON   = 40.0;   // Encender bomba si humedad < 40%
+const float HUM_OFF  = 60.0;   // Apagar bomba si humedad > 60%
+
+// ============================================
+// 6. INTERVALOS DE COMUNICACIÓN
+// ============================================
+const unsigned long INTERVALO_SENSORES = 5000;   // Enviar datos cada 5s (actualización rápida)
+const unsigned long INTERVALO_PING = 30000;      // Ping cada 30s
+const unsigned long INTERVALO_LCD = 250;         // Actualizar LCD cada 250ms
+
+// ============================================
+// 7. OBJETOS GLOBALES
+// ============================================
+WiFiSSLClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 ArduinoLEDMatrix matrix;
+DHT dht(DHTPIN, DHTTYPE);
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Cambiar a 0x3F si no funciona
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // Instancia RFID
+
+// ============================================
+// 8. VARIABLES DE ESTADO
+// ============================================
+bool pumpOn = false;
+bool modoRemoto = false;  // false=automático, true=control remoto
+byte pantallaActual = 0;
+const byte NUM_PANTALLAS = 4;  // DHT11, Bomba, Tiempo, Red
+int lastBtnState = HIGH;
 
 unsigned long ultimoEnvioSensores = 0;
 unsigned long ultimoPing = 0;
+unsigned long ultimoUpdateLCD = 0;
+
+// Variables para almacenar últimas lecturas
+float ultimaTempDHT = 0.0;
+float ultimaHumDHT = 0.0;
+int ultimoNivelAgua = 0;
 
 // Tópicos MQTT
-char topicSensores[100];
-char topicComandos[100];
-char topicComandosAll[100];
-char topicPing[100];
-
-// Estado de actuadores
-struct Actuador {
-  int id;
-  int pin;
-  bool estado;  // true = encendido, false = apagado
-};
-
-Actuador actuadores[] = {
-  {ACTUADOR_BOMBA_ID, PIN_BOMBA, false}
-};
-const int NUM_ACTUADORES = sizeof(actuadores) / sizeof(Actuador);
+char topicSensores[150];
+char topicComandos[150];
+char topicComandosAll[150];
+char topicPing[150];
 
 // Patrones LED
-const uint32_t LED_WIFI_CONECTANDO[] = {0x0, 0x0e0e0e, 0x0};
-const uint32_t LED_WIFI_OK[] = {0x0, 0x1f1f1f, 0x0};
-const uint32_t LED_MQTT_CONECTANDO[] = {0xaa55aa, 0x55aa55, 0xaa55aa};
-const uint32_t LED_TODO_OK[] = {0x1041041, 0x4104104, 0x10410410};
+const uint32_t LED_WIFI[] = {0x0, 0x1f1f1f, 0x0};
+const uint32_t LED_MQTT[] = {0x1041041, 0x4104104, 0x10410410};
 const uint32_t LED_ERROR[] = {0x1b1b1b0, 0xc060301, 0x80c0600};
+const uint32_t LED_OK[] = {0x0, 0xe0a0e, 0x0};
+
+// ============================================
+// FUNCIONES DE CONTROL DE BOMBA
+// ============================================
+void aplicarEstadoBomba() {
+  digitalWrite(PIN_RELAY, pumpOn ? HIGH : LOW);
+  digitalWrite(LED_BUILTIN, pumpOn ? HIGH : LOW);
+  
+  // Enviar estado a MQTT inmediatamente
+  if (mqttClient.connected()) {
+    enviarEstadoActuador();
+  }
+}
+
+void encenderBomba(const char* motivo) {
+  if (!pumpOn) {
+    pumpOn = true;
+    aplicarEstadoBomba();
+    Serial.print("🚰 Bomba ENCENDIDA - ");
+    Serial.println(motivo);
+  }
+}
+
+void apagarBomba(const char* motivo) {
+  if (pumpOn) {
+    pumpOn = false;
+    aplicarEstadoBomba();
+    Serial.print("🛑 Bomba APAGADA - ");
+    Serial.println(motivo);
+  }
+}
+
+// ============================================
+// LECTURA DE SENSORES
+// ============================================
+void leerSensores() {
+  ultimaHumDHT = dht.readHumidity();
+  ultimaTempDHT = dht.readTemperature();
+
+  // Leer Nivel de Agua
+  ultimoNivelAgua = analogRead(PIN_AGUA);
+  // Mapear valor analógico (0-1023) a porcentaje (0-100%) aprox
+  // Ajustar según calibración del sensor real
+  ultimoNivelAgua = map(ultimoNivelAgua, 0, 700, 0, 100); 
+  if (ultimoNivelAgua > 100) ultimoNivelAgua = 100;
+  if (ultimoNivelAgua < 0) ultimoNivelAgua = 0;
+
+  if (isnan(ultimaHumDHT) || isnan(ultimaTempDHT)) {
+    Serial.println("⚠️ Error leyendo DHT11");
+  }
+}
+
+// ============================================
+// CONTROL AUTOMÁTICO
+// ============================================
+void controlAutomatico() {
+  if (modoRemoto) return;  // No actuar si está en modo remoto
+
+  if (!isnan(ultimaHumDHT)) {
+    // CONDICIÓN: SECO -> ENCENDER
+    if (!pumpOn && ultimaHumDHT < HUM_ON) {
+      encenderBomba("Auto: Seco");
+    }
+    // CONDICIÓN: HUMEDAD OK -> APAGAR
+    else if (pumpOn && ultimaHumDHT > HUM_OFF) {
+      apagarBomba("Auto: Humedad OK");
+    }
+  }
+}
+
+// ============================================
+// GESTIÓN DE BOTÓN Y PANTALLAS LCD
+// ============================================
+void gestionarBoton() {
+  int btnState = digitalRead(PIN_BTN);
+
+  // Detectar flanco de bajada
+  if (btnState == LOW && lastBtnState == HIGH) {
+    pantallaActual++;
+    if (pantallaActual >= NUM_PANTALLAS) {
+      pantallaActual = 0;
+    }
+    Serial.print("📺 Pantalla: ");
+    Serial.println(pantallaActual);
+    actualizarLCD();  // Actualizar inmediatamente
+  }
+  lastBtnState = btnState;
+}
+
+void actualizarLCD() {
+  lcd.clear();
+
+  switch (pantallaActual) {
+    case 0:  // DHT11 (aire)
+      lcd.setCursor(0, 0);
+      lcd.print("Aire T:");
+      if (!isnan(ultimaTempDHT)) {
+        lcd.print(ultimaTempDHT, 1);
+        lcd.print("C");
+      } else {
+        lcd.print("--C");
+      }
+      lcd.setCursor(0, 1);
+      lcd.print("H:");
+      if (!isnan(ultimaHumDHT)) {
+        lcd.print(ultimaHumDHT, 0);
+        lcd.print("%");
+      } else {
+        lcd.print("--%");
+      }
+      break;
+
+    case 1:  // Estado bomba
+      lcd.setCursor(0, 0);
+      lcd.print("Bomba:");
+      lcd.print(pumpOn ? "ON " : "OFF");
+      lcd.setCursor(0, 1);
+      lcd.print(modoRemoto ? "Modo: REMOTO" : "Modo: AUTO  ");
+      break;
+
+    case 2:  // Tiempo activo
+      lcd.setCursor(0, 0);
+      lcd.print("Tiempo activo:");
+      lcd.setCursor(0, 1);
+      lcd.print(millis() / 1000);
+      lcd.print(" seg");
+      break;
+
+    case 3:  // Estado red
+      lcd.setCursor(0, 0);
+      if (WiFi.status() == WL_CONNECTED) {
+        lcd.print("WiFi: OK");
+      } else {
+        lcd.print("WiFi: ERROR");
+      }
+      lcd.setCursor(0, 1);
+      if (mqttClient.connected()) {
+        lcd.print("MQTT: OK");
+      } else {
+        lcd.print("MQTT: ERROR");
+      }
+      break;
+  }
+}
+
+// ============================================
+// CONEXIÓN WIFI
+// ============================================
+void conectarWiFi() {
+  Serial.print("📡 Conectando WiFi: ");
+  Serial.println(WIFI_SSID);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Conectando WiFi");
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  int intentos = 0;
+  while (WiFi.status() != WL_CONNECTED && intentos < 20) {
+    delay(500);
+    Serial.print(".");
+    lcd.setCursor(intentos % 16, 1);
+    lcd.print(".");
+    intentos++;
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("✅ WiFi Conectado");
+    Serial.print("   IP: ");
+    Serial.println(WiFi.localIP());
+    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("WiFi OK");
+    lcd.setCursor(0, 1);
+    lcd.print(WiFi.localIP());
+    
+    matrix.loadFrame(LED_WIFI);
+    delay(2000);
+  } else {
+    Serial.println("❌ Error WiFi");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("WiFi ERROR");
+    matrix.loadFrame(LED_ERROR);
+    delay(2000);
+  }
+}
+
+// ============================================
+// CONEXIÓN MQTT
+// ============================================
+void conectarMQTT() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  Serial.print("🔌 Conectando MQTT SSL... ");
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Conectando MQTT");
+
+  String clientId = "arduino_r4_" + String(random(0xffff), HEX);
+
+  if (mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
+    Serial.println("✅ ¡Conectado!");
+
+    mqttClient.subscribe(topicComandos);
+    mqttClient.subscribe(topicComandosAll);
+    Serial.println("   Suscrito a comandos");
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("MQTT OK");
+    lcd.setCursor(0, 1);
+    lcd.print("Sistema listo");
+
+    matrix.loadFrame(LED_OK);
+    delay(2000);
+
+    enviarPing();
+  } else {
+    Serial.print("❌ Fallo, rc=");
+    Serial.println(mqttClient.state());
+    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("MQTT ERROR");
+    lcd.setCursor(0, 1);
+    lcd.print("Reintentando...");
+    
+    delay(5000);
+  }
+}
+
+// ============================================
+// ENVÍO DE DATOS A MQTT
+// ============================================
+void enviarDatosSensores() {
+  if (!mqttClient.connected()) return;
+
+  StaticJsonDocument<512> doc; // Aumentado tamaño por strings adicionales
+  JsonArray sensores = doc.createNestedArray("sensores");
+
+  // Sensor 1: DHT11 - Temperatura del aire
+  if (!isnan(ultimaTempDHT)) {
+    JsonObject sensor1 = sensores.createNestedObject();
+    sensor1["pin"] = "D2";
+    sensor1["tipo"] = "temperatura";
+    sensor1["valor"] = ultimaTempDHT;
+  }
+
+  // Sensor 2: DHT11 - Humedad del aire
+  if (!isnan(ultimaHumDHT)) {
+    JsonObject sensor2 = sensores.createNestedObject();
+    sensor2["pin"] = "D2";
+    sensor2["tipo"] = "humedad_ambiente";
+    sensor2["valor"] = ultimaHumDHT;
+  }
+
+  // Sensor 3: Nivel de Agua
+  JsonObject sensor3 = sensores.createNestedObject();
+  sensor3["pin"] = "A2";
+  sensor3["tipo"] = "nivel_agua";
+  sensor3["valor"] = ultimoNivelAgua;
+
+  char buffer[512];
+  serializeJson(doc, buffer);
+
+  if (mqttClient.publish(topicSensores, buffer)) {
+    Serial.println("📤 Datos enviados (Smart Discovery):");
+    Serial.print("   DHT (D2): ");
+    Serial.print(ultimaTempDHT, 1);
+    Serial.print(" °C | H: ");
+    Serial.print(ultimaHumDHT, 0);
+    Serial.println(" %");
+    Serial.print("   Agua (A2): ");
+    Serial.print(ultimoNivelAgua);
+    Serial.println(" %");
+  } else {
+    Serial.println("⚠️ Error al publicar datos");
+  }
+}
+
+void enviarEstadoActuador() {
+  if (!mqttClient.connected()) return;
+
+  StaticJsonDocument<128> doc;
+  doc["pin"] = "D7"; // Identificador físico
+  doc["tipo"] = "bomba";
+  doc["estado"] = pumpOn ? 1 : 0;
+  doc["modo"] = modoRemoto ? "remoto" : "automatico";
+
+  char buffer[128];
+  serializeJson(doc, buffer);
+  
+  char topicEstado[150];
+  sprintf(topicEstado, "riego/%s/eventos", API_KEY);
+  mqttClient.publish(topicEstado, buffer);
+}
+
+void enviarPing() {
+  if (!mqttClient.connected()) return;
+
+  StaticJsonDocument<256> doc;
+  doc["status"] = "online";
+  doc["rssi"] = WiFi.RSSI();
+  doc["bomba_estado"] = pumpOn;
+  doc["modo"] = modoRemoto ? "remoto" : "automatico";
+  doc["temp_aire"] = ultimaTempDHT;
+  doc["humedad_aire"] = ultimaHumDHT;
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+  
+  if (mqttClient.publish(topicPing, buffer)) {
+    Serial.println("💓 Ping enviado");
+  }
+}
+
+// ============================================
+// CALLBACK MQTT - RECEPCIÓN DE COMANDOS
+// ============================================
+void callbackMQTT(char* topic, byte* payload, unsigned int length) {
+  Serial.print("📥 Comando recibido en: ");
+  Serial.println(topic);
+
+  StaticJsonDocument<512> doc;
+  DeserializationError error = deserializeJson(doc, payload, length);
+
+  if (error) {
+    Serial.println("❌ Error parseando JSON");
+    return;
+  }
+
+  // Control de actuador (bomba)
+  if (doc.containsKey("pin")) {
+    const char* pin = doc["pin"];
+    int estado = doc["estado"];
+
+    // Verificar si el comando es para nuestro relé (Pin 7 o D7)
+    if (String(pin) == "7" || String(pin) == "D7") {
+      modoRemoto = true;  // Activar modo remoto
+      
+      if (estado == 1) {
+        encenderBomba("Control remoto");
+      } else {
+        apagarBomba("Control remoto");
+      }
+    }
+  }
+
+  // Comando para cambiar modo
+  if (doc.containsKey("modo")) {
+    const char* modo = doc["modo"];
+    if (strcmp(modo, "automatico") == 0) {
+      modoRemoto = false;
+      Serial.println("🤖 Modo AUTOMÁTICO activado");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Modo: AUTO");
+      delay(1500);
+    } else if (strcmp(modo, "remoto") == 0) {
+      modoRemoto = true;
+      Serial.println("📱 Modo REMOTO activado");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Modo: REMOTO");
+      delay(1500);
+    }
+  }
+}
 
 // ============================================
 // SETUP
 // ============================================
-
 void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 5000);
-  
+
   Serial.println("\n========================================");
-  Serial.println("  Sistema de Riego IoT - MQTT");
-  Serial.println("  Hardware: Arduino UNO R4 WiFi");
+  Serial.println("  Sistema de Riego IoT Completo");
+  Serial.println("  DHT11 + LCD + MQTT SSL");
   Serial.println("========================================\n");
 
-  // Inicializar matriz LED
+  // Inicializar hardware
   matrix.begin();
-  matrix.loadFrame(LED_WIFI_CONECTANDO);
+  dht.begin();
+  SPI.begin();        // Iniciar bus SPI
+  mfrc522.PCD_Init(); // Iniciar MFRC522
+  
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Sistema Riego");
+  lcd.setCursor(0, 1);
+  lcd.print("Iniciando...");
 
-  // Configurar pines
+  pinMode(PIN_RELAY, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
-  for (int i = 0; i < NUM_ACTUADORES; i++) {
-    pinMode(actuadores[i].pin, OUTPUT);
-    digitalWrite(actuadores[i].pin, LOW);
-  }
+  pinMode(PIN_BTN, INPUT_PULLUP);
+
+  pumpOn = false;
+  aplicarEstadoBomba();
 
   // Construir tópicos MQTT
   sprintf(topicSensores, "riego/%s/sensores", API_KEY);
@@ -145,345 +521,100 @@ void setup() {
   sprintf(topicComandosAll, "riego/%s/comandos/all", API_KEY);
   sprintf(topicPing, "riego/%s/ping", API_KEY);
 
-  // Conectar WiFi
+  // Conectar red
   conectarWiFi();
 
-  // Configurar cliente MQTT
   mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
   mqttClient.setCallback(callbackMQTT);
-  mqttClient.setKeepAlive(60);
-  mqttClient.setSocketTimeout(30);
+  mqttClient.setBufferSize(512);
 
-  // Conectar MQTT
   conectarMQTT();
+
+  // Lectura inicial de sensores
+  leerSensores();
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Listo!");
+  lcd.setCursor(0, 1);
+  lcd.print("Btn=cambiar info");
+  delay(2000);
 }
 
 // ============================================
 // LOOP PRINCIPAL
 // ============================================
-
 void loop() {
-  // Verificar conexión WiFi
+  // 1. Verificar conectividad
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("⚠️  WiFi desconectado, reconectando...");
     conectarWiFi();
   }
 
-  // Verificar conexión MQTT
   if (!mqttClient.connected()) {
     conectarMQTT();
   }
 
-  // Mantener conexión MQTT activa (NO BLOQUEANTE)
   mqttClient.loop();
+
+  // Leer RFID
+  if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
+    String uid = "";
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+      uid += String(mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");
+      uid += String(mfrc522.uid.uidByte[i], HEX);
+    }
+    uid.toUpperCase();
+    
+    Serial.print("🏷️ Tarjeta RFID detectada: ");
+    Serial.println(uid);
+    
+    // Enviar evento RFID
+    StaticJsonDocument<128> doc;
+    doc["tipo"] = "rfid_scan";
+    doc["mensaje"] = uid;
+    
+    char buffer[128];
+    serializeJson(doc, buffer);
+    char topicEventos[150];
+    sprintf(topicEventos, "riego/%s/eventos", API_KEY);
+    mqttClient.publish(topicEventos, buffer);
+    
+    // Feedback visual en LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("RFID Detectado");
+    lcd.setCursor(0, 1);
+    lcd.print(uid);
+    delay(2000);
+    
+    mfrc522.PICC_HaltA();
+  }
 
   unsigned long ahora = millis();
 
-  // Enviar datos de sensores periódicamente
+  // 2. Gestionar botón
+  gestionarBoton();
+
+  // 3. Leer sensores y control automático
   if (ahora - ultimoEnvioSensores >= INTERVALO_SENSORES) {
     ultimoEnvioSensores = ahora;
+    
+    leerSensores();
+    controlAutomatico();
     enviarDatosSensores();
   }
 
-  // Enviar ping periódicamente
+  // 4. Enviar ping
   if (ahora - ultimoPing >= INTERVALO_PING) {
     ultimoPing = ahora;
     enviarPing();
   }
 
-  // Parpadeo LED para indicar que está vivo
-  static unsigned long ultimoParpadeo = 0;
-  if (ahora - ultimoParpadeo >= 1000) {
-    ultimoParpadeo = ahora;
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  }
-}
-
-// ============================================
-// FUNCIONES DE CONEXIÓN
-// ============================================
-
-void conectarWiFi() {
-  matrix.loadFrame(LED_WIFI_CONECTANDO);
-  Serial.print("Conectando a WiFi");
-  
-  WiFi.disconnect();
-  delay(100);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  int intentos = 0;
-  while (WiFi.status() != WL_CONNECTED && intentos < 30) {
-    delay(500);
-    Serial.print(".");
-    intentos++;
-  }
-  Serial.println();
-
-  if (WiFi.status() == WL_CONNECTED) {
-    // Esperar a obtener IP válida
-    Serial.print("Obteniendo IP");
-    intentos = 0;
-    while (WiFi.localIP() == IPAddress(0, 0, 0, 0) && intentos < 20) {
-      delay(500);
-      Serial.print(".");
-      intentos++;
-    }
-    Serial.println();
-
-    if (WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
-      matrix.loadFrame(LED_WIFI_OK);
-      Serial.println("✅ WiFi conectado");
-      Serial.print("   IP: ");
-      Serial.println(WiFi.localIP());
-      Serial.print("   RSSI: ");
-      Serial.print(WiFi.RSSI());
-      Serial.println(" dBm");
-      
-      // Esperar a que la conexión se estabilice completamente
-      Serial.println("⏳ Estabilizando conexión...");
-      delay(2000);  // Esperar 2 segundos para que el stack TCP/IP esté listo
-    } else {
-      matrix.loadFrame(LED_ERROR);
-      Serial.println("❌ Error: No se obtuvo IP válida");
-    }
-  } else {
-    matrix.loadFrame(LED_ERROR);
-    Serial.println("❌ Error: No se pudo conectar a WiFi");
-  }
-}
-
-void conectarMQTT() {
-  if (WiFi.status() != WL_CONNECTED) return;
-
-  matrix.loadFrame(LED_MQTT_CONECTANDO);
-  Serial.print("Conectando a MQTT broker");
-
-  String clientId = "arduino_riego_";
-  clientId += String(random(0xffff), HEX);
-
-  int intentos = 0;
-  while (!mqttClient.connected() && intentos < 5) {
-    Serial.print(".");
-    
-    if (mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD)) {
-      Serial.println("\n✅ Conectado a MQTT broker");
-      Serial.print("   Broker: ");
-      Serial.println(MQTT_BROKER);
-      
-      // Suscribirse a tópicos de comandos
-      mqttClient.subscribe(topicComandos);
-      mqttClient.subscribe(topicComandosAll);
-      
-      Serial.println("📡 Suscrito a tópicos de comandos");
-      matrix.loadFrame(LED_TODO_OK);
-      
-      // Enviar ping inicial
-      enviarPing();
-      
-    } else {
-      Serial.print("❌ Error: ");
-      Serial.println(mqttClient.state());
-      intentos++;
-      delay(2000);
-    }
+  // 5. Actualizar LCD
+  if (ahora - ultimoUpdateLCD >= INTERVALO_LCD) {
+    ultimoUpdateLCD = ahora;
+    actualizarLCD();
   }
 
-  if (!mqttClient.connected()) {
-    matrix.loadFrame(LED_ERROR);
-    Serial.println("\n⚠️  No se pudo conectar a MQTT, reintentando en próximo ciclo");
-  }
-}
-
-// ============================================
-// CALLBACK MQTT (Recepción de comandos)
-// ============================================
-
-void callbackMQTT(char* topic, byte* payload, unsigned int length) {
-  Serial.print("📥 Mensaje recibido [");
-  Serial.print(topic);
-  Serial.println("]");
-
-  // Parsear JSON
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, payload, length);
-
-  if (error) {
-    Serial.print("❌ Error al parsear JSON: ");
-    Serial.println(error.c_str());
-    return;
-  }
-
-  // Procesar comando individual
-  if (strcmp(topic, topicComandos) == 0) {
-    int actuadorId = doc["actuador_id"];
-    int pin = doc["pin"];
-    int estado = doc["estado"];
-
-    Serial.print("🎛️  Comando: Actuador ");
-    Serial.print(actuadorId);
-    Serial.print(" -> ");
-    Serial.println(estado ? "ENCENDIDO" : "APAGADO");
-
-    // Buscar actuador y actualizar estado
-    for (int i = 0; i < NUM_ACTUADORES; i++) {
-      if (actuadores[i].id == actuadorId) {
-        actuadores[i].estado = (estado == 1);
-        digitalWrite(actuadores[i].pin, estado);
-        Serial.print("   Pin ");
-        Serial.print(actuadores[i].pin);
-        Serial.println(estado ? " HIGH" : " LOW");
-        break;
-      }
-    }
-  }
-
-  // Procesar comandos múltiples
-  if (strcmp(topic, topicComandosAll) == 0) {
-    JsonArray actuadoresArray = doc["actuadores"];
-    Serial.println("🎛️  Comandos múltiples recibidos:");
-
-    for (JsonVariant v : actuadoresArray) {
-      int actuadorId = v["actuador_id"];
-      int pin = v["pin"];
-      int estado = v["estado"];
-
-      for (int i = 0; i < NUM_ACTUADORES; i++) {
-        if (actuadores[i].id == actuadorId) {
-          actuadores[i].estado = (estado == 1);
-          digitalWrite(actuadores[i].pin, estado);
-          Serial.print("   Actuador ");
-          Serial.print(actuadorId);
-          Serial.print(" -> ");
-          Serial.println(estado ? "ENCENDIDO" : "APAGADO");
-          break;
-        }
-      }
-    }
-  }
-}
-
-// ============================================
-// FUNCIONES DE PUBLICACIÓN
-// ============================================
-
-void enviarDatosSensores() {
-  if (!mqttClient.connected()) return;
-
-  // ============================================
-  // LECTURA DE SENSORES CON VALIDACIÓN
-  // ============================================
-  
-  Serial.println("\n--- LECTURA DE SENSORES ---");
-  
-  // Leer temperatura del LM35DZ/CZ (A1) - Promedio de 10 lecturas
-  long sumaLecturas = 0;
-  for (int i = 0; i < 10; i++) {
-    sumaLecturas += analogRead(PIN_LM35);
-    delay(10);
-  }
-  int lecturaLM35 = sumaLecturas / 10;
-  
-  float voltajeLM35 = (lecturaLM35 * 5.0) / 1023.0;
-  float temperatura = voltajeLM35 * 100.0;  // 10mV/°C = 0.01V/°C
-  
-  // DEBUG: Mostrar lectura cruda de temperatura
-  Serial.print("🌡️  Temperatura LM35DZ/CZ (A1):");
-  Serial.print("\n   ADC Raw: ");
-  Serial.print(lecturaLM35);
-  Serial.print(" | Voltaje: ");
-  Serial.print(voltajeLM35, 3);
-  Serial.print("V | Temp: ");
-  Serial.print(temperatura, 1);
-  Serial.println("°C");
-
-  // ============================================
-  // VALIDACIÓN DE SENSOR
-  // ============================================
-  bool sensorValido = true;
-  String estadoSensor = "ok";
-  
-  // Validar rango de temperatura razonable (-10°C a 100°C)
-  if (temperatura < -10 || temperatura > 100) {
-    Serial.println("⚠️  ADVERTENCIA: Temperatura fuera de rango");
-    sensorValido = false;
-    estadoSensor = "fuera_rango";
-  }
-  
-  // Validar si el sensor está conectado (voltaje muy bajo o muy alto = desconectado)
-  if (voltajeLM35 < 0.1) {
-    Serial.println("⚠️  ADVERTENCIA: Sensor posiblemente desconectado (voltaje muy bajo)");
-    sensorValido = false;
-    estadoSensor = "desconectado";
-  } else if (voltajeLM35 > 4.5) {
-    Serial.println("⚠️  ADVERTENCIA: Sensor con lectura anormal (voltaje muy alto)");
-    sensorValido = false;
-    estadoSensor = "lectura_anormal";
-  }
-  
-  if (sensorValido) {
-    Serial.println("✅ Sensor validado correctamente");
-  }
-
-  // Crear JSON
-  StaticJsonDocument<512> doc;
-  JsonArray sensores = doc.createNestedArray("sensores");
-
-  // Enviar temperatura con información de estado
-  JsonObject sensor1 = sensores.createNestedObject();
-  sensor1["sensor_id"] = SENSOR_TEMPERATURA_ID;
-  sensor1["valor"] = temperatura;
-  sensor1["estado"] = estadoSensor;
-  sensor1["conectado"] = sensorValido;
-
-  doc["timestamp"] = millis();
-
-  // Serializar y publicar
-  char buffer[256];
-  serializeJson(doc, buffer);
-
-  // DEBUG: Mostrar JSON que se va a enviar
-  Serial.print("\n📤 JSON a enviar: ");
-  Serial.println(buffer);
-
-  if (mqttClient.publish(topicSensores, buffer, false)) {
-    Serial.println("✅ Datos publicados exitosamente por MQTT");
-    Serial.println("---------------------------\n");
-  } else {
-    Serial.println("❌ ERROR: No se pudo publicar por MQTT");
-    Serial.println("---------------------------\n");
-  }
-}
-
-void enviarPing() {
-  if (!mqttClient.connected()) return;
-
-  StaticJsonDocument<128> doc;
-  doc["status"] = "online";
-  doc["rssi"] = WiFi.RSSI();
-  doc["uptime"] = millis() / 1000;
-  doc["timestamp"] = millis();
-
-  char buffer[128];
-  serializeJson(doc, buffer);
-
-  if (mqttClient.publish(topicPing, buffer, false)) {
-    Serial.println("💓 Ping enviado");
-  }
-}
-
-// ============================================
-// FUNCIONES AUXILIARES
-// ============================================
-
-void mostrarEstadoActuadores() {
-  Serial.println("\n--- Estado Actuadores ---");
-  for (int i = 0; i < NUM_ACTUADORES; i++) {
-    Serial.print("Actuador ");
-    Serial.print(actuadores[i].id);
-    Serial.print(" (Pin ");
-    Serial.print(actuadores[i].pin);
-    Serial.print("): ");
-    Serial.println(actuadores[i].estado ? "ENCENDIDO" : "APAGADO");
-  }
-  Serial.println("------------------------\n");
+  delay(50);  // Pequeña pausa para estabilidad
 }

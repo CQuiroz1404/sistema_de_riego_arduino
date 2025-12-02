@@ -100,18 +100,19 @@ INSERT INTO dispositivos (nombre, ubicacion, descripcion, api_key, estado, usuar
 SET @dispositivo2_id = LAST_INSERT_ID();
 
 -- Sensores para Dispositivo 1 (Invernadero Principal)
+-- NOTA: Actualizado para coincidir con la configuración física del usuario (Sin LM35)
 INSERT INTO sensores (dispositivo_id, nombre, tipo, pin, unidad, valor_minimo, valor_maximo) VALUES 
-(@dispositivo1_id, 'Humedad Suelo Tomates', 'humedad_suelo', 'A0', '%', 0, 100),
-(@dispositivo1_id, 'Temperatura Ambiente', 'temperatura', 'A1', '°C', -10, 50),
-(@dispositivo1_id, 'Nivel Tanque Principal', 'nivel_agua', 'A2', 'cm', 0, 200);
+(@dispositivo1_id, 'Temperatura Ambiente', 'temperatura', 'D2', '°C', -10, 50), -- DHT11 en D2
+(@dispositivo1_id, 'Humedad Ambiente', 'humedad_ambiente', 'D2', '%', 0, 100), -- DHT11 en D2
+(@dispositivo1_id, 'Nivel Tanque Principal', 'nivel_agua', 'A2', '%', 0, 100); -- Sensor Agua en A2
 
-SET @sensor_hum_d1 = LAST_INSERT_ID(); -- ID base
-SET @sensor_temp_d1 = @sensor_hum_d1 + 1;
-SET @sensor_nivel_d1 = @sensor_hum_d1 + 2;
+SET @sensor_temp_d1 = LAST_INSERT_ID(); -- ID base
+SET @sensor_hum_amb_d1 = @sensor_temp_d1 + 1;
+SET @sensor_nivel_d1 = @sensor_temp_d1 + 2;
 
 -- Actuadores para Dispositivo 1
 INSERT INTO actuadores (dispositivo_id, nombre, tipo, pin, estado) VALUES 
-(@dispositivo1_id, 'Bomba Riego Tomates', 'bomba', 'D1', 'apagado'),
+(@dispositivo1_id, 'Bomba Riego Tomates', 'bomba', 'D7', 'apagado'), -- Relé en Pin 7
 (@dispositivo1_id, 'Ventilador Principal', 'electrovalvula', 'D2', 'apagado');
 
 SET @actuador_bomba_d1 = LAST_INSERT_ID();
@@ -125,12 +126,12 @@ SET @actuador_bomba_d1 = LAST_INSERT_ID();
 
 -- Humedad (Tendencia a 55%)
 INSERT INTO lecturas (sensor_id, valor, fecha_lectura) VALUES 
-(@sensor_hum_d1, 60.0, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
-(@sensor_hum_d1, 59.0, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
-(@sensor_hum_d1, 58.0, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-(@sensor_hum_d1, 57.0, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
-(@sensor_hum_d1, 56.0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(@sensor_hum_d1, 55.0, NOW()); -- Coincide con Invernadero Principal
+(@sensor_hum_amb_d1, 60.0, DATE_SUB(NOW(), INTERVAL 5 HOUR)),
+(@sensor_hum_amb_d1, 59.0, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
+(@sensor_hum_amb_d1, 58.0, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(@sensor_hum_amb_d1, 57.0, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+(@sensor_hum_amb_d1, 56.0, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
+(@sensor_hum_amb_d1, 55.0, NOW()); -- Coincide con Invernadero Principal
 
 -- Temperatura (Tendencia a 22.5°C)
 INSERT INTO lecturas (sensor_id, valor, fecha_lectura) VALUES 
@@ -147,7 +148,7 @@ INSERT INTO lecturas (sensor_id, valor, fecha_lectura) VALUES
 
 -- Configuración Riego Tomates
 INSERT INTO configuraciones_riego (dispositivo_id, nombre, sensor_id, actuador_id, umbral_inferior, umbral_superior, duracion_minutos, modo) VALUES 
-(@dispositivo1_id, 'Riego Automático Tomates', @sensor_hum_d1, @actuador_bomba_d1, 40.0, 60.0, 15, 'automatico');
+(@dispositivo1_id, 'Riego Automático Tomates', @sensor_hum_amb_d1, @actuador_bomba_d1, 40.0, 60.0, 15, 'automatico');
 
 SET @config_id = LAST_INSERT_ID();
 

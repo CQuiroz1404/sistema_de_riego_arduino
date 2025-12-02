@@ -15,6 +15,8 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "DHT.h"
+#include <SPI.h>
+#include <MFRC522.h>
 
 // ============================================
 // 1. CONFIGURACIÓN WIFI
@@ -39,16 +41,21 @@ const char* API_KEY = "78d3f3a76ff81723752ce8632a4691efcd5d83fed37fe16d42f495a98
 // 4. CONFIGURACIÓN HARDWARE - PINES
 // ============================================
 const int PIN_LM35   = A1;    // LM35 temperatura suelo (analógico)
+const int PIN_AGUA   = A2;    // Sensor de Nivel de Agua
 const int PIN_RELAY  = 7;     // Relé de la bomba
 const int PIN_BTN    = 8;     // Botón (entre D8 y GND)
 #define DHTPIN 2              // DHT11 en D2
 #define DHTTYPE DHT11
 
-// IDs de base de datos (ACTUALIZADOS para dispositivo 6 "arduino prueba")
-const int SENSOR_TEMPERATURA_SUELO_ID = 7;    // LM35 Temperatura Suelo (A1)
-const int SENSOR_TEMPERATURA_AIRE_ID = 8;     // DHT11 Temperatura Aire (D2)
-const int SENSOR_HUMEDAD_AIRE_ID = 9;         // DHT11 Humedad Aire (D2)
-const int ACTUADOR_BOMBA_ID = 3;
+// Configuración RFID RC522 (SPI)
+#define SS_PIN  10  // Slave Select
+#define RST_PIN 9   // Reset
+// MOSI -> 11
+// MISO -> 12
+// SCK  -> 13
+
+// NOTA: Ya no se necesitan IDs hardcodeados. 
+// El servidor resolverá los IDs basándose en el PIN y el TIPO de sensor.
 
 // ============================================
 // 5. PARÁMETROS DE RIEGO AUTOMÁTICO
@@ -72,6 +79,7 @@ PubSubClient mqttClient(wifiClient);
 ArduinoLEDMatrix matrix;
 DHT dht(DHTPIN, DHTTYPE);
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Cambiar a 0x3F si no funciona
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // Instancia RFID
 
 // ============================================
 // 8. VARIABLES DE ESTADO
@@ -90,6 +98,7 @@ unsigned long ultimoUpdateLCD = 0;
 float ultimaTempLM35 = 0.0;
 float ultimaTempDHT = 0.0;
 float ultimaHumDHT = 0.0;
+int ultimoNivelAgua = 0;
 
 // Tópicos MQTT
 char topicSensores[150];
@@ -156,6 +165,14 @@ void leerSensores() {
   ultimaTempLM35 = leerTemperaturaLM35();
   ultimaHumDHT = dht.readHumidity();
   ultimaTempDHT = dht.readTemperature();
+
+  // Leer Nivel de Agua
+  ultimoNivelAgua = analogRead(PIN_AGUA);
+  // Mapear valor analógico (0-1023) a porcentaje (0-100%) aprox
+  // Ajustar según calibración del sensor real
+  ultimoNivelAgua = map(ultimoNivelAgua, 0, 700, 0, 100); 
+  if (ultimoNivelAgua > 100) ultimoNivelAgua = 100;
+  if (ultimoNivelAgua < 0) ultimoNivelAgua = 0;
 
   if (isnan(ultimaHumDHT) || isnan(ultimaTempDHT)) {
     Serial.println("⚠️ Error leyendo DHT11");
@@ -360,40 +377,52 @@ void conectarMQTT() {
 void enviarDatosSensores() {
   if (!mqttClient.connected()) return;
 
-  StaticJsonDocument<384> doc;
+  StaticJsonDocument<512> doc; // Aumentado tamaño por strings adicionales
   JsonArray sensores = doc.createNestedArray("sensores");
 
   // Sensor 1: LM35 - Temperatura del suelo
   JsonObject sensor1 = sensores.createNestedObject();
-  sensor1["sensor_id"] = SENSOR_TEMPERATURA_SUELO_ID;
+  sensor1["pin"] = "A1";
+  sensor1["tipo"] = "temperatura"; // Coincide con ENUM DB
   sensor1["valor"] = ultimaTempLM35;
 
   // Sensor 2: DHT11 - Temperatura del aire
   if (!isnan(ultimaTempDHT)) {
     JsonObject sensor2 = sensores.createNestedObject();
-    sensor2["sensor_id"] = SENSOR_TEMPERATURA_AIRE_ID;
+    sensor2["pin"] = "D2";
+    sensor2["tipo"] = "temperatura";
     sensor2["valor"] = ultimaTempDHT;
   }
 
   // Sensor 3: DHT11 - Humedad del aire
   if (!isnan(ultimaHumDHT)) {
     JsonObject sensor3 = sensores.createNestedObject();
-    sensor3["sensor_id"] = SENSOR_HUMEDAD_AIRE_ID;
+    sensor3["pin"] = "D2";
+    sensor3["tipo"] = "humedad_ambiente";
     sensor3["valor"] = ultimaHumDHT;
   }
 
-  char buffer[384];
+  // Sensor 4: Nivel de Agua
+  JsonObject sensor4 = sensores.createNestedObject();
+  sensor4["pin"] = "A2";
+  sensor4["tipo"] = "nivel_agua";
+  sensor4["valor"] = ultimoNivelAgua;
+
+  char buffer[512];
   serializeJson(doc, buffer);
 
   if (mqttClient.publish(topicSensores, buffer)) {
-    Serial.println("📤 Datos enviados:");
-    Serial.print("   LM35: ");
+    Serial.println("📤 Datos enviados (Smart Discovery):");
+    Serial.print("   LM35 (A1): ");
     Serial.print(ultimaTempLM35, 1);
     Serial.println(" °C");
-    Serial.print("   DHT T: ");
+    Serial.print("   DHT (D2): ");
     Serial.print(ultimaTempDHT, 1);
     Serial.print(" °C | H: ");
     Serial.print(ultimaHumDHT, 0);
+    Serial.println(" %");
+    Serial.print("   Agua (A2): ");
+    Serial.print(ultimoNivelAgua);
     Serial.println(" %");
   } else {
     Serial.println("⚠️ Error al publicar datos");
@@ -404,7 +433,8 @@ void enviarEstadoActuador() {
   if (!mqttClient.connected()) return;
 
   StaticJsonDocument<128> doc;
-  doc["actuador_id"] = ACTUADOR_BOMBA_ID;
+  doc["pin"] = "D7"; // Identificador físico
+  doc["tipo"] = "bomba";
   doc["estado"] = pumpOn ? 1 : 0;
   doc["modo"] = modoRemoto ? "remoto" : "automatico";
 
@@ -452,11 +482,12 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
   }
 
   // Control de actuador (bomba)
-  if (doc.containsKey("actuador_id")) {
-    int id = doc["actuador_id"];
+  if (doc.containsKey("pin")) {
+    const char* pin = doc["pin"];
     int estado = doc["estado"];
 
-    if (id == ACTUADOR_BOMBA_ID) {
+    // Verificar si el comando es para nuestro relé (Pin 7 o D7)
+    if (String(pin) == "7" || String(pin) == "D7") {
       modoRemoto = true;  // Activar modo remoto
       
       if (estado == 1) {
@@ -503,6 +534,8 @@ void setup() {
   // Inicializar hardware
   matrix.begin();
   dht.begin();
+  SPI.begin();        // Iniciar bus SPI
+  mfrc522.PCD_Init(); // Iniciar MFRC522
   
   lcd.init();
   lcd.backlight();
@@ -559,6 +592,40 @@ void loop() {
   }
 
   mqttClient.loop();
+
+  // Leer RFID
+  if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
+    String uid = "";
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+      uid += String(mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");
+      uid += String(mfrc522.uid.uidByte[i], HEX);
+    }
+    uid.toUpperCase();
+    
+    Serial.print("🏷️ Tarjeta RFID detectada: ");
+    Serial.println(uid);
+    
+    // Enviar evento RFID
+    StaticJsonDocument<128> doc;
+    doc["tipo"] = "rfid_scan";
+    doc["mensaje"] = uid;
+    
+    char buffer[128];
+    serializeJson(doc, buffer);
+    char topicEventos[150];
+    sprintf(topicEventos, "riego/%s/eventos", API_KEY);
+    mqttClient.publish(topicEventos, buffer);
+    
+    // Feedback visual en LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("RFID Detectado");
+    lcd.setCursor(0, 1);
+    lcd.print(uid);
+    delay(2000);
+    
+    mfrc522.PICC_HaltA();
+  }
 
   unsigned long ahora = millis();
 
