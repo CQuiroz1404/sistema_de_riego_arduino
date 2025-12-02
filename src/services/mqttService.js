@@ -4,21 +4,7 @@ const logger = require('../config/logger');
 const weatherService = require('./weatherService');
 const emailService = require('./emailService');
 
-/**
- * @class MQTTService
- * @description Service for managing MQTT communication with IoT devices
- * Handles pub/sub patterns for sensor data, actuator control, and events
- * 
- * Topic structure:
- * - riego/{API_KEY}/sensores - Sensor data from device
- * - riego/{API_KEY}/eventos - Device events
- * - riego/{API_KEY}/ping - Heartbeat/keepalive
- * - riego/{API_KEY}/comandos - Commands to device (actuator control)
- */
 class MQTTService {
-  /**
-   * Initialize MQTT Service
-   */
   constructor() {
     this.client = null;
     this.connected = false;

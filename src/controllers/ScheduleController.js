@@ -1,5 +1,4 @@
 const { Calendario, Invernaderos, Semanas } = require('../models');
-const logger = require('../config/logger');
 
 /**
  * Schedule Controller - Unified calendar management
@@ -20,7 +19,7 @@ const ScheduleController = {
                 semanas
             });
         } catch (error) {
-            logger.error('Error loading calendar: %o', error);
+            console.error('Error loading calendar:', error);
             res.status(500).render('error', { 
                 message: 'Error al cargar el calendario',
                 error 
@@ -82,7 +81,7 @@ const ScheduleController = {
 
             res.json(events);
         } catch (error) {
-            logger.error('Error fetching events: %o', error);
+            console.error('Error fetching events:', error);
             res.status(500).json({ error: 'Error fetching events' });
         }
     },
@@ -120,7 +119,7 @@ const ScheduleController = {
                 user: req.user 
             });
         } catch (error) {
-            logger.error('Error loading greenhouse schedule: %o', error);
+            console.error('Error loading greenhouse schedule:', error);
             res.status(500).render('error', { 
                 message: 'Error al cargar el calendario',
                 error 
@@ -151,7 +150,7 @@ const ScheduleController = {
                 user: req.user
             });
         } catch (error) {
-            logger.error('Error loading create form: %o', error);
+            console.error('Error loading create form:', error);
             res.status(500).render('error', { 
                 message: 'Error al cargar formulario' 
             });
@@ -208,7 +207,7 @@ const ScheduleController = {
 
             res.redirect(`/invernaderos/${greenhouseId}/schedule`);
         } catch (error) {
-            logger.error('Error storing schedule event: %o', error);
+            console.error('Error storing schedule event:', error);
             res.status(500).render('error', { 
                 message: 'Error al guardar evento',
                 error 
@@ -245,7 +244,7 @@ const ScheduleController = {
 
             res.redirect(`/invernaderos/${invernaderoId}/schedule`);
         } catch (error) {
-            logger.error('Error deleting schedule event: %o', error);
+            console.error('Error deleting schedule event:', error);
             
             if (req.xhr || req.headers.accept.indexOf('json') > -1) {
                 return res.status(500).json({ 
@@ -287,7 +286,7 @@ const ScheduleController = {
                 user: req.user
             });
         } catch (error) {
-            logger.error('Error loading event details: %o', error);
+            console.error('Error loading event details:', error);
             res.status(500).render('error', { 
                 message: 'Error al cargar evento',
                 error 

@@ -43,7 +43,7 @@ class SensorController {
         sensorId: sensor.id 
       });
     } catch (error) {
-      logger.error('Error al crear sensor: %o', error);
+      console.error('Error al crear sensor:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al crear sensor' 
@@ -78,7 +78,7 @@ class SensorController {
         sensor: sensor.toJSON() 
       });
     } catch (error) {
-      logger.error('Error al obtener sensor: %o', error);
+      console.error('Error al obtener sensor:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al obtener sensor' 
@@ -125,7 +125,7 @@ class SensorController {
         pagination
       });
     } catch (error) {
-      logger.error('Error al obtener sensores: %o', error);
+      console.error('Error al obtener sensores:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al obtener sensores' 
@@ -163,7 +163,7 @@ class SensorController {
         message: 'Sensor actualizado exitosamente' 
       });
     } catch (error) {
-      logger.error('Error al actualizar sensor: %o', error);
+      console.error('Error al actualizar sensor:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al actualizar sensor' 
@@ -201,7 +201,7 @@ class SensorController {
         message: 'Sensor eliminado exitosamente' 
       });
     } catch (error) {
-      logger.error('Error al eliminar sensor: %o', error);
+      console.error('Error al eliminar sensor:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al eliminar sensor' 
@@ -298,7 +298,7 @@ class SensorController {
         readings: readings.map(r => r.toJSON()) 
       });
     } catch (error) {
-      logger.error('Error al obtener lecturas por rango: %o', error);
+      console.error('Error al obtener lecturas:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al obtener lecturas' 

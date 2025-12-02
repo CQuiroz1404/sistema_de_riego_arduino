@@ -4,21 +4,8 @@ const { Op } = require('sequelize');
 const logger = require('../config/logger');
 const PaginationHelper = require('../utils/paginationHelper');
 
-/**
- * @class DeviceController
- * @description Controller for managing IoT devices (Arduino, ESP8266, ESP32)
- */
 class DeviceController {
-  /**
-   * List all devices with pagination and real-time connection status
-   * @route GET /devices
-   * @param {object} req - Express request object
-   * @param {object} req.user - Authenticated user
-   * @param {number} [req.query.page=1] - Page number
-   * @param {number} [req.query.limit=10] - Items per page
-   * @param {object} res - Express response object
-   * @returns {void} Renders devices index view with pagination
-   */
+  // Show all devices with pagination
   static async index(req, res) {
     try {
       const { limit, offset, page } = PaginationHelper.buildQueryOptions(req, 10);

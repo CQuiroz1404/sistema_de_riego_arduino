@@ -1,5 +1,4 @@
 ﻿const { Plantas, TipoPlanta, RangoTemperatura, RangoHumedad, Invernaderos, Calendario, Semanas, Acciones } = require('../models');
-const logger = require('../config/logger');
 
 class PlantaController {
   static async index(req, res) {
@@ -13,7 +12,7 @@ class PlantaController {
         user: req.user 
       });
     } catch (error) {
-      logger.error('Error al listar plantas: %o', error);
+      console.error('Error al listar plantas:', error);
       res.status(500).render('error', { message: 'Error al obtener plantas' });
     }
   }
@@ -31,7 +30,7 @@ class PlantaController {
         user: req.user 
       });
     } catch (error) {
-      logger.error('Error al mostrar formulario: %o', error);
+      console.error('Error al mostrar formulario:', error);
       res.status(500).render('error', { message: 'Error interno' });
     }
   }
@@ -49,7 +48,7 @@ class PlantaController {
 
       res.redirect('/plantas');
     } catch (error) {
-      logger.error('Error al crear planta: %o', error);
+      console.error('Error al crear planta:', error);
       res.status(500).render('error', { message: 'Error al crear planta' });
     }
   }
@@ -72,7 +71,7 @@ class PlantaController {
         user: req.user 
       });
     } catch (error) {
-      logger.error('Error al cargar formulario de riego: %o', error);
+      console.error('Error al cargar formulario de riego:', error);
       res.status(500).render('error', { message: 'Error interno' });
     }
   }
@@ -140,8 +139,8 @@ class PlantaController {
       res.redirect(`/invernaderos/${invernadero.id}/schedule`);
 
     } catch (error) {
-      logger.error('Error al guardar programación: %o', error);
-      res.status(500).render('error', { message: 'Error al guardar programación' });
+      console.error('Error al guardar programaciÃ³n:', error);
+      res.status(500).render('error', { message: 'Error al guardar programaciÃ³n' });
     }
   }
 }
