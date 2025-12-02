@@ -205,7 +205,7 @@ const ScheduleController = {
 
             await Promise.all(promesas);
 
-            res.redirect(`/invernaderos/${greenhouseId}/calendario`);
+            res.redirect(`/invernaderos/${greenhouseId}/schedule`);
         } catch (error) {
             console.error('Error storing schedule event:', error);
             res.status(500).render('error', { 
@@ -242,7 +242,7 @@ const ScheduleController = {
                 });
             }
 
-            res.redirect(`/invernaderos/${invernaderoId}/calendario`);
+            res.redirect(`/invernaderos/${invernaderoId}/schedule`);
         } catch (error) {
             console.error('Error deleting schedule event:', error);
             

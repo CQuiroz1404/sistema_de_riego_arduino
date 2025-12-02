@@ -209,6 +209,7 @@ app.use('/devices', deviceRoutes);
 app.use('/sensors', sensorRoutes);
 app.use('/api/arduino', arduinoRoutes);
 app.use('/calendar', calendarRoutes);
+app.use('/schedule', calendarRoutes); // Alias for calendar routes
 app.use('/invernaderos', invernaderoRoutes);
 app.use('/plantas', plantaRoutes);
 app.use('/profile', profileRoutes);

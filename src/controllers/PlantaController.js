@@ -136,7 +136,7 @@ class PlantaController {
       await Promise.all(promesas);
 
       // Redirigir al calendario para confirmar visualmente
-      res.redirect(`/invernaderos/${invernadero.id}/calendario`);
+      res.redirect(`/invernaderos/${invernadero.id}/schedule`);
 
     } catch (error) {
       console.error('Error al guardar programaciÃ³n:', error);

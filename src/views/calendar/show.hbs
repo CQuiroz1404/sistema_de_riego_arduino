@@ -1,0 +1,232 @@
+<div class="container mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="flex items-center gap-4 mb-8">
+    <a href="/schedule" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+      <i class="fas fa-arrow-left text-xl"></i>
+    </a>
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+        <i class="fas fa-calendar-day text-green-500"></i>
+        Detalle de Evento
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">
+        Información completa del evento de riego programado
+      </p>
+    </div>
+  </div>
+
+  <!-- Event Details Card -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Left Column -->
+      <div class="space-y-6">
+        <!-- Greenhouse Info -->
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-lg">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fas fa-warehouse text-green-500"></i>
+            Invernadero
+          </h3>
+          {{#if evento.invernadero}}
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">ID:</span>
+                <span class="font-semibold text-gray-900 dark:text-white">#{{evento.invernadero.id}}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Descripción:</span>
+                <span class="font-semibold text-gray-900 dark:text-white">{{evento.invernadero.descripcion}}</span>
+              </div>
+              {{#if evento.invernadero.ubicacion}}
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Ubicación:</span>
+                <span class="font-semibold text-gray-900 dark:text-white">{{evento.invernadero.ubicacion}}</span>
+              </div>
+              {{/if}}
+              <div class="mt-3">
+                <a href="/invernaderos/{{evento.invernadero.id}}" 
+                   class="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium text-sm flex items-center gap-1">
+                  <i class="fas fa-external-link-alt"></i>
+                  Ver invernadero
+                </a>
+              </div>
+            </div>
+          {{else}}
+            <p class="text-gray-500 dark:text-gray-400">Sin información de invernadero</p>
+          {{/if}}
+        </div>
+
+        <!-- Week Info -->
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-lg border border-blue-100 dark:border-blue-800/30">
+          <h3 class="text-lg font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2">
+            <i class="fas fa-calendar-week"></i>
+            Semana
+          </h3>
+          {{#if evento.semana}}
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="text-blue-700 dark:text-blue-400">Semana ID:</span>
+                <span class="font-semibold text-blue-900 dark:text-blue-200">{{evento.semana.id}}</span>
+              </div>
+              {{#if evento.semana.descripcion}}
+              <div class="flex justify-between">
+                <span class="text-blue-700 dark:text-blue-400">Descripción:</span>
+                <span class="font-semibold text-blue-900 dark:text-blue-200">{{evento.semana.descripcion}}</span>
+              </div>
+              {{/if}}
+            </div>
+          {{else}}
+            <p class="text-blue-600 dark:text-blue-400">Semana ID: {{evento.semana_id}}</p>
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="space-y-6">
+        <!-- Schedule Details -->
+        <div class="bg-orange-50 dark:bg-orange-900/20 p-5 rounded-lg border border-orange-100 dark:border-orange-800/30">
+          <h3 class="text-lg font-bold text-orange-800 dark:text-orange-300 mb-4 flex items-center gap-2">
+            <i class="fas fa-clock"></i>
+            Horario
+          </h3>
+          <div class="space-y-3">
+            <div class="flex items-center gap-3">
+              <div class="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-lg flex-shrink-0">
+                <i class="fas fa-calendar-day text-orange-600 dark:text-orange-400 text-xl"></i>
+              </div>
+              <div>
+                <p class="text-sm text-orange-700 dark:text-orange-400">Día</p>
+                <p class="font-bold text-orange-900 dark:text-orange-200 text-lg">{{evento.dia_semana}}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-lg flex-shrink-0">
+                <i class="fas fa-play-circle text-orange-600 dark:text-orange-400 text-xl"></i>
+              </div>
+              <div>
+                <p class="text-sm text-orange-700 dark:text-orange-400">Hora de inicio</p>
+                <p class="font-bold text-orange-900 dark:text-orange-200 text-lg">{{evento.hora_inicial}}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-lg flex-shrink-0">
+                <i class="fas fa-stop-circle text-orange-600 dark:text-orange-400 text-xl"></i>
+              </div>
+              <div>
+                <p class="text-sm text-orange-700 dark:text-orange-400">Hora de fin</p>
+                <p class="font-bold text-orange-900 dark:text-orange-200 text-lg">{{evento.hora_final}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Date Range (if exists) -->
+        {{#if evento.fecha_inicio}}
+        <div class="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-lg border border-purple-100 dark:border-purple-800/30">
+          <h3 class="text-lg font-bold text-purple-800 dark:text-purple-300 mb-4 flex items-center gap-2">
+            <i class="fas fa-calendar-alt"></i>
+            Rango de Fechas
+          </h3>
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <span class="text-purple-700 dark:text-purple-400">Inicio:</span>
+              <span class="font-semibold text-purple-900 dark:text-purple-200">
+                {{formatDate evento.fecha_inicio}}
+              </span>
+            </div>
+            {{#if evento.fecha_fin}}
+            <div class="flex justify-between">
+              <span class="text-purple-700 dark:text-purple-400">Fin:</span>
+              <span class="font-semibold text-purple-900 dark:text-purple-200">
+                {{formatDate evento.fecha_fin}}
+              </span>
+            </div>
+            {{else}}
+            <p class="text-sm text-purple-600 dark:text-purple-400 mt-2">
+              <i class="fas fa-infinity"></i> Sin fecha de finalización
+            </p>
+            {{/if}}
+          </div>
+        </div>
+        {{/if}}
+
+        <!-- Metadata -->
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-lg">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fas fa-info-circle text-gray-500"></i>
+            Información
+          </h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600 dark:text-gray-400">ID de Evento:</span>
+              <span class="font-mono font-semibold text-gray-900 dark:text-white">{{evento.id}}</span>
+            </div>
+            {{#if evento.usuario_id}}
+            <div class="flex justify-between">
+              <span class="text-gray-600 dark:text-gray-400">Creado por:</span>
+              <span class="font-semibold text-gray-900 dark:text-white">Usuario #{{evento.usuario_id}}</span>
+            </div>
+            {{/if}}
+            {{#if evento.createdAt}}
+            <div class="flex justify-between">
+              <span class="text-gray-600 dark:text-gray-400">Creado:</span>
+              <span class="font-semibold text-gray-900 dark:text-white">{{formatDate evento.createdAt}}</span>
+            </div>
+            {{/if}}
+            {{#if evento.updatedAt}}
+            <div class="flex justify-between">
+              <span class="text-gray-600 dark:text-gray-400">Actualizado:</span>
+              <span class="font-semibold text-gray-900 dark:text-white">{{formatDate evento.updatedAt}}</span>
+            </div>
+            {{/if}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+      {{#if evento.invernadero}}
+      <a href="/invernaderos/{{evento.invernadero.id}}/schedule" 
+         class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+        <i class="fas fa-list"></i>
+        Ver calendario completo
+      </a>
+      {{/if}}
+      <button onclick="deleteEvent({{evento.id}})" 
+              class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+        <i class="fas fa-trash"></i>
+        Eliminar evento
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function deleteEvent(eventId) {
+  if (!confirm('¿Estás seguro de que deseas eliminar este evento?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/schedule/${eventId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      window.location.href = '/schedule';
+    } else {
+      alert('Error al eliminar el evento: ' + (data.message || 'Error desconocido'));
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al eliminar el evento');
+  }
+}
+</script>
