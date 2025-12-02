@@ -66,11 +66,12 @@ Plantas.belongsTo(RangoHumedad, { foreignKey: 'rango_humedad_id' });
 
 // Invernaderos
 Invernaderos.belongsTo(Plantas, { foreignKey: 'planta_id' });
+Invernaderos.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id', as: 'dispositivo' });
 
 // Calendario
-Calendario.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
+Calendario.belongsTo(Invernaderos, { foreignKey: 'invernadero_id', as: 'invernadero' });
 Calendario.belongsTo(Semanas, { foreignKey: 'semana_id' });
-Calendario.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
+Calendario.belongsTo(Usuarios, { foreignKey: 'usuario_id', as: 'usuario' });
 
 // Historial Automatico
 HistorialAutomatico.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });

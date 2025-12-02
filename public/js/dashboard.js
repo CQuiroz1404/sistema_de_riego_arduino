@@ -24,6 +24,34 @@ socket.on('device:event', (data) => {
     refreshData();
 });
 
+// Escuchar notificaciones de riego programado
+socket.on('schedule:watering-time', (data) => {
+    console.log('🚿 Notificación de riego:', data);
+    
+    // Mostrar notificación prominente
+    showNotification(
+        `🚿 ${data.mensaje}`,
+        'info',
+        10000 // Duración 10 segundos
+    );
+    
+    // Reproducir sonido (opcional)
+    playNotificationSound();
+    
+    // Actualizar dashboard
+    refreshData();
+});
+
+// Escuchar recordatorios de dispositivos
+socket.on('device:schedule-reminder', (data) => {
+    console.log('📱 Recordatorio de dispositivo:', data);
+    showNotification(
+        `📱 ${data.device_name}: ${data.mensaje}`,
+        'warning',
+        8000
+    );
+});
+
 // Actualizar datos del dashboard
 async function refreshData() {
     try {
@@ -186,3 +214,27 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     stopAutoRefresh();
 });
+
+// Reproducir sonido de notificación
+function playNotificationSound() {
+    try {
+        // Usar Web Audio API para generar un tono simple
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800; // Frecuencia en Hz
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+        console.log('No se pudo reproducir sonido de notificación:', error);
+    }
+}

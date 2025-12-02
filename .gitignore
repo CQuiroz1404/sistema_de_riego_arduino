@@ -34,6 +34,11 @@ tmp/
 temp/
 *.tmp
 
+# Documentos (Word y PDF)
+*.docx
+*.doc
+*.pdf
+
 # Build
 dist/
 build/

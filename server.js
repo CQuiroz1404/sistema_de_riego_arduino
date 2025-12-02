@@ -6,6 +6,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { testConnection, syncDatabase, closePool, closeSequelize } = require('./src/config/baseDatos');
 const mqttService = require('./src/services/mqttService');
+const schedulerService = require('./src/services/schedulerService');
 const logger = require('./src/config/logger');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -17,8 +18,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Configurar Socket.io en MQTT Service
+// Configurar Socket.io en servicios
 mqttService.setSocketIo(io);
+schedulerService.setSocketIo(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -201,6 +203,7 @@ const calendarRoutes = require('./src/routes/calendar');
 const invernaderoRoutes = require('./src/routes/invernaderos');
 const plantaRoutes = require('./src/routes/plantas');
 const profileRoutes = require('./src/routes/profile');
+const schedulerRoutes = require('./src/routes/scheduler');
 
 // Usar rutas
 app.use('/auth', authRoutes);
@@ -213,6 +216,7 @@ app.use('/schedule', calendarRoutes); // Alias for calendar routes
 app.use('/invernaderos', invernaderoRoutes);
 app.use('/plantas', plantaRoutes);
 app.use('/profile', profileRoutes);
+app.use('/api/scheduler', schedulerRoutes);
 
 // Documentación API (Swagger)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
@@ -280,6 +284,15 @@ async function startServer() {
       logger.info('El servidor continuará sin MQTT. Los dispositivos no podrán comunicarse.');
     }
 
+    // Iniciar Scheduler de notificaciones de riego
+    try {
+      schedulerService.start();
+      logger.info('✓ Scheduler de riego iniciado');
+    } catch (error) {
+      logger.error('Error al iniciar scheduler: %o', error);
+      logger.info('El servidor continuará sin notificaciones automáticas de riego.');
+    }
+
     // Configurar actualización periódica del entorno (clima) cada 10 minutos
     const weatherService = require('./src/services/weatherService');
     setInterval(async () => {
@@ -320,6 +333,8 @@ async function startServer() {
       logger.info(`  Base de datos: ${dbReady ? '✓ Conectada' : '✗ Desconectada'}`);
       logger.info(`  MQTT Broker: ${mqttConnected ? '✓ Conectado' : '✗ Desconectado'}`);
       logger.info(`  WebSockets: ✓ Activo`);
+      const schedulerStats = schedulerService.getStats();
+      logger.info(`  Scheduler: ${schedulerStats.isRunning ? '✓ Activo' : '✗ Inactivo'}`);
       logger.info('═══════════════════════════════════════════════════════');
       logger.info('');
       logger.info('Presione Ctrl+C para detener el servidor');
@@ -345,6 +360,12 @@ process.on('uncaughtException', (err) => {
 process.on('SIGINT', async () => {
   logger.info('\n\n🛑 Cerrando servidor...');
   try {
+    schedulerService.stop();
+    logger.info('✓ Scheduler detenido');
+  } catch (error) {
+    logger.error('Error al detener scheduler: %o', error);
+  }
+  try {
     await mqttService.disconnect();
     logger.info('✓ MQTT desconectado');
   } catch (error) {
@@ -361,6 +382,12 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   logger.info('\n\n🛑 Cerrando servidor...');
+  try {
+    schedulerService.stop();
+    logger.info('✓ Scheduler detenido');
+  } catch (error) {
+    logger.error('Error al detener scheduler: %o', error);
+  }
   try {
     await mqttService.disconnect();
     logger.info('✓ MQTT desconectado');
