@@ -53,10 +53,11 @@ class InvernaderoController {
   // Guardar nuevo invernadero
   static async store(req, res) {
     try {
-      const { descripcion, planta_id } = req.body;
+      const { descripcion, ubicacion, planta_id } = req.body;
       
       await Invernaderos.create({
         descripcion,
+        ubicacion: ubicacion || null,
         planta_id: planta_id || null,
         riego: false,
         temp_actual: 0,
@@ -205,10 +206,11 @@ class InvernaderoController {
   static async update(req, res) {
     try {
       const { id } = req.params;
-      const { descripcion, planta_id } = req.body;
+      const { descripcion, ubicacion, planta_id } = req.body;
 
       await Invernaderos.update({
         descripcion,
+        ubicacion: ubicacion || null,
         planta_id: planta_id || null
       }, { where: { id } });
 

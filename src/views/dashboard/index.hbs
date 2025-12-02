@@ -121,8 +121,8 @@
                         
                         <div class="space-y-2 mb-6">
                             <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                                <i class="fas fa-map-marker-alt w-4 text-center"></i> 
-                                {{#if this.ubicacion}}{{this.ubicacion}}{{else}}Sin ubicación{{/if}}
+                                <i class="fas fa-home w-4 text-center"></i> 
+                                {{#if this.invernadero}}{{this.invernadero.descripcion}}{{#if this.invernadero.ubicacion}} - {{this.invernadero.ubicacion}}{{/if}}{{else}}Sin invernadero{{/if}}
                             </p>
                             <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
                                 <i class="fas fa-clock w-4 text-center"></i> 

@@ -30,6 +30,10 @@ const HistorialAcciones = require('./HistorialAcciones');
 Dispositivos.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
 Usuarios.hasMany(Dispositivos, { foreignKey: 'usuario_id' });
 
+// dispositivos N - 1 invernaderos
+Dispositivos.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
+Invernaderos.hasMany(Dispositivos, { foreignKey: 'invernadero_id' });
+
 // ... (asociaciones existentes) ...
 
 // Nuevas asociaciones

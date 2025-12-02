@@ -1,4 +1,4 @@
-const { Dispositivos, Sensores, Actuadores, Alertas, Lecturas } = require('../models');
+const { Dispositivos, Sensores, Actuadores, Alertas, Lecturas, Invernaderos } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../models'); // Para consultas raw si es necesario
 
@@ -9,9 +9,14 @@ class DashboardController {
       // Obtener dispositivos del usuario
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Dispositivos.findAll();
+        devices = await Dispositivos.findAll({
+          include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+        });
       } else {
-        devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
+        devices = await Dispositivos.findAll({ 
+          where: { usuario_id: req.user.id },
+          include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+        });
       }
 
       // Calcular estado de conexión (encendido/apagado) para cada dispositivo

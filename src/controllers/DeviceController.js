@@ -1,4 +1,4 @@
-const { Dispositivos, Sensores, Actuadores, Lecturas } = require('../models');
+const { Dispositivos, Sensores, Actuadores, Lecturas, Invernaderos } = require('../models');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const logger = require('../config/logger');
@@ -9,9 +9,14 @@ class DeviceController {
     try {
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Dispositivos.findAll();
+        devices = await Dispositivos.findAll({
+          include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+        });
       } else {
-        devices = await Dispositivos.findAll({ where: { usuario_id: req.user.id } });
+        devices = await Dispositivos.findAll({ 
+          where: { usuario_id: req.user.id },
+          include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+        });
       }
       
       // Calcular estado de conexión en tiempo real (encendido si última conexión < 30 segundos)
@@ -43,20 +48,34 @@ class DeviceController {
 
   // Mostrar formulario de creación
   static async create(req, res) {
-    res.render('devices/create', { title: 'Nuevo Dispositivo', user: req.user });
+    try {
+      const invernaderos = await Invernaderos.findAll({
+        order: [['id', 'ASC']]
+      });
+      res.render('devices/create', { 
+        title: 'Nuevo Dispositivo', 
+        user: req.user,
+        invernaderos: invernaderos.map(i => i.toJSON())
+      });
+    } catch (error) {
+      logger.error('Error al cargar formulario de creación: %o', error);
+      res.status(500).render('error', { 
+        message: 'Error al cargar formulario' 
+      });
+    }
   }
 
   // Crear nuevo dispositivo
   static async store(req, res) {
     try {
-      const { nombre, ubicacion, descripcion } = req.body;
+      const { nombre, invernadero_id, descripcion } = req.body;
 
       // Generar API key única
       const api_key = crypto.randomBytes(32).toString('hex');
 
       const device = await Dispositivos.create({
         nombre,
-        ubicacion,
+        invernadero_id: invernadero_id || null,
         descripcion,
         api_key,
         usuario_id: req.user.id
@@ -83,7 +102,9 @@ class DeviceController {
   static async show(req, res) {
     try {
       const { id } = req.params;
-      const device = await Dispositivos.findByPk(id);
+      const device = await Dispositivos.findByPk(id, {
+        include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+      });
 
       if (!device) {
         return res.status(404).render('error', { 
@@ -153,8 +174,13 @@ class DeviceController {
         });
       }
 
+      const invernaderos = await Invernaderos.findAll({
+        order: [['id', 'ASC']]
+      });
+
       res.render('devices/edit', { 
         device: device.toJSON(), 
+        invernaderos: invernaderos.map(i => i.toJSON()),
         user: req.user 
       });
     } catch (error) {
