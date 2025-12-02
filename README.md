@@ -128,8 +128,12 @@ sistema_de_riego_arduino/
 │   └── images/
 │       └── favicon.png
 ├── database/
-│   └── schema.sql               # Script de base de datos
-├── arduino_ejemplo.ino          # Código ejemplo para Arduino
+│   ├── init.sql                 # Base de datos completa (estructura + datos)
+│   └── README.md                # Documentación de base de datos
+├── arduino/
+│   ├── sistema_riego_completo.ino  # Código completo para Arduino
+│   ├── config.example.h         # Plantilla de configuración
+│   └── ...                      # Otros sketches
 ├── server.js                    # Servidor principal
 ├── package.json
 ├── .env.example
@@ -161,12 +165,12 @@ npm install
 
 ### 4. Configurar Base de Datos
 
-```sql
-mysql -u root -p
-CREATE DATABASE sistema_riego CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE sistema_riego;
-SOURCE database/schema.sql;
+```bash
+# Importar base de datos completa (estructura + datos de ejemplo)
+mysql -u root -p < database/init.sql
 ```
+
+> 📖 Ver [database/README.md](database/README.md) para más opciones de instalación
 
 ### 5. Configurar Variables de Entorno
 
