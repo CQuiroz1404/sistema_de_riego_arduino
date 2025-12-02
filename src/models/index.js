@@ -34,6 +34,10 @@ Usuarios.hasMany(Dispositivos, { foreignKey: 'usuario_id' });
 Dispositivos.hasMany(Sensores, { foreignKey: 'dispositivo_id' });
 Sensores.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
 
+// Dispositivos pueden pertenecer a un invernadero
+Dispositivos.belongsTo(Invernaderos, { foreignKey: 'invernadero_id', as: 'invernadero' });
+Invernaderos.hasMany(Dispositivos, { foreignKey: 'invernadero_id', as: 'dispositivos' });
+
 // dispositivos 1 - N actuadores
 Dispositivos.hasMany(Actuadores, { foreignKey: 'dispositivo_id' });
 Actuadores.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
@@ -66,7 +70,9 @@ Plantas.belongsTo(RangoHumedad, { foreignKey: 'rango_humedad_id' });
 
 // Invernaderos
 Invernaderos.belongsTo(Plantas, { foreignKey: 'planta_id' });
-Invernaderos.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id', as: 'dispositivo' });
+
+// Dispositivos pueden tener muchos invernaderos
+// (Ya definido arriba en la sección de Dispositivos)
 
 // Calendario
 Calendario.belongsTo(Invernaderos, { foreignKey: 'invernadero_id', as: 'invernadero' });

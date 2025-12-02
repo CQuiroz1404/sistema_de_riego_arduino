@@ -10,7 +10,8 @@ const Dispositivos = sequelize.define('dispositivos', {
   estado: { type: DataTypes.ENUM('activo','inactivo','mantenimiento'), defaultValue: 'activo' },
   ultima_conexion: { type: DataTypes.DATE, allowNull: true },
   fecha_creacion: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  usuario_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false }
+  usuario_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+  invernadero_id: { type: DataTypes.INTEGER, allowNull: true }
 }, { timestamps: false, freezeTableName: true });
 
 module.exports = Dispositivos;

@@ -72,7 +72,7 @@ class SchedulerService {
             include: [
               {
                 model: Dispositivos,
-                as: 'dispositivo'
+                as: 'dispositivos'
               }
             ]
           },

@@ -6,13 +6,23 @@ class DashboardController {
   // Vista principal del dashboard
   static async index(req, res) {
     try {
-      // Obtener dispositivos del usuario
+      // Obtener dispositivos del usuario con invernadero asociado
       let devices;
+      const includeOptions = {
+        include: [{
+          model: Invernaderos,
+          as: 'invernadero',
+          attributes: ['id', 'descripcion'],
+          required: false
+        }]
+      };
+
       if (req.user.rol === 'admin') {
-        devices = await Dispositivos.findAll();
+        devices = await Dispositivos.findAll(includeOptions);
       } else {
         devices = await Dispositivos.findAll({ 
-          where: { usuario_id: req.user.id }
+          where: { usuario_id: req.user.id },
+          ...includeOptions
         });
       }
 

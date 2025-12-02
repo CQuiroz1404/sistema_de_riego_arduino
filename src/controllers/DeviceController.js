@@ -16,7 +16,13 @@ class DeviceController {
         where: whereClause,
         order: [['fecha_creacion', 'DESC']],
         limit,
-        offset
+        offset,
+        include: [{
+          model: Invernaderos,
+          as: 'invernadero',
+          attributes: ['id', 'descripcion'],
+          required: false
+        }]
       });
       
       // Calculate connection status in real-time (online if last connection < 30 seconds)
@@ -78,10 +84,10 @@ class DeviceController {
 
       const device = await Dispositivos.create({
         nombre,
-        invernadero_id: invernadero_id || null,
         descripcion,
         api_key,
-        usuario_id: req.user.id
+        usuario_id: req.user.id,
+        invernadero_id: invernadero_id || null
       });
 
       logger.info(`[INFO] [devices] Nuevo dispositivo creado: ${nombre} (Disp: ${device.id}, User: ${req.user.id}, IP: ${req.ip})`);
@@ -106,7 +112,11 @@ class DeviceController {
     try {
       const { id } = req.params;
       const device = await Dispositivos.findByPk(id, {
-        include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+        include: [{ 
+          model: Invernaderos, 
+          as: 'invernadero',
+          attributes: ['id', 'descripcion'] 
+        }]
       });
 
       if (!device) {
@@ -128,6 +138,7 @@ class DeviceController {
       // Calcular estado de conexión
       const now = new Date();
       const deviceJson = device.toJSON();
+      
       const lastConnection = deviceJson.ultima_conexion ? new Date(deviceJson.ultima_conexion) : null;
       const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
       
@@ -215,7 +226,9 @@ class DeviceController {
         });
       }
 
+      // Actualizar datos del dispositivo incluyendo invernadero_id
       await device.update(req.body);
+
       logger.info(`[INFO] [devices] Dispositivo actualizado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
 
       res.json({ 

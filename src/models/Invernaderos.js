@@ -4,8 +4,8 @@ const { sequelize } = require('../config/baseDatos');
 const Invernaderos = sequelize.define('invernaderos', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   descripcion: { type: DataTypes.TEXT },
+  ubicacion: { type: DataTypes.STRING(255), allowNull: true },
   planta_id: { type: DataTypes.INTEGER },
-  dispositivo_id: { type: DataTypes.INTEGER },
   riego: { type: DataTypes.BOOLEAN, defaultValue: false },
   temp_actual: { type: DataTypes.DECIMAL(5, 2) },
   hum_actual: { type: DataTypes.DECIMAL(5, 2) },

@@ -80,18 +80,27 @@ class InvernaderoController {
     try {
       const { id } = req.params;
       const invernadero = await Invernaderos.findByPk(id, {
-        include: [{
-          model: Plantas,
-          include: [TipoPlanta, RangoTemperatura, RangoHumedad]
-        }]
+        include: [
+          {
+            model: Plantas,
+            include: [TipoPlanta, RangoTemperatura, RangoHumedad]
+          },
+          {
+            model: Dispositivos,
+            as: 'dispositivos',
+            attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado', 'ultima_conexion']
+          }
+        ]
       });
 
       if (!invernadero) {
         return res.status(404).render('error', { message: 'Invernadero no encontrado' });
       }
 
+      const invernaderoJson = invernadero.toJSON();
+
       res.render('invernaderos/show', { 
-        invernadero: invernadero.toJSON(),
+        invernadero: invernaderoJson,
         user: req.user 
       });
     } catch (error) {
@@ -105,63 +114,66 @@ class InvernaderoController {
     try {
       const { id } = req.params;
       const invernadero = await Invernaderos.findByPk(id, {
-        include: [{
-          model: Plantas,
-          include: [TipoPlanta, RangoTemperatura, RangoHumedad]
-        }]
+        include: [
+          {
+            model: Plantas,
+            include: [TipoPlanta, RangoTemperatura, RangoHumedad]
+          },
+          {
+            model: Dispositivos,
+            as: 'dispositivos',
+            attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado']
+          }
+        ]
       });
 
       if (!invernadero) {
         return res.status(404).render('error', { message: 'Invernadero no encontrado' });
       }
 
-      const dispositivos = await Dispositivos.findAll({
-        where: { usuario_id: req.user.id },
-        attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado']
-      });
-
-      const dispositivosPlain = dispositivos.map(d => (d.toJSON ? d.toJSON() : d));
-
-      const deviceIds = dispositivosPlain.map(device => device.id);
-
-      const sensores = deviceIds.length ? await Sensores.findAll({
-        where: {
-          dispositivo_id: { [Op.in]: deviceIds }
-        }
-      }) : [];
-
-      const sensorIds = sensores.map(sensor => sensor.id);
-
-      const lecturas = sensorIds.length ? await Lecturas.findAll({
-        where: { sensor_id: { [Op.in]: sensorIds } },
-        order: [['fecha_lectura', 'DESC']],
-        raw: true
-      }) : [];
-
-      const deviceMap = dispositivosPlain.reduce((acc, device) => {
-        acc[device.id] = device;
-        return acc;
-      }, {});
-
-      const lastReadingBySensor = {};
-      for (const lectura of lecturas) {
-        if (!lastReadingBySensor[lectura.sensor_id]) {
-          lastReadingBySensor[lectura.sensor_id] = lectura;
-        }
-      }
-
-      const sensoresDetallados = sensores.map(sensor => {
-        const sensorPlain = sensor.toJSON ? sensor.toJSON() : sensor;
-        const ultimaLectura = lastReadingBySensor[sensorPlain.id] || null;
-        return {
-          ...sensorPlain,
-          ultimaLectura: ultimaLectura ? parseFloat(ultimaLectura.valor) : null,
-          fechaLectura: ultimaLectura ? ultimaLectura.fecha_lectura : null,
-          dispositivo: deviceMap[sensorPlain.dispositivo_id] || null
-        };
-      });
-
       const invernaderoJson = invernadero.toJSON();
+      const dispositivos = invernaderoJson.dispositivos || [];
+      let sensoresDetallados = [];
+
+      if (dispositivos.length > 0) {
+        const deviceIds = dispositivos.map(d => d.id);
+
+        // Cargar sensores solo de los dispositivos vinculados
+        const sensores = await Sensores.findAll({
+          where: { dispositivo_id: { [Op.in]: deviceIds } }
+        });
+
+        const sensorIds = sensores.map(sensor => sensor.id);
+
+        const lecturas = sensorIds.length ? await Lecturas.findAll({
+          where: { sensor_id: { [Op.in]: sensorIds } },
+          order: [['fecha_lectura', 'DESC']],
+          raw: true
+        }) : [];
+
+        const lastReadingBySensor = {};
+        for (const lectura of lecturas) {
+          if (!lastReadingBySensor[lectura.sensor_id]) {
+            lastReadingBySensor[lectura.sensor_id] = lectura;
+          }
+        }
+
+        const deviceMap = dispositivos.reduce((acc, device) => {
+          acc[device.id] = device;
+          return acc;
+        }, {});
+
+        sensoresDetallados = sensores.map(sensor => {
+          const sensorPlain = sensor.toJSON ? sensor.toJSON() : sensor;
+          const ultimaLectura = lastReadingBySensor[sensorPlain.id] || null;
+          return {
+            ...sensorPlain,
+            ultimaLectura: ultimaLectura ? parseFloat(ultimaLectura.valor) : null,
+            fechaLectura: ultimaLectura ? ultimaLectura.fecha_lectura : null,
+            dispositivo: deviceMap[sensorPlain.dispositivo_id] || null
+          };
+        });
+      }
 
       res.render('invernaderos/virtual', {
         layout: false,
@@ -171,7 +183,7 @@ class InvernaderoController {
         user: req.user,
         sensores: sensoresDetallados,
         sensoresJson: JSON.stringify(sensoresDetallados),
-        dispositivos: dispositivosPlain,
+        dispositivos: dispositivos,
         invernaderoJson: JSON.stringify(invernaderoJson)
       });
     } catch (error) {
