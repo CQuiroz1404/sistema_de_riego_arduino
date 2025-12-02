@@ -9,6 +9,7 @@ const {
   Sensores,
   Lecturas
 } = require('../models');
+const logger = require('../config/logger');
 
 class InvernaderoController {
   // Listar todos los invernaderos
@@ -31,7 +32,7 @@ class InvernaderoController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al listar invernaderos:', error);
+      logger.error('Error al listar invernaderos: %o', error);
       res.status(500).render('error', { message: 'Error al obtener invernaderos' });
     }
   }
@@ -45,7 +46,7 @@ class InvernaderoController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al mostrar formulario:', error);
+      logger.error('Error al mostrar formulario: %o', error);
       res.status(500).render('error', { message: 'Error interno' });
     }
   }
@@ -70,7 +71,7 @@ class InvernaderoController {
       
       res.redirect('/invernaderos');
     } catch (error) {
-      console.error('Error al crear invernadero:', error);
+      logger.error('Error al crear invernadero: %o', error);
       res.status(500).json({ success: false, message: 'Error al crear invernadero' });
     }
   }
@@ -95,7 +96,7 @@ class InvernaderoController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al mostrar invernadero:', error);
+      logger.error('Error al mostrar invernadero: %o', error);
       res.status(500).render('error', { message: 'Error interno' });
     }
   }
@@ -175,7 +176,7 @@ class InvernaderoController {
         invernaderoJson: JSON.stringify(invernaderoJson)
       });
     } catch (error) {
-      console.error('Error al cargar vista virtual del invernadero:', error);
+      logger.error('Error al cargar vista virtual del invernadero: %o', error);
       res.status(500).render('error', { message: 'Error al generar vista virtual' });
     }
   }
@@ -197,7 +198,7 @@ class InvernaderoController {
         user: req.user 
       });
     } catch (error) {
-      console.error('Error al editar invernadero:', error);
+      logger.error('Error al editar invernadero: %o', error);
       res.status(500).render('error', { message: 'Error interno' });
     }
   }
@@ -220,7 +221,7 @@ class InvernaderoController {
 
       res.redirect('/invernaderos');
     } catch (error) {
-      console.error('Error al actualizar invernadero:', error);
+      logger.error('Error al actualizar invernadero: %o', error);
       res.status(500).json({ success: false, message: 'Error al actualizar' });
     }
   }
@@ -232,7 +233,7 @@ class InvernaderoController {
       await Invernaderos.destroy({ where: { id } });
       res.json({ success: true, message: 'Invernadero eliminado' });
     } catch (error) {
-      console.error('Error al eliminar invernadero:', error);
+      logger.error('Error al eliminar invernadero: %o', error);
       res.status(500).json({ success: false, message: 'Error al eliminar' });
     }
   }
@@ -296,7 +297,7 @@ class InvernaderoController {
         }
       });
     } catch (error) {
-      console.error('Error al obtener datos de entorno:', error);
+      logger.error('Error al obtener datos de entorno: %o', error);
       res.status(500).json({ success: false, message: 'Error al consultar entorno' });
     }
   }

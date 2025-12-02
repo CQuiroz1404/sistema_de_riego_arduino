@@ -46,12 +46,15 @@
     {{{body}}}
     {{/unless}}
     
-    <!-- Error Handler (must load first) -->
+    <!-- Debug Logger (must load first) -->
+    <script src="/js/utils/debugLog.js"></script>
+    
+    <!-- Error Handler -->
     <script src="/js/components/errorHandler.js"></script>
     
     <!-- Scripts base -->
     <script src="/js/main.js"></script>
-    <script src="/js/components/validation.js"></script>
+    <parameter name="validation.js">
     
     <!-- Scripts adicionales por página -->
     {{{scripts}}}

@@ -6,12 +6,12 @@ const socket = io();
 
 // Escuchar eventos de Socket.io
 socket.on('connect', () => {
-    console.log('🔌 Conectado a WebSockets');
+    debugLog('🔌 Conectado a WebSockets');
     showNotification('Conexión en tiempo real activa', 'success');
 });
 
 socket.on('sensor:update', (data) => {
-    console.log('📡 Datos de sensores recibidos:', data);
+    debugLog('📡 Datos de sensores recibidos:', data);
     // Actualizar UI específica si es necesario
     // Por ahora, refrescamos todo el dashboard para simplificar
     // En una implementación más avanzada, actualizaríamos solo los elementos DOM específicos
@@ -19,14 +19,14 @@ socket.on('sensor:update', (data) => {
 });
 
 socket.on('device:event', (data) => {
-    console.log('📢 Evento de dispositivo:', data);
+    debugLog('📢 Evento de dispositivo:', data);
     showNotification(`${data.tipo}: ${data.mensaje}`, 'info');
     refreshData();
 });
 
 // Escuchar notificaciones de riego programado
 socket.on('schedule:watering-time', (data) => {
-    console.log('🚿 Notificación de riego:', data);
+    debugLog('🚿 Notificación de riego:', data);
     
     // Mostrar notificación prominente
     showNotification(
@@ -44,7 +44,7 @@ socket.on('schedule:watering-time', (data) => {
 
 // Escuchar recordatorios de dispositivos
 socket.on('device:schedule-reminder', (data) => {
-    console.log('📱 Recordatorio de dispositivo:', data);
+    debugLog('📱 Recordatorio de dispositivo:', data);
     showNotification(
         `📱 ${data.device_name}: ${data.mensaje}`,
         'warning',
@@ -63,11 +63,11 @@ async function refreshData() {
             updateAlerts(result.data.alerts);
             showNotification('Datos actualizados', 'success');
         } else if (!result.success) {
-            console.warn('Error al obtener dashboard/data', result);
+            debugWarn('Error al obtener dashboard/data', result);
             showNotification('Error al actualizar datos', 'warning');
         }
     } catch (error) {
-        console.error('Error al actualizar datos:', error);
+        debugError('Error al actualizar datos:', error);
         showNotification('Error al actualizar datos', 'error');
     }
 }
@@ -86,7 +86,7 @@ async function checkDeviceConnections() {
                 updateConnectionStatus(deviceId, { connected: false });
             }
         } catch (error) {
-            console.error(`Error al verificar dispositivo ${deviceId}:`, error);
+            debugError(`Error al verificar dispositivo ${deviceId}:`, error);
             updateConnectionStatus(deviceId, { connected: false });
         }
     }
@@ -96,14 +96,14 @@ async function checkDeviceConnections() {
 function updateConnectionStatus(deviceId, data) {
     const statusElement = document.querySelector(`[data-connection-status="${deviceId}"]`);
     if (!statusElement) {
-        console.warn(`No se encontró elemento de estado para dispositivo ${deviceId}`);
+        debugWarn(`No se encontró elemento de estado para dispositivo ${deviceId}`);
         return;
     }
     
     const text = statusElement.querySelector('.connection-text');
     const lastConnectionElement = document.querySelector(`[data-last-connection="${deviceId}"]`);
     
-    console.log(`[Device ${deviceId}] Estado:`, data);
+    debugLog(`[Device ${deviceId}] Estado:`, data);
     
     // Actualizar clases y texto basado en si está encendido (online) o apagado
     const isOnline = data.online || data.estadoConexion === 'encendido';
@@ -166,13 +166,13 @@ function updateStats(stats) {
 // Actualizar dispositivos
 function updateDevices(devices) {
     // Aquí puedes implementar actualización dinámica de la lista de dispositivos
-    console.log('Dispositivos actualizados:', devices);
+    debugLog('Dispositivos actualizados:', devices);
 }
 
 // Actualizar alertas
 function updateAlerts(alerts) {
     // Aquí puedes implementar actualización dinámica de alertas
-    console.log('Alertas actualizadas:', alerts);
+    debugLog('Alertas actualizadas:', alerts);
 }
 
 // Iniciar actualización automática cada 30 segundos
@@ -235,6 +235,6 @@ function playNotificationSound() {
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.5);
     } catch (error) {
-        console.log('No se pudo reproducir sonido de notificación:', error);
+        debugLog('No se pudo reproducir sonido de notificación:', error);
     }
 }

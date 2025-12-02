@@ -1,6 +1,7 @@
 const { Dispositivos, Sensores, Actuadores, Alertas, Lecturas, Invernaderos } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../models'); // Para consultas raw si es necesario
+const logger = require('../config/logger');
 
 class DashboardController {
   // Vista principal del dashboard
@@ -46,7 +47,7 @@ class DashboardController {
         stats
       });
     } catch (error) {
-      console.error('Error al cargar dashboard:', error);
+      logger.error('Error al cargar dashboard: %o', error);
       res.status(500).render('error', {
         message: 'Error al cargar el dashboard'
       });
@@ -58,29 +59,53 @@ class DashboardController {
     try {
       const userId = user.rol === 'admin' ? null : user.id;
       
-      // Usando consultas raw para mantener la lógica compleja de conteos
-      // O podríamos usar count() de Sequelize por separado
+      // Usar Sequelize para evitar SQL injection
+      const whereClause = userId ? { usuario_id: userId } : {};
       
-      const whereUser = userId ? `WHERE usuario_id = ${userId}` : '';
-      const whereUserDev = userId ? `AND d.usuario_id = ${userId}` : '';
+      // Contar dispositivos totales
+      const total_dispositivos = await Dispositivos.count({
+        where: whereClause
+      });
       
-      const query = `
-        SELECT 
-          (SELECT COUNT(*) FROM dispositivos ${whereUser}) as total_dispositivos,
-          (SELECT COUNT(*) FROM dispositivos WHERE estado = 'activo' ${userId ? `AND usuario_id = ${userId}` : ''}) as dispositivos_activos,
-          (SELECT COUNT(*) FROM sensores s 
-           JOIN dispositivos d ON s.dispositivo_id = d.id 
-           WHERE s.activo = TRUE ${whereUserDev}) as total_sensores,
-          (SELECT COUNT(*) FROM actuadores a 
-           JOIN dispositivos d ON a.dispositivo_id = d.id 
-           WHERE a.activo = TRUE ${whereUserDev}) as total_actuadores,
-          (SELECT COUNT(*) FROM alertas WHERE leida = FALSE) as alertas_no_leidas
-      `;
-
-      const [stats] = await sequelize.query(query);
-      return stats[0];
+      // Contar dispositivos activos
+      const dispositivos_activos = await Dispositivos.count({
+        where: { ...whereClause, estado: 'activo' }
+      });
+      
+      // Contar sensores activos
+      const total_sensores = await Sensores.count({
+        where: { activo: true },
+        include: [{
+          model: Dispositivos,
+          where: whereClause,
+          attributes: []
+        }]
+      });
+      
+      // Contar actuadores activos
+      const total_actuadores = await Actuadores.count({
+        where: { activo: true },
+        include: [{
+          model: Dispositivos,
+          where: whereClause,
+          attributes: []
+        }]
+      });
+      
+      // Contar alertas no leídas (siempre todas para el usuario)
+      const alertas_no_leidas = await Alertas.count({
+        where: { leida: false }
+      });
+      
+      return {
+        total_dispositivos,
+        dispositivos_activos,
+        total_sensores,
+        total_actuadores,
+        alertas_no_leidas
+      };
     } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
+      logger.error('Error al obtener estadísticas: %o', error);
       return {};
     }
   }
@@ -122,7 +147,7 @@ class DashboardController {
         alerts: alerts.map(a => a.toJSON())
       });
     } catch (error) {
-      console.error('Error al obtener datos:', error);
+      logger.error('Error al obtener datos: %o', error);
       res.status(500).json({
         success: false,
         message: 'Error al obtener datos del dashboard'
@@ -172,7 +197,7 @@ class DashboardController {
         actuators: actuators.map(a => a.toJSON())
       });
     } catch (error) {
-      console.error('Error al obtener datos del dispositivo:', error);
+      logger.error('Error al obtener datos del dispositivo: %o', error);
       res.status(500).json({
         success: false,
         message: 'Error al obtener datos'

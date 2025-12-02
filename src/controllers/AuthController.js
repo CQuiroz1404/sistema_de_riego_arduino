@@ -4,18 +4,42 @@ const { Usuarios } = require('../models');
 const logger = require('../config/logger');
 const emailService = require('../services/emailService');
 
+/**
+ * @class AuthController
+ * @description Controller for authentication operations (login, register, logout)
+ */
 class AuthController {
-  // Mostrar página de login
+  /**
+   * Show login page
+   * @route GET /auth/login
+   * @param {object} req - Express request object
+   * @param {object} res - Express response object
+   * @returns {void} Renders login view
+   */
   static async showLogin(req, res) {
     res.render('auth/login', { title: 'Iniciar Sesión', noNavbar: true, error: null });
   }
 
-  // Mostrar página de registro
+  /**
+   * Show registration page
+   * @route GET /auth/register
+   * @param {object} req - Express request object
+   * @param {object} res - Express response object
+   * @returns {void} Renders register view
+   */
   static async showRegister(req, res) {
     res.render('auth/register', { title: 'Registro', noNavbar: true, error: null });
   }
 
-  // Procesar login
+  /**
+   * Process user login
+   * @route POST /auth/login
+   * @param {object} req - Express request object
+   * @param {string} req.body.email - User email
+   * @param {string} req.body.password - User password
+   * @param {object} res - Express response object
+   * @returns {object} JSON response with success status and JWT token (in cookie)
+   */
   static async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -96,7 +120,18 @@ class AuthController {
     }
   }
 
-  // Procesar registro
+  /**
+   * Process user registration
+   * @route POST /auth/register
+   * @param {object} req - Express request object
+   * @param {string} req.body.nombre - User full name
+   * @param {string} req.body.email - User email
+   * @param {string} req.body.password - User password
+   * @param {string} req.body.confirmPassword - Password confirmation
+   * @param {string} [req.body.rut] - User RUT (optional)
+   * @param {object} res - Express response object
+   * @returns {object} JSON response with success status and user ID
+   */
   static async register(req, res) {
     try {
       const { nombre, email, password, confirmPassword, rut } = req.body;
@@ -180,7 +215,13 @@ class AuthController {
     }
   }
 
-  // Cerrar sesión
+  /**
+   * Process user logout
+   * @route POST /auth/logout
+   * @param {object} req - Express request object
+   * @param {object} res - Express response object
+   * @returns {object} JSON response with success status
+   */
   static async logout(req, res) {
     try {
       // Log de logout
@@ -203,7 +244,14 @@ class AuthController {
     }
   }
 
-  // Verificar token
+  /**
+   * Verify JWT token validity
+   * @route GET /auth/verify
+   * @param {object} req - Express request object
+   * @param {object} req.user - Authenticated user (from middleware)
+   * @param {object} res - Express response object
+   * @returns {object} JSON response with user data
+   */
   static async verifyToken(req, res) {
     res.json({ 
       success: true, 

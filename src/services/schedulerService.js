@@ -23,7 +23,7 @@ class SchedulerService {
   }
 
   /**
-   * Inicia el scheduler que verifica el calendario cada minuto
+   * Inicia el scheduler que verifica el calendario
    */
   start() {
     if (this.task) {
@@ -31,12 +31,15 @@ class SchedulerService {
       return;
     }
 
-    // Ejecutar cada minuto (cron: minuto hora día mes día_semana)
-    this.task = cron.schedule('* * * * *', async () => {
+    // Obtener intervalo de variable de entorno (default: cada minuto)
+    const interval = process.env.SCHEDULER_INTERVAL || '* * * * *';
+
+    // Ejecutar según el intervalo configurado (cron: minuto hora día mes día_semana)
+    this.task = cron.schedule(interval, async () => {
       await this.checkSchedule();
     });
 
-    logger.info('✅ Scheduler de riego iniciado - Verificando calendario cada minuto');
+    logger.info(`✅ Scheduler de riego iniciado - Intervalo: ${interval}`);
   }
 
   /**

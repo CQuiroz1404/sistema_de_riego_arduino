@@ -7,25 +7,25 @@ const logger = require('../config/logger');
  */
 class CacheService {
     constructor() {
-        // Initialize cache instances with different TTL
+        // Initialize cache instances with different TTL (from environment or defaults)
         this.deviceCache = new NodeCache({
-            stdTTL: 300,  // 5 minutes
+            stdTTL: parseInt(process.env.CACHE_DEVICE_TTL) || 300,  // 5 minutes default
             checkperiod: 60,  // Check for expired keys every 60 seconds
             useClones: false  // Return references (faster, but be careful with mutations)
         });
 
         this.sensorCache = new NodeCache({
-            stdTTL: 60,  // 1 minute (sensors update frequently)
+            stdTTL: parseInt(process.env.CACHE_SENSOR_TTL) || 60,  // 1 minute default
             checkperiod: 10
         });
 
         this.configCache = new NodeCache({
-            stdTTL: 600,  // 10 minutes (configs change rarely)
+            stdTTL: parseInt(process.env.CACHE_CONFIG_TTL) || 600,  // 10 minutes default
             checkperiod: 120
         });
 
         this.userCache = new NodeCache({
-            stdTTL: 300,  // 5 minutes
+            stdTTL: parseInt(process.env.CACHE_USER_TTL) || 300,  // 5 minutes default
             checkperiod: 60
         });
 
