@@ -243,12 +243,15 @@ CREATE TABLE IF NOT EXISTS invernaderos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     descripcion TEXT,
     planta_id INT,
+    dispositivo_id INT,
     riego BOOLEAN DEFAULT FALSE,
     temp_actual DECIMAL(5,2),
     hum_actual DECIMAL(5,2),
     estado BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (planta_id) REFERENCES plantas(id) ON DELETE SET NULL,
+    FOREIGN KEY (dispositivo_id) REFERENCES dispositivos(id) ON DELETE SET NULL,
     INDEX idx_planta_id (planta_id),
+    INDEX idx_dispositivo_id (dispositivo_id),
     INDEX idx_estado (estado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -367,11 +370,11 @@ INSERT INTO plantas (nombre, tipo_planta_id, rango_temperatura_id, rango_humedad
 ('Fresa', 2, 1, 1, TRUE);
 
 -- Invernaderos
-INSERT INTO invernaderos (descripcion, planta_id, riego, temp_actual, hum_actual, estado) VALUES 
-('Invernadero Principal - Sector A', 1, FALSE, 22.5, 55.0, TRUE),
-('Invernadero Semilleros', 2, FALSE, 15.0, 70.0, TRUE),
-('Invernadero Experimental', 3, FALSE, 21.0, 60.0, TRUE),
-('Invernadero Hidropónico', 6, TRUE, 20.5, 65.0, TRUE);
+INSERT INTO invernaderos (descripcion, planta_id, dispositivo_id, riego, temp_actual, hum_actual, estado) VALUES 
+('Invernadero Principal - Sector A', 1, 1, FALSE, 22.5, 55.0, TRUE),
+('Invernadero Semilleros', 2, 2, FALSE, 15.0, 70.0, TRUE),
+('Invernadero Experimental', 3, 3, FALSE, 21.0, 60.0, TRUE),
+('Invernadero Hidropónico', 6, 4, TRUE, 20.5, 65.0, TRUE);
 
 -- Semanas de cultivo
 INSERT INTO semanas (nombre) VALUES 
