@@ -17,25 +17,7 @@
 #include "DHT.h"
 #include <SPI.h>
 #include <MFRC522.h>
-
-// ============================================
-// 1. CONFIGURACIÓN WIFI
-// ============================================
-const char* WIFI_SSID = "D4rK_phone";
-const char* WIFI_PASSWORD = "d4rkn1gg4";
-
-// ============================================
-// 2. CONFIGURACIÓN MQTT (EMQX SERVERLESS)
-// ============================================
-const char* MQTT_BROKER = "m0020126.ala.eu-central-1.emqxsl.com";
-const int MQTT_PORT = 8883;  // Puerto Seguro SSL
-const char* MQTT_USER = "riegoTeam";
-const char* MQTT_PASSWORD = "Cu7WhT6gnZfZgz8";
-
-// ============================================
-// 3. IDENTIFICACIÓN DEL DISPOSITIVO
-// ============================================
-const char* API_KEY = "78d3f3a76ff81723752ce8632a4691efcd5d83fed37fe16d42f495a98415a8f3";
+#include "config.h"  // WiFi, MQTT and API Key credentials
 
 // ============================================
 // 4. CONFIGURACIÓN HARDWARE - PINES

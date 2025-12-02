@@ -2,41 +2,47 @@ const { Dispositivos, Sensores, Actuadores, Lecturas, Invernaderos } = require('
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const logger = require('../config/logger');
+const PaginationHelper = require('../utils/paginationHelper');
 
 class DeviceController {
-  // Mostrar todos los dispositivos
+  // Show all devices with pagination
   static async index(req, res) {
     try {
-      let devices;
-      if (req.user.rol === 'admin') {
-        devices = await Dispositivos.findAll();
-      } else {
-        devices = await Dispositivos.findAll({ 
-          where: { usuario_id: req.user.id }
-        });
-      }
+      const { limit, offset, page } = PaginationHelper.buildQueryOptions(req, 10);
       
-      // Calcular estado de conexión en tiempo real (encendido si última conexión < 30 segundos)
+      const whereClause = req.user.rol === 'admin' ? {} : { usuario_id: req.user.id };
+      
+      const result = await Dispositivos.findAndCountAll({
+        where: whereClause,
+        order: [['fecha_creacion', 'DESC']],
+        limit,
+        offset
+      });
+      
+      // Calculate connection status in real-time (online if last connection < 30 seconds)
       const now = new Date();
-      const devicesWithStatus = devices.map(d => {
+      const devicesWithStatus = result.rows.map(d => {
         const device = d.toJSON();
         const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
         const secondsAgo = lastConnection ? Math.floor((now - lastConnection) / 1000) : null;
         
-        // Estado de encendido: está enviando datos (última conexión < 30 segundos)
+        // Online status: sending data (last connection < 30 seconds)
         device.isOnline = lastConnection && secondsAgo < 30;
         device.estadoConexion = device.isOnline ? 'encendido' : 'apagado';
         device.secondsAgo = secondsAgo;
         
         return device;
       });
+
+      const pagination = PaginationHelper.calculate(result.count, page, limit);
       
       res.render('devices/index', { 
         devices: devicesWithStatus, 
+        pagination,
         user: req.user 
       });
     } catch (error) {
-      logger.error('Error al obtener dispositivos: %o', error);
+      logger.error('Error fetching devices: %o', error);
       res.status(500).render('error', { 
         message: 'Error al cargar dispositivos' 
       });

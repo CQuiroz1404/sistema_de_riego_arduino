@@ -2,6 +2,8 @@
 
 Plataforma web completa para monitoreo y control de sistemas de riego automatizados con Arduino e IoT. Desarrollado con arquitectura MVC utilizando Node.js, Express, MySQL, MQTT y JWT para autenticación segura.
 
+📚 **[Ver Documentación Completa →](docs/README.md)**
+
 ## ✨ Versión 2.0 - Nuevas Características
 
 - 🎨 **Sistema de componentes reutilizables** (Card, Button, Form-Field, Alert)

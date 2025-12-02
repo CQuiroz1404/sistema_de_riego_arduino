@@ -5,6 +5,7 @@ yarn.lock
 
 # Variables de entorno
 .env
+arduino/config.h
 
 # Logs
 logs/
