@@ -1,4 +1,349 @@
-﻿<div class="container mx-auto px-4 py-8"> <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4"> <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3"> <i class="fas fa-calendar-alt text-blue-500"></i> Calendario de Riego </h1> <!-- Selector de Semanas --> <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"> <label for="semanaSelector" class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"> <i class="fas fa-filter mr-1"></i> Filtrar por: </label> <select id="semanaSelector" class="form-select block w-full pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"> <option value="">Todas las semanas</option> {{#each semanas}} <option value="{{this.id}}">{{this.nombre}}</option> {{/each}} </select> </div> </div> <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 dark:border-gray-700 max-w-3xl mx-auto"> <div id='calendar'></div> </div> </div>
+﻿<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8">
+  <div class="container mx-auto px-4">
+    <!-- Header mejorado -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+      <div class="flex items-center gap-4">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-300">
+          <i class="fas fa-calendar-alt text-white text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            Calendario de Riego
+          </h1>
+          <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">
+            <i class="fas fa-seedling mr-1"></i> Programa y gestiona tus horarios de riego
+          </p>
+        </div>
+      </div>
+
+      <!-- Selector de Semanas mejorado -->
+      <div class="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-3 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <i class="fas fa-filter text-blue-500"></i>
+          <span>Filtrar:</span>
+        </div>
+        <select id="semanaSelector"
+          class="form-select border-0 bg-transparent focus:ring-2 focus:ring-blue-500 rounded-lg font-medium text-gray-800 dark:text-white cursor-pointer">
+          <option value="">📅 Todas las semanas</option>
+          {{#each semanas}}
+          <option value="{{this.id}}">{{this.nombre}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+
+    <!-- Calendario con diseño mejorado -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 border border-gray-100 dark:border-gray-700 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
+      <div id='calendar' class="calendario-personalizado"></div>
+    </div>
+
+    <!-- Leyenda de colores -->
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+      <div class="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <i class="fas fa-info-circle text-blue-500 mr-2"></i>Leyenda:
+        </span>
+        <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+          <div class="w-4 h-4 rounded-full bg-blue-500 shadow-sm"></div>
+          <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">Riego programado</span>
+        </div>
+        <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-green-50 dark:bg-green-900/20">
+          <div class="w-4 h-4 rounded-full bg-green-500 shadow-sm"></div>
+          <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">Riego completado</span>
+        </div>
+        <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+          <div class="w-4 h-4 rounded-full bg-yellow-500 shadow-sm"></div>
+          <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">Mantenimiento</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Estilos personalizados para FullCalendar */
+.calendario-personalizado .fc {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.calendario-personalizado .fc-toolbar-title {
+  font-size: 1.875rem !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.calendario-personalizado .fc-toolbar {
+  margin-bottom: 2rem !important;
+}
+
+.calendario-personalizado .fc-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  padding: 0.625rem 1.25rem !important;
+  font-weight: 600 !important;
+  text-transform: capitalize !important;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.calendario-personalizado .fc-button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.calendario-personalizado .fc-button-active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3) !important;
+}
+
+.calendario-personalizado .fc-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.calendario-personalizado .fc-col-header-cell {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+  padding: 1rem 0.5rem !important;
+  border: none !important;
+  color: #4b5563 !important;
+}
+
+.dark .calendario-personalizado .fc-col-header-cell {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  color: #e5e7eb !important;
+}
+
+.calendario-personalizado .fc-daygrid-day {
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.calendario-personalizado .fc-daygrid-day:hover {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  transform: scale(1.02);
+}
+
+.calendario-personalizado .fc-daygrid-day-number {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  padding: 0.625rem !important;
+  color: #374151;
+}
+
+.dark .calendario-personalizado .fc-daygrid-day-number {
+  color: #e5e7eb;
+}
+
+.calendario-personalizado .fc-day-today {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%) !important;
+  border: 2px solid #3b82f6 !important;
+  font-weight: 700 !important;
+}
+
+.calendario-personalizado .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800 !important;
+  font-size: 1.125rem !important;
+}
+
+.calendario-personalizado .fc-event {
+  border-radius: 0.5rem !important;
+  border-left: 4px solid rgba(255,255,255,0.3) !important;
+  padding: 0.375rem 0.625rem !important;
+  font-size: 0.813rem !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+
+.calendario-personalizado .fc-event:hover {
+  transform: scale(1.05) translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  z-index: 10 !important;
+}
+
+.calendario-personalizado .fc-daygrid-event-dot {
+  display: none !important;
+}
+
+.calendario-personalizado .fc-event-title {
+  font-weight: 600 !important;
+}
+
+/* Modo oscuro */
+.dark .calendario-personalizado .fc {
+  color: #e5e7eb;
+}
+
+.dark .calendario-personalizado .fc-theme-standard td,
+.dark .calendario-personalizado .fc-theme-standard th {
+  border-color: #374151 !important;
+}
+
+.dark .calendario-personalizado .fc-scrollgrid {
+  border-color: #374151 !important;
+}
+
+.dark .calendario-personalizado .fc-daygrid-day:hover {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.calendario-personalizado {
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mejoras responsivas */
+@media (max-width: 768px) {
+  .calendario-personalizado .fc-toolbar {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  
+  .calendario-personalizado .fc-toolbar-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .calendario-personalizado .fc-button {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+</style>
 
 {{{scripts}}}
-<script> document.addEventListener('DOMContentLoaded', function() { var calendarEl = document.getElementById('calendar'); var calendar = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth', height: 450, locale: 'es', headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,multiMonthYear' }, buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', year: 'Año' }, navLinks: true, /* permite hacer clic en los nombres de día/semana para navegar */ editable: false, dayMaxEvents: true, /* permitir enlace "más" cuando hay demasiados eventos */ events: '/calendar/events', /* Cargar eventos desde la API */ eventDidMount: function(info) { /* Agregar tooltip o descripción si es necesario */ if (info.event.extendedProps.description) { info.el.title = info.event.extendedProps.description; } } }); calendar.render(); /* Manejar cambio de semana */ const semanaSelector = document.getElementById('semanaSelector'); semanaSelector.addEventListener('change', function() { const semanaId = this.value; const newSource = { url: '/calendar/events', extraParams: semanaId ? { semana_id: semanaId } : {} }; /* Eliminar fuentes anteriores y agregar la nueva con el filtro */ const oldSource = calendar.getEventSources()[0]; if (oldSource) { oldSource.remove(); } calendar.addEventSource(newSource); }); /* Observador para redibujar el calendario si cambia el tema (para ajustar colores si es necesario) */ const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.attributeName === 'class') { calendar.render(); /* Forzar redibujado */ } }); }); observer.observe(document.documentElement, { attributes: true }); }); </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var calendarEl = document.getElementById('calendar');
+  var calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    contentHeight: 600,
+    locale: 'es',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+    },
+    buttonText: {
+      today: 'Hoy',
+      month: 'Mes',
+      week: 'Semana',
+      day: 'Día',
+      list: 'Lista'
+    },
+    navLinks: true,
+    editable: false,
+    dayMaxEvents: 3,
+    events: '/calendar/events',
+    eventDidMount: function(info) {
+      // Agregar tooltip con descripción
+      if (info.event.extendedProps.description) {
+        info.el.title = info.event.extendedProps.description;
+      }
+      
+      // Agregar animación de entrada
+      info.el.style.animation = 'fadeIn 0.3s ease-out';
+    },
+    eventClick: function(info) {
+      // Prevenir navegación del link
+      info.jsEvent.preventDefault();
+      
+      // Mostrar información del evento
+      const event = info.event;
+      alert(
+        'Evento: ' + event.title + '\n' +
+        'Inicio: ' + event.start.toLocaleString('es-ES') + '\n' +
+        (event.end ? 'Fin: ' + event.end.toLocaleString('es-ES') + '\n' : '') +
+        (event.extendedProps.description ? 'Descripción: ' + event.extendedProps.description : '')
+      );
+    },
+    dateClick: function(info) {
+      // Animación al hacer clic en una fecha
+      info.dayEl.style.animation = 'pulse 0.3s ease-out';
+      setTimeout(() => {
+        info.dayEl.style.animation = '';
+      }, 300);
+    }
+  });
+  
+  calendar.render();
+  
+  // Manejar cambio de semana con transición suave
+  const semanaSelector = document.getElementById('semanaSelector');
+  semanaSelector.addEventListener('change', function() {
+    const semanaId = this.value;
+    
+    // Agregar efecto de carga
+    calendarEl.style.opacity = '0.5';
+    calendarEl.style.transition = 'opacity 0.3s ease';
+    
+    const newSource = {
+      url: '/calendar/events',
+      extraParams: semanaId ? { semana_id: semanaId } : {}
+    };
+    
+    // Eliminar fuentes anteriores y agregar la nueva con el filtro
+    const oldSource = calendar.getEventSources()[0];
+    if (oldSource) {
+      oldSource.remove();
+    }
+    
+    calendar.addEventSource(newSource);
+    
+    // Restaurar opacidad
+    setTimeout(() => {
+      calendarEl.style.opacity = '1';
+    }, 300);
+  });
+  
+  // Observador para redibujar el calendario si cambia el tema
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'class') {
+        calendar.render();
+      }
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+  
+  // Ajustar altura del calendario en resize
+  window.addEventListener('resize', function() {
+    calendar.updateSize();
+  });
+});
+</script>

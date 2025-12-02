@@ -4,7 +4,6 @@ const { sequelize } = require('../config/baseDatos');
 const Dispositivos = sequelize.define('dispositivos', {
   id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
   nombre: { type: DataTypes.STRING(100), allowNull: false },
-  invernadero_id: { type: DataTypes.INTEGER, allowNull: true },
   ubicacion: { type: DataTypes.STRING(200), allowNull: true },
   descripcion: { type: DataTypes.TEXT, allowNull: true },
   api_key: { type: DataTypes.STRING(100), allowNull: false, unique: true },

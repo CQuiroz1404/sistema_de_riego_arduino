@@ -9,13 +9,10 @@ class DashboardController {
       // Obtener dispositivos del usuario
       let devices;
       if (req.user.rol === 'admin') {
-        devices = await Dispositivos.findAll({
-          include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
-        });
+        devices = await Dispositivos.findAll();
       } else {
         devices = await Dispositivos.findAll({ 
-          where: { usuario_id: req.user.id },
-          include: [{ model: Invernaderos, attributes: ['id', 'descripcion', 'ubicacion'] }]
+          where: { usuario_id: req.user.id }
         });
       }
 
