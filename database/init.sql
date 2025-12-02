@@ -369,7 +369,14 @@ INSERT INTO plantas (nombre, tipo_planta_id, rango_temperatura_id, rango_humedad
 ('Cilantro', 4, 4, 4, TRUE),
 ('Fresa', 2, 1, 1, TRUE);
 
--- Invernaderos
+-- Dispositivos Arduino (DEBE IR ANTES de invernaderos por foreign key)
+INSERT INTO dispositivos (nombre, ubicacion, descripcion, api_key, estado, usuario_id, ultima_conexion) VALUES 
+('Arduino Invernadero Principal', 'Invernadero Principal - Sector A', 'Controlador principal con DHT11 y sensor de nivel', 'api_key_inv_principal_001', 'activo', 1, NOW()),
+('Arduino Semilleros', 'Invernadero Semilleros', 'Control de humedad para semilleros', 'api_key_inv_semilleros_002', 'activo', 1, DATE_SUB(NOW(), INTERVAL 30 MINUTE)),
+('Arduino Experimental', 'Invernadero Experimental', 'Prototipo con múltiples sensores', 'api_key_experimental_003', 'mantenimiento', 2, DATE_SUB(NOW(), INTERVAL 5 DAY)),
+('Arduino Hidropónico', 'Invernadero Hidropónico', 'Sistema hidropónico automatizado', 'api_key_hidroponico_004', 'activo', 1, NOW());
+
+-- Invernaderos (ahora dispositivos ya existen)
 INSERT INTO invernaderos (descripcion, planta_id, dispositivo_id, riego, temp_actual, hum_actual, estado) VALUES 
 ('Invernadero Principal - Sector A', 1, 1, FALSE, 22.5, 55.0, TRUE),
 ('Invernadero Semilleros', 2, 2, FALSE, 15.0, 70.0, TRUE),
@@ -406,13 +413,6 @@ INSERT INTO calendario (invernadero_id, semana_id, dia_semana, hora_inicial, usu
 (2, 2, 'Lunes', '07:00:00', 1, '07:15:00', TRUE),
 (2, 2, 'Jueves', '07:00:00', 1, '07:15:00', TRUE),
 (3, 3, 'Martes', '09:00:00', 2, '09:45:00', TRUE);
-
--- Dispositivos Arduino
-INSERT INTO dispositivos (nombre, ubicacion, descripcion, api_key, estado, usuario_id, ultima_conexion) VALUES 
-('Arduino Invernadero Principal', 'Invernadero Principal - Sector A', 'Controlador principal con DHT11 y sensor de nivel', 'api_key_inv_principal_001', 'activo', 1, NOW()),
-('Arduino Semilleros', 'Invernadero Semilleros', 'Control de humedad para semilleros', 'api_key_inv_semilleros_002', 'activo', 1, DATE_SUB(NOW(), INTERVAL 30 MINUTE)),
-('Arduino Experimental', 'Invernadero Experimental', 'Prototipo con múltiples sensores', 'api_key_experimental_003', 'mantenimiento', 2, DATE_SUB(NOW(), INTERVAL 5 DAY)),
-('Arduino Hidropónico', 'Invernadero Hidropónico', 'Sistema hidropónico automatizado', 'api_key_hidroponico_004', 'activo', 1, NOW());
 
 -- Variables para dispositivos
 SET @disp1 = 1;
