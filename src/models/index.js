@@ -78,9 +78,9 @@ Calendario.belongsTo(Usuarios, { foreignKey: 'usuario_id', as: 'usuario' });
 HistorialAutomatico.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
 
 // Historial Acciones
-HistorialAcciones.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
-HistorialAcciones.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
-HistorialAcciones.belongsTo(Acciones, { foreignKey: 'accion_id' });
+HistorialAcciones.belongsTo(Invernaderos, { foreignKey: 'invernadero_id', as: 'invernadero' });
+HistorialAcciones.belongsTo(Usuarios, { foreignKey: 'usuario_id', as: 'usuario' });
+HistorialAcciones.belongsTo(Acciones, { foreignKey: 'accion_id', as: 'accion' });
 
 // Logs del Sistema
 LogsSistema.belongsTo(Usuarios, { foreignKey: 'usuario_id' });

@@ -404,14 +404,51 @@ class MQTTService {
    */
   async processEvent(device, payload) {
     try {
-      const { tipo, mensaje } = payload;
-      logger.info(`📢 Evento de ${device.nombre}: ${tipo} - ${mensaje}`);
+      const { tipo, pin, estado, modo } = payload;
       
+      logger.info(`📢 Evento de ${device.nombre}: Pin ${pin}, Estado ${estado}, Modo ${modo}`);
+      
+      // Actualizar estado del actuador en BD si viene en el payload
+      if (pin && (estado === 0 || estado === 1)) {
+        const actuador = await Actuadores.findOne({
+          where: { 
+            dispositivo_id: device.id,
+            pin: pin.toString()
+          }
+        });
+        
+        if (actuador) {
+          const nuevoEstado = estado === 1 ? 'encendido' : 'apagado';
+          await Actuadores.update(
+            { estado: nuevoEstado },
+            { where: { id: actuador.id } }
+          );
+          
+          logger.info(`✅ Estado actualizado: ${actuador.nombre} -> ${nuevoEstado}`);
+          
+          // Emitir evento Socket.IO para actualizar UI en tiempo real
+          if (this.io) {
+            this.io.emit('actuator:state-changed', {
+              deviceId: device.id,
+              deviceName: device.nombre,
+              actuatorId: actuador.id,
+              actuatorName: actuador.nombre,
+              pin: pin,
+              estado: nuevoEstado,
+              modo: modo || 'desconocido',
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+      
+      // Emitir evento genérico también
       if (this.io) {
         this.io.emit('device:event', {
           deviceId: device.id,
-          tipo,
-          mensaje,
+          deviceName: device.nombre,
+          tipo: tipo || 'actuador',
+          payload,
           timestamp: Date.now()
         });
       }

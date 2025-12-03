@@ -80,3 +80,72 @@ function updateDeviceUI(device, sensors, actuators) {
     // Implementar actualización de la interfaz
     console.log('Actualizando UI:', { device, sensors, actuators });
 }
+
+// Parada de emergencia - Detener todos los actuadores
+async function emergencyStop(deviceId) {
+    if (!confirmAction('🚨 ¿DETENER TODOS LOS ACTUADORES? Esta es una parada de emergencia que detendrá inmediatamente todo el riego.')) {
+        return;
+    }
+    
+    try {
+        const result = await apiRequest('/api/arduino/emergency-stop', {
+            method: 'POST',
+            body: JSON.stringify({
+                device_id: deviceId
+            })
+        });
+
+        if (result.success) {
+            showNotification('🚨 Parada de emergencia ejecutada - Todos los actuadores detenidos', 'warning');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showNotification(result.message || 'Error en parada de emergencia', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error en parada de emergencia', 'error');
+    }
+}
+
+// Actualizar umbrales de humedad remotamente
+async function updateThresholds(deviceId) {
+    const humidityMin = prompt('Ingrese umbral mínimo de humedad (%) para ENCENDER riego:', '55');
+    if (!humidityMin) return;
+    
+    const humidityMax = prompt('Ingrese umbral máximo de humedad (%) para APAGAR riego:', '70');
+    if (!humidityMax) return;
+    
+    const min = parseFloat(humidityMin);
+    const max = parseFloat(humidityMax);
+    
+    if (isNaN(min) || isNaN(max) || min < 0 || max > 100 || min >= max) {
+        showNotification('❌ Valores inválidos. Min debe ser menor que Max y entre 0-100', 'error');
+        return;
+    }
+    
+    if (!confirmAction(`¿Actualizar umbrales del Arduino?\n\n🌡️ Encender si < ${min}%\n🌡️ Apagar si > ${max}%`)) {
+        return;
+    }
+    
+    try {
+        const result = await apiRequest('/api/arduino/update-thresholds', {
+            method: 'POST',
+            body: JSON.stringify({
+                device_id: deviceId,
+                humedad_min: min,
+                humedad_max: max
+            })
+        });
+
+        if (result.success) {
+            showNotification(`✅ Umbrales actualizados: ${min}% - ${max}%`, 'success');
+        } else {
+            showNotification(result.message || 'Error al actualizar umbrales', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error al actualizar umbrales', 'error');
+    }
+}
