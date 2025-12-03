@@ -20,7 +20,6 @@
                         <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Usuario</th>
                         <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Módulo</th>
                         <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Acción</th>
-                        <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">IP</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -50,13 +49,10 @@
                         <td class="p-4 text-sm text-gray-600 dark:text-gray-300">
                             {{this.mensaje}}
                         </td>
-                        <td class="p-4 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">
-                            {{this.ip_address}}
-                        </td>
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        <td colspan="4" class="p-8 text-center text-gray-500 dark:text-gray-400">
                             <i class="fas fa-history text-4xl mb-3 opacity-50"></i>
                             <p>No hay registros de actividad recientes.</p>
                         </td>

@@ -7,7 +7,25 @@ const HistorialController = {
             const { invernaderoId } = req.params;
             const { tipo } = req.query; // 'automatico' o 'acciones'
 
+            // Validar que se proporcione invernaderoId
+            if (!invernaderoId) {
+                return res.status(400).render('error', {
+                    message: 'ID de invernadero no proporcionado',
+                    error: { message: 'La URL debe incluir el ID del invernadero' },
+                    user: req.user
+                });
+            }
+
             const invernadero = await Invernaderos.findByPk(invernaderoId);
+            
+            // Validar que el invernadero exista
+            if (!invernadero) {
+                return res.status(404).render('error', {
+                    message: 'Invernadero no encontrado',
+                    error: { message: `No se encontró el invernadero con ID ${invernaderoId}` },
+                    user: req.user
+                });
+            }
             
             let historial = [];
             let view = 'historial/index';
@@ -21,10 +39,10 @@ const HistorialController = {
                 });
                 view = 'historial/acciones';
             } else {
-                // Por defecto historial automÃ¡tico (sensores)
+                // Por defecto historial automático (sensores)
                 historial = await HistorialAutomatico.findAll({
                     where: { invernadero_id: invernaderoId },
-                    order: [['fecha_registro', 'DESC']],
+                    order: [['fecha', 'DESC'], ['hora', 'DESC']],
                     limit: 100
                 });
             }

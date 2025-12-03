@@ -52,6 +52,68 @@ socket.on('device:schedule-reminder', (data) => {
     );
 });
 
+// Escuchar inicio de riego automático
+socket.on('irrigation:started', (data) => {
+    console.log('🚿 Riego iniciado:', data);
+    showNotification(
+        `🚿 ${data.mensaje}`,
+        'success',
+        5000
+    );
+    playNotificationSound();
+    refreshData();
+});
+
+// Escuchar fin de riego automático
+socket.on('irrigation:finished', (data) => {
+    console.log('⏱️ Riego finalizado:', data);
+    showNotification(
+        `✅ ${data.mensaje} (${data.duracion_minutos} min)`,
+        'info',
+        5000
+    );
+    refreshData();
+});
+
+// Escuchar cambios de estado de actuadores en tiempo real
+socket.on('actuator:state-changed', (data) => {
+    console.log('🎛️ Estado de actuador cambiado:', data);
+    showNotification(
+        `${data.actuatorName}: ${data.estado}`,
+        data.estado === 'encendido' ? 'success' : 'info',
+        3000
+    );
+    
+    // Actualizar UI del actuador específico si existe
+    updateActuatorUI(data);
+});
+
+// Escuchar desactivación de calendario
+socket.on('calendar:disabled', (data) => {
+    console.log('📅 Calendario desactivado:', data);
+    showNotification(
+        '📅 ' + data.mensaje,
+        'warning',
+        5000
+    );
+});
+
+// Función para actualizar UI de actuador específico
+function updateActuatorUI(data) {
+    const actuatorButton = document.querySelector(`[data-actuator-id="${data.actuatorId}"]`);
+    if (actuatorButton) {
+        if (data.estado === 'encendido') {
+            actuatorButton.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+            actuatorButton.classList.add('bg-green-600', 'hover:bg-green-700');
+            actuatorButton.textContent = '🟢 Encendido';
+        } else {
+            actuatorButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+            actuatorButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            actuatorButton.textContent = '⚪ Apagado';
+        }
+    }
+}
+
 // Actualizar datos del dashboard
 async function refreshData() {
     try {

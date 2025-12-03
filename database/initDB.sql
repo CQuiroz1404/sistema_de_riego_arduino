@@ -28,9 +28,12 @@ CREATE TABLE IF NOT EXISTS usuarios (
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ultima_conexion TIMESTAMP NULL,
+    reset_token VARCHAR(255) NULL COMMENT 'Token para recuperación de contraseña',
+    reset_token_expiry DATETIME NULL COMMENT 'Fecha de expiración del token (1 hora)',
     INDEX idx_email (email),
     INDEX idx_rol (rol),
-    INDEX idx_rut (rut)
+    INDEX idx_rut (rut),
+    INDEX idx_reset_token (reset_token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -156,7 +159,6 @@ CREATE TABLE IF NOT EXISTS logs_sistema (
     mensaje TEXT NOT NULL,
     dispositivo_id INT NULL,
     usuario_id INT NULL,
-    ip_address VARCHAR(45),
     fecha_log TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (dispositivo_id) REFERENCES dispositivos(id) ON DELETE SET NULL,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
