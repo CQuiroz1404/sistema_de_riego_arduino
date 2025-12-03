@@ -8,7 +8,8 @@ const {
   Dispositivos,
   Sensores,
   Lecturas,
-  Actuadores
+  Actuadores,
+  LogsSistema
 } = require('../models');
 const logger = require('../config/logger');
 
@@ -59,13 +60,23 @@ class InvernaderoController {
     try {
       const { descripcion, ubicacion, planta_id } = req.body;
       
-      await Invernaderos.create({
+      const invernadero = await Invernaderos.create({
         descripcion,
         ubicacion: ubicacion || null,
         planta_id: planta_id || null,
         riego: false,
         temp_actual: 0,
         hum_actual: 0
+      });
+
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'invernaderos',
+        mensaje: `Invernadero creado: ${descripcion}`,
+        dispositivo_id: null,
+        usuario_id: req.user?.id || null,
+        fecha_log: new Date()
       });
 
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
@@ -319,6 +330,16 @@ class InvernaderoController {
         planta_id: planta_id || null
       }, { where: { id } });
 
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'invernaderos',
+        mensaje: `Invernadero actualizado: ${descripcion}`,
+        dispositivo_id: null,
+        usuario_id: req.user?.id || null,
+        fecha_log: new Date()
+      });
+
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
         return res.json({ success: true, message: 'Invernadero actualizado' });
       }
@@ -334,7 +355,23 @@ class InvernaderoController {
   static async destroy(req, res) {
     try {
       const { id } = req.params;
+      
+      // Obtener información del invernadero antes de eliminarlo
+      const invernadero = await Invernaderos.findByPk(id);
+      const descripcion = invernadero ? invernadero.descripcion : `ID ${id}`;
+      
       await Invernaderos.destroy({ where: { id } });
+      
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'warning',
+        modulo: 'invernaderos',
+        mensaje: `Invernadero eliminado: ${descripcion}`,
+        dispositivo_id: null,
+        usuario_id: req.user?.id || null,
+        fecha_log: new Date()
+      });
+      
       res.json({ success: true, message: 'Invernadero eliminado' });
     } catch (error) {
       console.error('Error al eliminar invernadero:', error);

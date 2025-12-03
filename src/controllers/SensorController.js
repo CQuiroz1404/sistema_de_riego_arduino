@@ -1,4 +1,4 @@
-const { Sensores, Dispositivos, Lecturas } = require('../models');
+const { Sensores, Dispositivos, Lecturas, LogsSistema } = require('../models');
 const { Op } = require('sequelize');
 const logger = require('../config/logger');
 const PaginationHelper = require('../utils/paginationHelper');
@@ -36,6 +36,16 @@ class SensorController {
       });
 
       logger.info(`[sensors] Nuevo sensor creado: ${nombre} (Disp: ${dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'sensores',
+        mensaje: `Sensor creado: ${nombre} (${tipo}) en dispositivo ${device.nombre}`,
+        dispositivo_id: parseInt(dispositivo_id),
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
 
       res.json({ 
         success: true, 
@@ -158,6 +168,16 @@ class SensorController {
       await sensor.update(req.body);
       logger.info(`[sensors] Sensor actualizado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'sensores',
+        mensaje: `Umbrales actualizados en sensor: ${sensor.nombre} (Min: ${sensor.valor_minimo}, Max: ${sensor.valor_maximo})`,
+        dispositivo_id: sensor.dispositivo_id,
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
+
       res.json({ 
         success: true, 
         message: 'Sensor actualizado exitosamente' 
@@ -193,8 +213,21 @@ class SensorController {
         });
       }
 
+      const nombreSensor = sensor.nombre;
+      const dispositivoId = sensor.dispositivo_id;
+      
       await sensor.destroy();
-      logger.warn(`[sensors] Sensor eliminado: ${sensor.nombre} (Disp: ${sensor.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+      logger.warn(`[sensors] Sensor eliminado: ${nombreSensor} (Disp: ${dispositivoId}, User: ${req.user.id}, IP: ${req.ip})`);
+
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'warning',
+        modulo: 'sensores',
+        mensaje: `Sensor eliminado: ${nombreSensor}`,
+        dispositivo_id: dispositivoId,
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
 
       res.json({ 
         success: true, 

@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { Calendario, Invernaderos, Usuarios, Dispositivos, Alertas } = require('../models');
+const { Calendario, Invernaderos, Usuarios, Dispositivos, Alertas, LogsSistema } = require('../models');
 const emailService = require('./emailService');
 const logger = require('../config/logger');
 
@@ -203,6 +203,16 @@ class SchedulerService {
             
             logger.info(`🚿 Riego automático activado: ${bomba.nombre} (Disp: ${dispositivo.id}, Evento: ${evento.id})`);
             
+            // Log de auditoría para ejecución desde calendario
+            await LogsSistema.create({
+              nivel: 'info',
+              modulo: 'calendario',
+              mensaje: `Riego programado ejecutado: ${invernadero.descripcion} - ${bomba.nombre} activado automáticamente`,
+              dispositivo_id: dispositivo.id,
+              usuario_id: usuario ? usuario.id : null,
+              fecha_log: new Date()
+            });
+            
             // Notificación WebSocket de activación
             if (this.io) {
               this.io.emit('irrigation:started', {
@@ -357,6 +367,16 @@ class SchedulerService {
                 severidad: 'alta',
                 mensaje: `El dispositivo ${device.nombre} ha perdido conexión. Última actividad: ${device.ultima_conexion ? device.ultima_conexion.toLocaleString() : 'Nunca'}`,
                 leida: false
+            });
+
+            // Log de auditoría para alerta crítica
+            await LogsSistema.create({
+                nivel: 'critical',
+                modulo: 'alertas',
+                mensaje: `Alerta generada: Dispositivo ${device.nombre} OFFLINE - Última conexión: ${device.ultima_conexion ? device.ultima_conexion.toLocaleString() : 'Nunca'}`,
+                dispositivo_id: device.id,
+                usuario_id: device.usuario ? device.usuario.id : null,
+                fecha_log: new Date()
             });
 
             // 2. Notificar por Email

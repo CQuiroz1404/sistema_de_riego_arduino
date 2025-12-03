@@ -1,4 +1,4 @@
-const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego } = require('../models');
+const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego, LogsSistema } = require('../models');
 const mqttService = require('../services/mqttService');
 const logger = require('../config/logger');
 
@@ -46,6 +46,16 @@ class ArduinoController {
             severidad: 'media',
             mensaje: `${sensor.nombre}: Valor bajo (${valor} ${sensor.unidad})`
           });
+          
+          // Log de auditoría para alerta
+          await LogsSistema.create({
+            nivel: 'warning',
+            modulo: 'alertas',
+            mensaje: `Alerta generada: Sensor ${sensor.nombre} fuera de rango - Valor bajo: ${valor} ${sensor.unidad}`,
+            dispositivo_id: device.id,
+            usuario_id: null,
+            fecha_log: new Date()
+          });
         }
 
         if (sensor.valor_maximo !== null && valor > sensor.valor_maximo) {
@@ -54,6 +64,16 @@ class ArduinoController {
             tipo: 'sensor_fuera_rango',
             severidad: 'media',
             mensaje: `${sensor.nombre}: Valor alto (${valor} ${sensor.unidad})`
+          });
+          
+          // Log de auditoría para alerta
+          await LogsSistema.create({
+            nivel: 'warning',
+            modulo: 'alertas',
+            mensaje: `Alerta generada: Sensor ${sensor.nombre} fuera de rango - Valor alto: ${valor} ${sensor.unidad}`,
+            dispositivo_id: device.id,
+            usuario_id: null,
+            fecha_log: new Date()
           });
         }
 
@@ -80,6 +100,16 @@ class ArduinoController {
                 severidad: 'media',
                 mensaje: `${sensor.nombre}: Valor bajo (${sensorData.valor} ${sensor.unidad})`
               });
+              
+              // Log de auditoría
+              await LogsSistema.create({
+                nivel: 'warning',
+                modulo: 'alertas',
+                mensaje: `Alerta: Sensor ${sensor.nombre} - Valor bajo: ${sensorData.valor} ${sensor.unidad}`,
+                dispositivo_id: device.id,
+                usuario_id: null,
+                fecha_log: new Date()
+              });
             }
 
             if (sensor.valor_maximo !== null && sensorData.valor > sensor.valor_maximo) {
@@ -88,6 +118,16 @@ class ArduinoController {
                 tipo: 'sensor_fuera_rango',
                 severidad: 'media',
                 mensaje: `${sensor.nombre}: Valor alto (${sensorData.valor} ${sensor.unidad})`
+              });
+              
+              // Log de auditoría
+              await LogsSistema.create({
+                nivel: 'warning',
+                modulo: 'alertas',
+                mensaje: `Alerta: Sensor ${sensor.nombre} - Valor alto: ${sensorData.valor} ${sensor.unidad}`,
+                dispositivo_id: device.id,
+                usuario_id: null,
+                fecha_log: new Date()
               });
             }
 
@@ -140,6 +180,16 @@ class ArduinoController {
             });
             
             logger.info(`[irrigation] Riego automático iniciado en ${actuator.nombre} (Disp: ${deviceId})`);
+            
+            // Log de auditoría para riego automático
+            await LogsSistema.create({
+              nivel: 'info',
+              modulo: 'riego',
+              mensaje: `Riego automático INICIADO: ${actuator.nombre} (Valor: ${valor})`,
+              dispositivo_id: deviceId,
+              usuario_id: null,
+              fecha_log: new Date()
+            });
           }
           
           // Si el valor está por encima del umbral superior y el actuador está encendido
@@ -155,6 +205,16 @@ class ArduinoController {
             });
             
             logger.info(`[irrigation] Riego automático detenido en ${actuator.nombre} (Disp: ${deviceId})`);
+            
+            // Log de auditoría para detención automática
+            await LogsSistema.create({
+              nivel: 'info',
+              modulo: 'riego',
+              mensaje: `Riego automático DETENIDO: ${actuator.nombre} (Valor: ${valor})`,
+              dispositivo_id: deviceId,
+              usuario_id: null,
+              fecha_log: new Date()
+            });
           }
         }
       }
@@ -301,6 +361,16 @@ class ArduinoController {
 
         logger.info(`[irrigation] Control manual: ${actuator.nombre} ${accion} (Disp: ${actuator.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
+        // Log de auditoría para riego manual
+        await LogsSistema.create({
+          nivel: 'info',
+          modulo: 'riego',
+          mensaje: `Riego manual ${accion === 'encender' ? 'activado' : 'desactivado'}: ${actuator.nombre} en ${device.nombre}`,
+          dispositivo_id: actuator.dispositivo_id,
+          usuario_id: req.user.id,
+          fecha_log: new Date()
+        });
+
         res.json({
           success: true,
           message: `Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} exitosamente`,
@@ -388,6 +458,16 @@ class ArduinoController {
       }
 
       logger.warn(`🚨 EMERGENCIA: Todos los actuadores apagados en ${device.nombre} (User: ${req.user.id})`);
+
+      // Log de auditoría para parada de emergencia
+      await LogsSistema.create({
+        nivel: 'critical',
+        modulo: 'riego',
+        mensaje: `🚨 PARADA DE EMERGENCIA: Todos los actuadores detenidos en ${device.nombre} (${resultados.length} actuadores)`,
+        dispositivo_id: device_id,
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
 
       // Desactivar calendario también
       if (device.invernadero_id) {
@@ -499,6 +579,16 @@ class ArduinoController {
           }
         });
       }
+
+      // Log de auditoría para cambio de umbrales
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'configuracion',
+        mensaje: `Umbrales de riego actualizados en ${device.nombre}: ${humedad_min}% - ${humedad_max}%`,
+        dispositivo_id: device_id,
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
 
       res.json({
         success: true,

@@ -1,4 +1,4 @@
-const { Calendario, Invernaderos, Semanas } = require('../models');
+const { Calendario, Invernaderos, Semanas, LogsSistema } = require('../models');
 
 /**
  * Schedule Controller - Unified calendar management
@@ -237,6 +237,17 @@ const ScheduleController = {
 
             await Promise.all(promesas);
 
+            // Log de auditoría para creación de eventos
+            const invernadero = await Invernaderos.findByPk(greenhouseId);
+            await LogsSistema.create({
+                nivel: 'info',
+                modulo: 'calendario',
+                mensaje: `Evento de riego programado creado: ${invernadero?.descripcion || 'Invernadero'} - ${dias.join(', ')} a las ${hora_inicio}`,
+                dispositivo_id: null,
+                usuario_id: req.user?.id || null,
+                fecha_log: new Date()
+            });
+
             res.redirect(`/invernaderos/${greenhouseId}/schedule`);
         } catch (error) {
             console.error('Error storing schedule event:', error);
@@ -264,7 +275,19 @@ const ScheduleController = {
             }
 
             const invernaderoId = evento.invernadero_id;
+            const invernadero = await Invernaderos.findByPk(invernaderoId);
+            
             await evento.destroy();
+
+            // Log de auditoría para eliminación de evento
+            await LogsSistema.create({
+                nivel: 'warning',
+                modulo: 'calendario',
+                mensaje: `Evento de riego eliminado: ${invernadero?.descripcion || 'Invernadero'} - ${evento.dia_semana} a las ${evento.hora_inicial}`,
+                dispositivo_id: null,
+                usuario_id: req.user?.id || null,
+                fecha_log: new Date()
+            });
 
             // Handle both AJAX and regular requests
             if (req.xhr || req.headers.accept.indexOf('json') > -1) {

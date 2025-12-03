@@ -1,4 +1,4 @@
-<div class="container mx-auto px-4 py-8"> <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4"> <div class="flex items-center gap-4"> <a href="/invernaderos" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"> <i class="fas fa-arrow-left text-xl"></i> </a> <div> <div class="flex items-center gap-3"> <i class="fas fa-warehouse text-green-500 text-3xl"></i> <h1 class="text-3xl font-bold text-gray-900 dark:text-white"> Invernadero #{{invernadero.id}} </h1> </div> <p class="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2"> <i class="fas fa-map-marker-alt"></i> {{#if invernadero.ubicacion}}{{invernadero.ubicacion}}{{else}}Sin ubicaci�n{{/if}} </p> <p class="text-gray-600 dark:text-gray-400 mt-1">{{invernadero.descripcion}}</p> </div> </div> <div class="flex gap-3"> <a href="/invernaderos/{{invernadero.id}}/virtual" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"> <i class="fas fa-vr-cardboard"></i> Vista 3D </a> <a href="/invernaderos/{{invernadero.id}}/edit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"> <i class="fas fa-edit"></i> Editar </a> </div> </div> <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> <!-- Estado Actual --> <div class="lg:col-span-2 space-y-6"> <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700"> <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"> <i class="fas fa-chart-pie text-blue-500"></i> Estado Actual </h3> <div class="grid grid-cols-1 md:grid-cols-3 gap-4"> <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center"> <i class="fas fa-thermometer-half text-3xl text-orange-500 mb-2"></i> <p class="text-sm text-gray-500 dark:text-gray-400">Temperatura</p> <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{invernadero.temp_actual}}°C</h4> </div> <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center"> <i class="fas fa-tint text-3xl text-blue-500 mb-2"></i> <p class="text-sm text-gray-500 dark:text-gray-400">Humedad</p> <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{invernadero.hum_actual}}%</h4> </div> <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center">
+<div class="container mx-auto px-4 py-8"> <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4"> <div class="flex items-center gap-4"> <a href="/invernaderos" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"> <i class="fas fa-arrow-left text-xl"></i> </a> <div> <div class="flex items-center gap-3"> <i class="fas fa-warehouse text-green-500 text-3xl"></i> <h1 class="text-3xl font-bold text-gray-900 dark:text-white"> Invernadero #{{invernadero.id}} </h1> </div> <p class="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2"> <i class="fas fa-map-marker-alt"></i> {{#if invernadero.ubicacion}}{{invernadero.ubicacion}}{{else}}Sin ubicaci�n{{/if}} </p> <p class="text-gray-600 dark:text-gray-400 mt-1">{{invernadero.descripcion}}</p> </div> </div> <div class="flex gap-3"> <a href="/invernaderos/{{invernadero.id}}/virtual" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"> <i class="fas fa-vr-cardboard"></i> Vista 3D </a> <a href="/invernaderos/{{invernadero.id}}/edit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"> <i class="fas fa-edit"></i> Editar </a> <button id="btnEliminarInvernadero" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"> <i class="fas fa-trash-alt"></i> Eliminar </button> </div> </div> <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> <!-- Estado Actual --> <div class="lg:col-span-2 space-y-6"> <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700"> <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"> <i class="fas fa-chart-pie text-blue-500"></i> Estado Actual </h3> <div class="grid grid-cols-1 md:grid-cols-3 gap-4"> <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center"> <i class="fas fa-thermometer-half text-3xl text-orange-500 mb-2"></i> <p class="text-sm text-gray-500 dark:text-gray-400">Temperatura</p> <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{invernadero.temp_actual}}°C</h4> </div> <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center"> <i class="fas fa-tint text-3xl text-blue-500 mb-2"></i> <p class="text-sm text-gray-500 dark:text-gray-400">Humedad</p> <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{invernadero.hum_actual}}%</h4> </div> <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-center">
     <i id="estadoRiegoIcono" class="fas fa-shower text-3xl text-{{#if invernadero.riego}}blue{{else}}gray{{/if}}-500 mb-2"></i>
     <p class="text-sm text-gray-500 dark:text-gray-400">Riego</p>
     <h4 id="estadoRiegoTexto" class="text-2xl font-bold text-gray-900 dark:text-white">{{#if invernadero.riego}}Regando{{else}}Desactivado{{/if}}</h4>
@@ -9,6 +9,40 @@
 // Activar riego manual para este invernadero
 document.getElementById('btnRiegoManual').addEventListener('click', function() {
     activarRiegoManual({{invernadero.id}});
+});
+
+// Eliminar invernadero
+document.getElementById('btnEliminarInvernadero').addEventListener('click', async function() {
+    const invernaderoId = {{invernadero.id}};
+    const invernaderoNombre = "{{invernadero.descripcion}}";
+    
+    // Confirmación con SweetAlert2 o confirm nativo
+    const confirmado = confirm(`¿Estás seguro de eliminar el invernadero "${invernaderoNombre}"?\n\nEsta acción no se puede deshacer y eliminará:\n- Todos los eventos de calendario asociados\n- El historial de riego\n\n⚠️ Los dispositivos y sensores NO se eliminarán.`);
+    
+    if (!confirmado) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/invernaderos/${invernaderoId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Invernadero eliminado exitosamente');
+            window.location.href = '/invernaderos';
+        } else {
+            alert('❌ Error: ' + (data.message || 'No se pudo eliminar el invernadero'));
+        }
+    } catch (error) {
+        console.error('Error al eliminar invernadero:', error);
+        alert('❌ Error de conexión al eliminar el invernadero');
+    }
 });
 </script>
 

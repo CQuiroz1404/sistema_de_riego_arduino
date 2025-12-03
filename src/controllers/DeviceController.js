@@ -1,4 +1,4 @@
-const { Dispositivos, Sensores, Actuadores, Lecturas, Invernaderos } = require('../models');
+const { Dispositivos, Sensores, Actuadores, Lecturas, Invernaderos, LogsSistema } = require('../models');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const logger = require('../config/logger');
@@ -92,6 +92,16 @@ class DeviceController {
       });
 
       logger.info(`[INFO] [devices] Nuevo dispositivo creado: ${nombre} (Disp: ${device.id}, User: ${req.user.id}, IP: ${req.ip})`);
+
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'dispositivos',
+        mensaje: `Dispositivo Arduino registrado: ${nombre}`,
+        dispositivo_id: device.id,
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
 
       res.json({ 
         success: true, 
@@ -232,6 +242,16 @@ class DeviceController {
 
       logger.info(`[INFO] [devices] Dispositivo actualizado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
 
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'dispositivos',
+        mensaje: `Configuración actualizada del dispositivo: ${device.nombre}`,
+        dispositivo_id: parseInt(id),
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
+
       res.json({ 
         success: true, 
         message: 'Dispositivo actualizado exitosamente' 
@@ -266,8 +286,21 @@ class DeviceController {
         });
       }
 
+      const nombreDispositivo = device.nombre;
+      const dispositivoId = device.id;
+      
       await device.destroy();
-      logger.warn(`[WARNING] [devices] Dispositivo eliminado: ${device.nombre} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
+      logger.warn(`[WARNING] [devices] Dispositivo eliminado: ${nombreDispositivo} (Disp: ${id}, User: ${req.user.id}, IP: ${req.ip})`);
+
+      // Log de auditoría
+      await LogsSistema.create({
+        nivel: 'warning',
+        modulo: 'dispositivos',
+        mensaje: `Dispositivo eliminado: ${nombreDispositivo}`,
+        dispositivo_id: null,
+        usuario_id: req.user.id,
+        fecha_log: new Date()
+      });
 
       res.json({ 
         success: true, 
