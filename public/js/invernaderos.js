@@ -6,39 +6,36 @@
  */
 async function activarRiegoManual(invernaderoId) {
     try {
-        showNotification('⏳ Buscando dispositivos y actuadores...', 'info');
-        
-        // Obtener el primer dispositivo del invernadero
-        const deviceCard = document.querySelector('[data-device-id]');
-        
-        if (!deviceCard) {
-            showNotification('⚠️ No hay dispositivos vinculados a este invernadero', 'warning');
-            setTimeout(() => {
-                showNotification('💡 Asigna un dispositivo desde la sección de Dispositivos', 'info');
-            }, 1500);
+        // PRIORIDAD 1: Intentar obtener bomba desde el botón (datos ya cargados)
+        const bombaDesdeBoton = obtenerEstadoBombaDesdeDOM();
+        if (bombaDesdeBoton) {
+            const accion = bombaDesdeBoton.estado === 'encendido' ? 'apagar' : 'encender';
+            await controlarBomba(bombaDesdeBoton.id, accion);
             return;
         }
         
-        const deviceId = deviceCard.getAttribute('data-device-id');
+        // PRIORIDAD 2: Buscar actuadores del invernadero directamente
+        showNotification('⏳ Buscando actuadores...', 'info');
         
-        // Hacer solicitud al endpoint para obtener actuadores del dispositivo
-        const deviceResponse = await fetch(`/api/devices/${deviceId}/actuators`, {
+        const actuadoresResponse = await fetch(`/invernaderos/${invernaderoId}/actuators`, {
             headers: {
                 'Accept': 'application/json'
             }
         });
         
-        if (!deviceResponse.ok) {
-            // Si falla, intentar obtener del HTML actual
-            const bombaActual = obtenerEstadoBombaDesdeDOM();
-            if (bombaActual) {
-                await controlarBomba(bombaActual.id, bombaActual.estado === 'encendido' ? 'apagar' : 'encender');
-                return;
-            }
-            throw new Error('No se pudo obtener información del dispositivo');
+        if (!actuadoresResponse.ok) {
+            throw new Error(`No se pudieron obtener los actuadores (HTTP ${actuadoresResponse.status})`);
         }
         
-        const actuadores = await deviceResponse.json();
+        const actuadores = await actuadoresResponse.json();
+        
+        if (!actuadores || actuadores.length === 0) {
+            showNotification('⚠️ No hay actuadores configurados en este invernadero', 'warning');
+            setTimeout(() => {
+                showNotification('💡 Vincula un dispositivo con actuadores tipo bomba', 'info');
+            }, 1500);
+            return;
+        }
         
         // Buscar actuador de tipo bomba
         const bomba = actuadores.find(act => act.tipo === 'bomba' || act.tipo === 'rele' || act.nombre.toLowerCase().includes('bomba'));

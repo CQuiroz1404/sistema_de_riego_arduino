@@ -8,6 +8,9 @@ router.post('/data', verifyApiKey, ArduinoController.sendData);
 router.get('/commands', verifyApiKey, ArduinoController.getCommands);
 router.get('/ping', verifyApiKey, ArduinoController.ping);
 
+// Ruta de AUTO-SINCRONIZACIÓN: Arduino obtiene IDs de sensores/actuadores
+router.get('/sync', verifyApiKey, ArduinoController.syncDevice);
+
 // Rutas para control manual (requieren autenticación de usuario)
 router.post('/control', verifyToken, ArduinoController.controlActuator);
 

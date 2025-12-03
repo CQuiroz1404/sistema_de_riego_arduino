@@ -491,11 +491,13 @@ class MQTTService {
       // Actualizar estado en base de datos
       await Actuadores.update({ estado: estado }, { where: { id: actuatorId } });
 
-      // Registrar evento
+      // Registrar evento con todos los campos obligatorios
       await EventosRiego.create({
         dispositivo_id: deviceId,
         actuador_id: actuatorId,
         tipo_evento: estado === 'encendido' ? 'inicio_riego' : 'fin_riego',
+        accion: estado === 'encendido' ? 'inicio' : 'fin',  // ENUM: 'inicio' o 'fin'
+        modo: modo,      // Campo obligatorio
         detalle: `Riego ${modo} ${estado}`,
         usuario_id: userId
       });
