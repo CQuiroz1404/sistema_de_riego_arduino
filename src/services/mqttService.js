@@ -241,11 +241,22 @@ class MQTTService {
           // Crear alerta de sensor desconectado o anormal
           await Alertas.create({
             dispositivo_id: device.id,
-            tipo: 'sensor_error',
+            tipo: 'otro', // Usamos 'otro' ya que 'sensor_error' no está en el ENUM
             severidad: 'alta',
             mensaje: `${sensor.nombre}: ${estadoMsg} (valor: ${valor} ${sensor.unidad})`,
-            leido: false
+            leida: false
           });
+
+          // Notificar al usuario por correo
+          const usuario = await Usuarios.findByPk(device.usuario_id);
+          if (usuario && usuario.email) {
+              await emailService.sendAlert(
+                  usuario.email,
+                  `⚠️ Alerta de Sensor: ${sensor.nombre}`,
+                  `El sensor <strong>${sensor.nombre}</strong> en el dispositivo <strong>${device.nombre}</strong> reporta un estado anormal: <strong>${estadoMsg}</strong>.<br>Por favor verifique la conexión física.`,
+                  'warning'
+              );
+          }
           
           // No procesar riego automático si el sensor no está conectado
           continue;
@@ -414,9 +425,7 @@ class MQTTService {
    */
   async processPing(device, payload) {
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        logger.debug(`💓 Ping recibido de ${device.nombre}`);
-      }
+      logger.debug(`💓 Ping recibido de ${device.nombre}`);
       await Dispositivos.update({ ultima_conexion: new Date() }, { where: { id: device.id } });
     } catch (error) {
       logger.error('Error al procesar ping: %o', error);
@@ -522,31 +531,18 @@ class MQTTService {
   }
 
   /**
-   * Get device by API Key (with cache integration)
-   * @param {string} apiKey - Device API key
-   * @returns {Promise<Object>} Device object
+   * Obtiene dispositivo por API Key (con caché)
    */
   async getDeviceByApiKey(apiKey) {
-    const cacheService = require('./cacheService');
-    
-    // 1. Try cache first
-    const cached = await cacheService.getDevice(apiKey);
-    if (cached) {
-      return cached;
+    if (this.devicesByApiKey.has(apiKey)) {
+      return this.devicesByApiKey.get(apiKey);
     }
 
-    // 2. Query database
-    const device = await Dispositivos.findOne({ 
-      where: { api_key: apiKey },
-      include: [
-        { model: Sensores, as: 'sensores' },
-        { model: Actuadores, as: 'actuadores' }
-      ]
-    });
-    
-    // 3. Store in cache
+    const device = await Dispositivos.findOne({ where: { api_key: apiKey } });
     if (device) {
-      cacheService.setDevice(apiKey, device);
+      this.devicesByApiKey.set(apiKey, device);
+      // Limpiar caché después de 5 minutos
+      setTimeout(() => this.devicesByApiKey.delete(apiKey), 5 * 60 * 1000);
     }
 
     return device;

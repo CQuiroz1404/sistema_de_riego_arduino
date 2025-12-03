@@ -145,6 +145,10 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// Middleware de Auditoría (Logs de acciones)
+const auditLogger = require('./src/middleware/auditLogger');
+app.use(auditLogger);
+
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -204,6 +208,7 @@ const invernaderoRoutes = require('./src/routes/invernaderos');
 const plantaRoutes = require('./src/routes/plantas');
 const profileRoutes = require('./src/routes/profile');
 const schedulerRoutes = require('./src/routes/scheduler');
+const auditRoutes = require('./src/routes/audit');
 
 // Usar rutas
 app.use('/auth', authRoutes);
@@ -217,6 +222,7 @@ app.use('/invernaderos', invernaderoRoutes);
 app.use('/plantas', plantaRoutes);
 app.use('/profile', profileRoutes);
 app.use('/api/scheduler', schedulerRoutes);
+app.use('/audit', auditRoutes);
 
 // Documentación API (Swagger)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));

@@ -1,0 +1,69 @@
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-clipboard-list text-blue-500 mr-2"></i> Auditoría del Sistema
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Registro de actividades y acciones de usuarios</p>
+        </div>
+        <a href="/dashboard" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i> Volver
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                        <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Fecha</th>
+                        <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Usuario</th>
+                        <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Módulo</th>
+                        <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">Acción</th>
+                        <th class="p-4 text-sm font-semibold text-gray-600 dark:text-gray-200">IP</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {{#each logs}}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="p-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                            {{formatDate this.fecha_log}}
+                        </td>
+                        <td class="p-4 text-sm font-medium text-gray-800 dark:text-white">
+                            {{#if this.usuario}}
+                                {{this.usuario.nombre}}
+                                <span class="block text-xs text-gray-500 font-normal">{{this.usuario.email}}</span>
+                            {{else}}
+                                <span class="text-gray-400">Sistema/Desconocido</span>
+                            {{/if}}
+                        </td>
+                        <td class="p-4 text-sm">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                {{#if (eq this.modulo 'auth')}}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300{{/if}}
+                                {{#if (eq this.modulo 'plantas')}}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{{/if}}
+                                {{#if (eq this.modulo 'invernaderos')}}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{{/if}}
+                                {{#unless this.modulo}}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{{/unless}}
+                            ">
+                                {{this.modulo}}
+                            </span>
+                        </td>
+                        <td class="p-4 text-sm text-gray-600 dark:text-gray-300">
+                            {{this.mensaje}}
+                        </td>
+                        <td class="p-4 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">
+                            {{this.ip_address}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-history text-4xl mb-3 opacity-50"></i>
+                            <p>No hay registros de actividad recientes.</p>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -82,6 +82,10 @@ HistorialAcciones.belongsTo(Invernaderos, { foreignKey: 'invernadero_id' });
 HistorialAcciones.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
 HistorialAcciones.belongsTo(Acciones, { foreignKey: 'accion_id' });
 
+// Logs del Sistema
+LogsSistema.belongsTo(Usuarios, { foreignKey: 'usuario_id' });
+Usuarios.hasMany(LogsSistema, { foreignKey: 'usuario_id' });
+
 module.exports = {
   sequelize,
   Usuarios,

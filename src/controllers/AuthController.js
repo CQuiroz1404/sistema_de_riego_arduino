@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Usuarios } = require('../models');
+const { Usuarios, LogsSistema } = require('../models');
 const logger = require('../config/logger');
 const emailService = require('../services/emailService');
 
@@ -68,6 +68,16 @@ class AuthController {
 
       // Log de login
       logger.info(`[INFO] [auth] Login exitoso: ${user.email} (User: ${user.id}, IP: ${req.ip})`);
+      
+      // Guardar en auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'auth',
+        mensaje: `Inicio de sesión exitoso: ${user.email}`,
+        usuario_id: user.id,
+        ip_address: req.ip || req.connection.remoteAddress,
+        fecha_log: new Date()
+      });
 
       // Establecer cookie con el token
       // La cookie durará 30 días, pero se borrará explícitamente al hacer logout
@@ -158,6 +168,16 @@ class AuthController {
       // Log de registro
       logger.info(`[INFO] [auth] Nuevo usuario registrado: ${email} (User: ${newUser.id}, IP: ${req.ip})`);
 
+      // Guardar en auditoría
+      await LogsSistema.create({
+        nivel: 'info',
+        modulo: 'auth',
+        mensaje: `Nuevo usuario registrado: ${email}`,
+        usuario_id: newUser.id,
+        ip_address: req.ip || req.connection.remoteAddress,
+        fecha_log: new Date()
+      });
+
       // Enviar correo de bienvenida
       await emailService.sendAlert(
         email,
@@ -186,6 +206,16 @@ class AuthController {
       // Log de logout
       if (req.user) {
         logger.info(`[INFO] [auth] Logout: ${req.user.email} (User: ${req.user.id}, IP: ${req.ip})`);
+        
+        // Guardar en auditoría
+        await LogsSistema.create({
+          nivel: 'info',
+          modulo: 'auth',
+          mensaje: `Cierre de sesión: ${req.user.email}`,
+          usuario_id: req.user.id,
+          ip_address: req.ip || req.connection.remoteAddress,
+          fecha_log: new Date()
+        });
       }
 
       // Limpiar cookie
