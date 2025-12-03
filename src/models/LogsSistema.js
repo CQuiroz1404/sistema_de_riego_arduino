@@ -8,7 +8,6 @@ const LogsSistema = sequelize.define('logs_sistema', {
   mensaje: { type: DataTypes.TEXT, allowNull: false },
   dispositivo_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
   usuario_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-  ip_address: { type: DataTypes.STRING(45), allowNull: true },
   fecha_log: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, { timestamps: false, freezeTableName: true });
 

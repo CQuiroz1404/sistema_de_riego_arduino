@@ -35,7 +35,6 @@ const auditLogger = (req, res, next) => {
                     modulo: modulo,
                     mensaje: mensaje,
                     usuario_id: req.user.id,
-                    ip_address: req.ip || req.connection.remoteAddress,
                     fecha_log: new Date()
                 });
 

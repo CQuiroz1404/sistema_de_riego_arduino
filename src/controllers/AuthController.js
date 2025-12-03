@@ -75,7 +75,6 @@ class AuthController {
         modulo: 'auth',
         mensaje: `Inicio de sesión exitoso: ${user.email}`,
         usuario_id: user.id,
-        ip_address: req.ip || req.connection.remoteAddress,
         fecha_log: new Date()
       });
 
@@ -174,7 +173,6 @@ class AuthController {
         modulo: 'auth',
         mensaje: `Nuevo usuario registrado: ${email}`,
         usuario_id: newUser.id,
-        ip_address: req.ip || req.connection.remoteAddress,
         fecha_log: new Date()
       });
 
@@ -213,7 +211,6 @@ class AuthController {
           modulo: 'auth',
           mensaje: `Cierre de sesión: ${req.user.email}`,
           usuario_id: req.user.id,
-          ip_address: req.ip || req.connection.remoteAddress,
           fecha_log: new Date()
         });
       }

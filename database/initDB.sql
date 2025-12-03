@@ -156,7 +156,6 @@ CREATE TABLE IF NOT EXISTS logs_sistema (
     mensaje TEXT NOT NULL,
     dispositivo_id INT NULL,
     usuario_id INT NULL,
-    ip_address VARCHAR(45),
     fecha_log TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (dispositivo_id) REFERENCES dispositivos(id) ON DELETE SET NULL,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
