@@ -37,6 +37,7 @@ class DashboardController {
 
       res.render('dashboard/index', {
         title: 'Dashboard',
+        activePage: 'dashboard',
         useSocketIO: true,
         user: req.user,
         devices: devicesWithStatus,

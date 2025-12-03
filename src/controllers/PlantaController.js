@@ -8,6 +8,7 @@ class PlantaController {
       });
       
       res.render('plantas/index', { 
+        activePage: 'plantas',
         plantas: plantas.map(p => p.toJSON()),
         user: req.user 
       });

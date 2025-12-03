@@ -43,6 +43,7 @@ class DeviceController {
       const pagination = PaginationHelper.calculate(result.count, page, limit);
       
       res.render('devices/index', { 
+        activePage: 'dispositivos',
         devices: devicesWithStatus, 
         pagination,
         user: req.user 
