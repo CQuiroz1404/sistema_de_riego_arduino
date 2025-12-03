@@ -8,7 +8,6 @@ const Sensores = require('./Sensores');
 const Lecturas = require('./Lecturas');
 const Actuadores = require('./Actuadores');
 const ConfiguracionesRiego = require('./ConfiguracionesRiego');
-const HorariosRiego = require('./HorariosRiego');
 const EventosRiego = require('./EventosRiego');
 const LogsSistema = require('./LogsSistema');
 const Alertas = require('./Alertas');
@@ -49,10 +48,6 @@ Lecturas.belongsTo(Sensores, { foreignKey: 'sensor_id' });
 // dispositivos 1 - N configuraciones_riego
 Dispositivos.hasMany(ConfiguracionesRiego, { foreignKey: 'dispositivo_id' });
 ConfiguracionesRiego.belongsTo(Dispositivos, { foreignKey: 'dispositivo_id' });
-
-// configuraciones_riego 1 - N horarios_riego
-ConfiguracionesRiego.hasMany(HorariosRiego, { foreignKey: 'configuracion_id' });
-HorariosRiego.belongsTo(ConfiguracionesRiego, { foreignKey: 'configuracion_id' });
 
 // dispositivos 1 - N eventos_riego
 Dispositivos.hasMany(EventosRiego, { foreignKey: 'dispositivo_id' });
@@ -95,7 +90,6 @@ module.exports = {
   Lecturas,
   Actuadores,
   ConfiguracionesRiego,
-  HorariosRiego,
   EventosRiego,
   LogsSistema,
   Alertas,

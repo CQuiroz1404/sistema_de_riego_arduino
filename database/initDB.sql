@@ -126,19 +126,6 @@ CREATE TABLE IF NOT EXISTS configuraciones_riego (
     INDEX idx_modo (modo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Horarios programados
-CREATE TABLE IF NOT EXISTS horarios_riego (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    configuracion_id INT NOT NULL,
-    dia_semana TINYINT NOT NULL COMMENT '0=Domingo, 1=Lunes, ..., 6=Sábado',
-    hora_inicio TIME NOT NULL,
-    duracion_minutos INT NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (configuracion_id) REFERENCES configuraciones_riego(id) ON DELETE CASCADE,
-    INDEX idx_configuracion_id (configuracion_id),
-    INDEX idx_dia_semana (dia_semana)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- ============================================
 -- MÓDULO 4: EVENTOS Y REGISTROS
 -- ============================================
@@ -355,8 +342,6 @@ UNION ALL
 SELECT 'Actuadores', COUNT(*) FROM actuadores
 UNION ALL
 SELECT 'Configuraciones Riego', COUNT(*) FROM configuraciones_riego
-UNION ALL
-SELECT 'Horarios', COUNT(*) FROM horarios_riego
 UNION ALL
 SELECT 'Eventos Riego', COUNT(*) FROM eventos_riego
 UNION ALL
