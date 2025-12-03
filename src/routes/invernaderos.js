@@ -14,6 +14,7 @@ router.get('/:id/virtual', InvernaderoController.virtualView);
 router.get('/:id/environment', InvernaderoController.getEnvironment);
 router.get('/:id', InvernaderoController.show);
 router.get('/:id/edit', InvernaderoController.edit);
+router.post('/:id/riego', InvernaderoController.toggleRiego);
 router.post('/:id', InvernaderoController.update); // Using POST for update (HTML form simplicity)
 router.delete('/:id', InvernaderoController.destroy);
 

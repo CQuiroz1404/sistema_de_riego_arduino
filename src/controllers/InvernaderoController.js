@@ -7,8 +7,11 @@ const {
   RangoHumedad,
   Dispositivos,
   Sensores,
-  Lecturas
+  Lecturas,
+  Actuadores,
+  LogsSistema
 } = require('../models');
+const mqttService = require('../services/mqttService');
 
 class InvernaderoController {
   // Listar todos los invernaderos
@@ -247,6 +250,91 @@ class InvernaderoController {
     } catch (error) {
       console.error('Error al eliminar invernadero:', error);
       res.status(500).json({ success: false, message: 'Error al eliminar' });
+    }
+  }
+
+  // Activar/Desactivar Riego Manual
+  static async toggleRiego(req, res) {
+    try {
+      const { id } = req.params;
+      
+      // 1. Buscar el invernadero y sus dispositivos
+      const invernadero = await Invernaderos.findByPk(id, {
+        include: [{
+          model: Dispositivos,
+          as: 'dispositivos',
+          include: [Actuadores]
+        }]
+      });
+
+      if (!invernadero) {
+        return res.status(404).json({ success: false, message: 'Invernadero no encontrado' });
+      }
+
+      // 2. Buscar actuadores de tipo 'bomba' o 'electrovalvula'
+      let actuadoresEncontrados = [];
+      
+      if (invernadero.dispositivos && invernadero.dispositivos.length > 0) {
+        invernadero.dispositivos.forEach(device => {
+          if (device.actuadores && device.actuadores.length > 0) {
+            const bombas = device.actuadores.filter(a => 
+              a.tipo === 'bomba' || a.tipo === 'electrovalvula' || a.tipo === 'valvula'
+            );
+            bombas.forEach(b => actuadoresEncontrados.push({ device, actuator: b }));
+          }
+        });
+      }
+
+      if (actuadoresEncontrados.length === 0) {
+        return res.status(400).json({ success: false, message: 'No se encontraron actuadores de riego (bombas/válvulas) en este invernadero' });
+      }
+
+      // 3. Enviar comando MQTT para encender/apagar
+      let accionRealizada = 'encendido';
+      let mensajes = [];
+
+      for (const item of actuadoresEncontrados) {
+        const { device, actuator } = item;
+        
+        // Determinar nuevo estado (inverso al actual)
+        const nuevoEstado = actuator.estado === 'encendido' ? 'apagado' : 'encendido';
+        accionRealizada = nuevoEstado;
+
+        // Enviar comando MQTT usando el servicio
+        await mqttService.controlActuator(
+            device.id, 
+            actuator.id, 
+            nuevoEstado, 
+            'manual', 
+            req.user ? req.user.id : null
+        );
+        
+        mensajes.push(`${actuator.nombre} ${nuevoEstado}`);
+      }
+
+      // Actualizar estado de riego del invernadero
+      const algunEncendido = accionRealizada === 'encendido';
+      await invernadero.update({ riego: algunEncendido });
+
+      // Log de auditoría
+      if (req.user) {
+        await LogsSistema.create({
+          usuario_id: req.user.id,
+          accion: `Riego Manual ${accionRealizada.toUpperCase()}`,
+          detalles: `Invernadero ${invernadero.descripcion}: ${mensajes.join(', ')}`,
+          ip: req.ip
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Riego ${accionRealizada} correctamente`,
+        estado: accionRealizada
+      });
+
+    } catch (error) {
+      console.error('Error al activar riego manual:', error);
+      res.status(500).json({ success: false, message: 'Error interno al procesar la solicitud' });
     }
   }
 

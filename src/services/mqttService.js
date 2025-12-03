@@ -1,5 +1,5 @@
 const mqtt = require('mqtt');
-const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego, Usuarios } = require('../models');
+const { Dispositivos, Sensores, Actuadores, ConfiguracionesRiego, Alertas, Lecturas, EventosRiego, Usuarios, Invernaderos, Plantas, RangoHumedad, RangoTemperatura } = require('../models');
 const logger = require('../config/logger');
 const weatherService = require('./weatherService');
 const emailService = require('./emailService');
@@ -277,6 +277,9 @@ class MQTTService {
           await this.createAlert(device, sensor, 'alto', valor);
         }
 
+        // Verificar salud de la planta (rangos específicos de la planta)
+        await this.checkPlantHealth(device, sensor, valor);
+
         // Verificar configuraciones de riego automático (solo con sensor conectado)
         await this.checkAutoIrrigation(device.id, sensor.id, valor);
 
@@ -400,7 +403,111 @@ class MQTTService {
   }
 
   /**
-   * Procesa eventos genéricos del dispositivo
+   * Verifica la salud de la planta basada en lecturas de sensores
+   */
+  async checkPlantHealth(device, sensor, valor) {
+    try {
+      // 1. Obtener Invernadero y Planta
+      const invernadero = await Invernaderos.findOne({
+        where: { id: device.invernadero_id },
+        include: [{
+          model: Plantas,
+          include: [RangoHumedad, RangoTemperatura]
+        }]
+      });
+
+      if (!invernadero || !invernadero.planta) return;
+
+      const planta = invernadero.planta;
+      const usuario = await Usuarios.findByPk(device.usuario_id);
+
+      // 2. Verificar Humedad Suelo
+      if (sensor.tipo === 'humedad_suelo' && planta.rango_humedad) {
+        const minHum = parseFloat(planta.rango_humedad.hum_min);
+        // Alerta si está cerca del mínimo (ej. 5% por encima)
+        const umbralAlerta = minHum + 5; 
+
+        if (valor <= umbralAlerta && valor > minHum) {
+             await this.sendPlantAlert(device, planta, usuario, 'humedad_baja', valor, minHum);
+        } else if (valor <= minHum) {
+             await this.sendPlantAlert(device, planta, usuario, 'humedad_critica', valor, minHum);
+        }
+      }
+
+      // 3. Verificar Temperatura
+      if (sensor.tipo === 'temperatura' && planta.rango_temperatura) {
+         const maxTemp = parseFloat(planta.rango_temperatura.temp_max);
+         
+         if (valor > maxTemp) {
+             await this.sendPlantAlert(device, planta, usuario, 'temperatura_alta', valor, maxTemp);
+         }
+      }
+
+    } catch (error) {
+      logger.error('Error en checkPlantHealth: %o', error);
+    }
+  }
+
+  async sendPlantAlert(device, planta, usuario, tipo, valor, limite) {
+    const alertTypeMap = {
+      'humedad_baja': {
+        msg: `La planta ${planta.nombre} está cerca del mínimo de humedad (${valor}%). Mínimo recomendado: ${limite}%`,
+        severidad: 'media',
+        titulo: '💧 Alerta de Riego: Humedad Baja'
+      },
+      'humedad_critica': {
+        msg: `La planta ${planta.nombre} ha bajado del mínimo de humedad (${valor}%). Mínimo recomendado: ${limite}%`,
+        severidad: 'alta',
+        titulo: '💧 Alerta Crítica: Humedad Muy Baja'
+      },
+      'temperatura_alta': {
+        msg: `La planta ${planta.nombre} tiene temperatura alta (${valor}°C). Máximo recomendado: ${limite}°C`,
+        severidad: 'alta',
+        titulo: '🌡️ Alerta de Temperatura Alta'
+      }
+    };
+
+    const config = alertTypeMap[tipo];
+    if (!config) return;
+
+    // Verificar si ya existe una alerta reciente (última hora) para evitar spam
+    const { Op } = require('sequelize');
+    const lastAlert = await Alertas.findOne({
+      where: {
+        dispositivo_id: device.id,
+        mensaje: config.msg, 
+        fecha_creacion: {
+           [Op.gt]: new Date(Date.now() - 60 * 60 * 1000) // 1 hora
+        }
+      }
+    });
+
+    if (lastAlert) return; // Ya se notificó recientemente
+
+    // Crear Alerta
+    await Alertas.create({
+      dispositivo_id: device.id,
+      tipo: 'sensor_fuera_rango',
+      severidad: config.severidad,
+      mensaje: config.msg,
+      leida: false
+    });
+
+    // Enviar Email
+    if (usuario && usuario.email) {
+      await emailService.sendAlert(
+        usuario.email,
+        config.titulo,
+        `Atención: <strong>${config.msg}</strong>.<br>Por favor revise su invernadero.`,
+        config.severidad === 'alta' ? 'danger' : 'warning'
+      );
+    }
+    
+    logger.info(`📧 Alerta de planta enviada: ${config.msg}`);
+  }
+
+  /**
+   * Procesa eventos de dispositivos
    */
   async processEvent(device, payload) {
     try {
