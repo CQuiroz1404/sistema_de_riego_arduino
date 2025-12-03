@@ -277,6 +277,8 @@ CREATE TABLE IF NOT EXISTS calendario (
     invernadero_id INT,
     semana_id INT,
     dia_semana VARCHAR(20),
+    fecha_inicio DATE,
+    fecha_fin DATE,
     hora_inicial TIME,
     usuario_id INT,
     hora_final TIME,

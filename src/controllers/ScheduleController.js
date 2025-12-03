@@ -42,43 +42,74 @@ const ScheduleController = {
 
             const eventos = await Calendario.findAll({
                 where: whereClause,
-                include: [{ model: Invernaderos }]
+                include: [{ model: Invernaderos, as: 'invernadero' }]
             });
 
-            const events = eventos.map(evento => {
+            console.log(`📅 Fetching events. Found ${eventos.length} records.`);
+
+            const events = eventos.flatMap(evento => {
                 // Map Spanish days to FullCalendar day numbers (0=Sunday, 1=Monday, etc.)
                 const diasMap = {
-                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 
-                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Miercoles': 3,
+                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Sabado': 6
                 };
                 
                 const dayOfWeek = diasMap[evento.dia_semana];
 
                 // Create recurring event if day is valid
                 if (dayOfWeek !== undefined) {
-                    const eventData = {
+                    const baseEvent = {
                         title: `Riego: ${evento.invernadero ? evento.invernadero.descripcion : 'Invernadero'}`,
-                        daysOfWeek: [dayOfWeek],
-                        startTime: evento.hora_inicial,
-                        endTime: evento.hora_final,
                         color: '#10B981', // Green
                         description: `Semana ID: ${evento.semana_id}`,
                     };
 
                     // Add date range if exists
                     if (evento.fecha_inicio) {
-                        eventData.startRecur = evento.fecha_inicio;
+                        baseEvent.startRecur = evento.fecha_inicio;
                     }
                     if (evento.fecha_fin) {
-                        eventData.endRecur = evento.fecha_fin;
+                        // FullCalendar endRecur is exclusive, so we add 1 day to include the end date
+                        const endDate = new Date(evento.fecha_fin);
+                        endDate.setDate(endDate.getDate() + 1);
+                        baseEvent.endRecur = endDate.toISOString().split('T')[0];
                     }
 
-                    return eventData;
+                    // Handle midnight crossing (e.g., 23:00 to 01:00)
+                    if (evento.hora_final < evento.hora_inicial) {
+                        // Event 1: Start time to Midnight
+                        const event1 = {
+                            ...baseEvent,
+                            daysOfWeek: [dayOfWeek],
+                            startTime: evento.hora_inicial,
+                            endTime: '23:59:59'
+                        };
+
+                        // Event 2: Midnight to End time (next day)
+                        const nextDay = (dayOfWeek + 1) % 7;
+                        const event2 = {
+                            ...baseEvent,
+                            daysOfWeek: [nextDay],
+                            startTime: '00:00:00',
+                            endTime: evento.hora_final
+                        };
+
+                        return [event1, event2];
+                    } else {
+                        // Normal event
+                        return [{
+                            ...baseEvent,
+                            daysOfWeek: [dayOfWeek],
+                            startTime: evento.hora_inicial,
+                            endTime: evento.hora_final
+                        }];
+                    }
                 }
 
-                return null;
-            }).filter(e => e !== null);
+                return [];
+            });
 
+            console.log(`📅 Returning ${events.length} processed events to calendar.`);
             res.json(events);
         } catch (error) {
             console.error('Error fetching events:', error);

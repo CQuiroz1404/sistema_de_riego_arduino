@@ -125,8 +125,8 @@ class PlantaController {
             invernadero_id: invernadero.id,
             semana_id: semana_id,
             dia_semana: dia,
-            fecha_inicio: fecha_inicio,
-            fecha_fin: fecha_fin,
+            fecha_inicio: fecha_inicio || null,
+            fecha_fin: fecha_fin || null,
             hora_inicial: hora_inicio,
             hora_final: hora_final,
             usuario_id: req.user ? req.user.id : null
