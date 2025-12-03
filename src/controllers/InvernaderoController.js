@@ -124,6 +124,9 @@ class InvernaderoController {
       
       if (!bombaActual) {
         logger.warn(`No se encontró bomba para invernadero ${id}. Dispositivos: ${invernaderoJson.dispositivos?.length || 0}`);
+      } else {
+        // Sincronizar estado de riego con el estado de la bomba
+        invernaderoJson.riego = (bombaActual.estado === 'encendido');
       }
 
       // Calcular promedios de sensores (Temperatura y Humedad Ambiente)

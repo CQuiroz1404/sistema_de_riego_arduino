@@ -164,4 +164,22 @@ function actualizarBotonRiego(estado, actuatorId) {
             btnIcono.classList.add('fa-shower');
         }
     }
+
+    // Actualizar también el indicador de estado en el dashboard
+    const estadoTexto = document.getElementById('estadoRiegoTexto');
+    const estadoIcono = document.getElementById('estadoRiegoIcono');
+
+    if (estadoTexto) {
+        estadoTexto.textContent = estado === 'encendido' ? 'Regando' : 'Desactivado';
+    }
+
+    if (estadoIcono) {
+        if (estado === 'encendido') {
+            estadoIcono.classList.remove('text-gray-500');
+            estadoIcono.classList.add('text-blue-500');
+        } else {
+            estadoIcono.classList.remove('text-blue-500');
+            estadoIcono.classList.add('text-gray-500');
+        }
+    }
 }
