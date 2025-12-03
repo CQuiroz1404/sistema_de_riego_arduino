@@ -523,12 +523,14 @@ class MQTTService {
         this.client.publish(topic, payload, { qos: 1 }, (err) => {
           if (err) {
             logger.error('Error al publicar comando: %o', err);
+            throw new Error('Error al enviar comando MQTT al dispositivo');
           } else {
             logger.info(`🎛️  Comando enviado a ${device.nombre}: Actuador ${actuator.nombre} -> ${estado}`);
           }
         });
       } else {
         logger.warn('⚠️  Cliente MQTT no conectado, no se pudo enviar comando');
+        throw new Error('🔌 Broker MQTT no está conectado. Intente nuevamente en unos segundos.');
       }
 
     } catch (error) {

@@ -7,7 +7,8 @@ const {
   RangoHumedad,
   Dispositivos,
   Sensores,
-  Lecturas
+  Lecturas,
+  Actuadores
 } = require('../models');
 
 class InvernaderoController {
@@ -89,7 +90,13 @@ class InvernaderoController {
           {
             model: Dispositivos,
             as: 'dispositivos',
-            attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado', 'ultima_conexion']
+            attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado', 'ultima_conexion'],
+            include: [{
+              model: Actuadores,
+              attributes: ['id', 'nombre', 'tipo', 'estado', 'pin'],
+              where: { tipo: 'bomba' },
+              required: false
+            }]
           }
         ]
       });
@@ -99,9 +106,21 @@ class InvernaderoController {
       }
 
       const invernaderoJson = invernadero.toJSON();
+      
+      // Buscar el primer actuador tipo bomba para el botón de riego manual
+      let bombaActual = null;
+      if (invernaderoJson.dispositivos && invernaderoJson.dispositivos.length > 0) {
+        for (const dispositivo of invernaderoJson.dispositivos) {
+          if (dispositivo.actuadores && dispositivo.actuadores.length > 0) {
+            bombaActual = dispositivo.actuadores[0];
+            break;
+          }
+        }
+      }
 
       res.render('invernaderos/show', { 
         invernadero: invernaderoJson,
+        bombaActual: bombaActual,
         user: req.user 
       });
     } catch (error) {

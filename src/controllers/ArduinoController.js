@@ -235,6 +235,28 @@ class ArduinoController {
         });
       }
 
+      // Verificar si el dispositivo está online (última conexión en los últimos 5 minutos)
+      const TIMEOUT_MINUTES = 5;
+      const now = new Date();
+      const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
+      const minutesSinceLastConnection = lastConnection 
+        ? Math.floor((now - lastConnection) / 1000 / 60) 
+        : 9999;
+
+      if (!lastConnection || minutesSinceLastConnection > TIMEOUT_MINUTES) {
+        return res.status(503).json({
+          success: false,
+          message: `⚠️ Dispositivo "${device.nombre}" no está conectado`,
+          details: lastConnection 
+            ? `Última conexión hace ${minutesSinceLastConnection} minutos`
+            : 'Nunca se ha conectado',
+          offline: true,
+          last_connection: lastConnection,
+          device_name: device.nombre,
+          suggestion: 'Verifica que el Arduino esté encendido y conectado a WiFi'
+        });
+      }
+
       const nuevoEstado = accion === 'encender' ? 'encendido' : 'apagado';
 
       // Si se enciende manualmente, desactivar calendario activo para ese invernadero
