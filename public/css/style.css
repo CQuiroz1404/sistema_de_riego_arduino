@@ -1,4 +1,15 @@
 /* ============================================
+   Global Styles & Font
+   ============================================ */
+* {
+    font-family: 'DynaPuff', cursive;
+}
+
+body {
+    font-family: 'DynaPuff', cursive;
+}
+
+/* ============================================
    Error Handler Animations
    ============================================ */
 @keyframes slideIn {
