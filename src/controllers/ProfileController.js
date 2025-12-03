@@ -59,7 +59,8 @@ class ProfileController {
       res.render('profile/index', {
         user: user.toJSON(),
         stats,
-        title: 'Mi Perfil'
+        title: 'Mi Perfil',
+        scripts: '<script src="/js/profile.js"></script>'
       });
     } catch (error) {
       logger.error('Error al cargar perfil: %o', error);
@@ -72,22 +73,17 @@ class ProfileController {
   // Actualizar perfil
   static async update(req, res) {
     try {
-      const { nombre, email } = req.body;
+      const { nombre } = req.body;
 
-      // Verificar si el email ya existe (excepto el del usuario actual)
-      const existingUser = await Usuarios.findOne({
-        where: { email }
-      });
-
-      if (existingUser && existingUser.id !== req.user.id) {
+      if (!nombre || nombre.trim() === '') {
         return res.status(400).json({
           success: false,
-          message: 'El email ya está en uso'
+          message: 'El nombre es requerido'
         });
       }
 
       await Usuarios.update(
-        { nombre, email },
+        { nombre: nombre.trim() },
         { where: { id: req.user.id } }
       );
 
@@ -166,35 +162,66 @@ class ProfileController {
   // Subir avatar
   static async uploadAvatar(req, res) {
     try {
+      console.log('=== UPLOAD AVATAR REQUEST ===');
+      console.log('req.file:', req.file);
+      console.log('req.user:', req.user ? req.user.id : 'NO USER');
+      console.log('req.body:', req.body);
+      
       if (!req.file) {
+        console.log('ERROR: No file received');
         return res.status(400).json({
           success: false,
           message: 'No se ha seleccionado ningún archivo'
         });
       }
 
+      console.log('File received:', {
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        path: req.file.path
+      });
+
       const fs = require('fs');
       const path = require('path');
 
+      // Verificar que la carpeta de uploads existe
+      const uploadDir = path.join(__dirname, '../../public/uploads/avatars');
+      console.log('Upload directory:', uploadDir);
+      console.log('Directory exists:', fs.existsSync(uploadDir));
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+        logger.info('Carpeta de avatars creada durante upload: ' + uploadDir);
+      }
+
       // Obtener usuario actual para eliminar avatar anterior si existe
       const user = await Usuarios.findByPk(req.user.id);
+      console.log('User found:', user ? user.id : 'NO USER');
       
       if (user.avatar) {
         const oldAvatarPath = path.join(__dirname, '../../public', user.avatar);
         if (fs.existsSync(oldAvatarPath)) {
-          fs.unlinkSync(oldAvatarPath);
+          try {
+            fs.unlinkSync(oldAvatarPath);
+            logger.info(`Avatar anterior eliminado: ${oldAvatarPath}`);
+          } catch (err) {
+            logger.error('Error al eliminar avatar anterior: %o', err);
+          }
         }
       }
 
       // Guardar ruta del nuevo avatar (relativa desde /public)
       const avatarPath = `/uploads/avatars/${req.file.filename}`;
+      console.log('Saving avatar path to DB:', avatarPath);
       
       await Usuarios.update(
         { avatar: avatarPath },
         { where: { id: req.user.id } }
       );
 
-      logger.info(`Usuario ${req.user.id} actualizó su foto de perfil`);
+      console.log('Avatar updated successfully in DB');
+      logger.info(`Usuario ${req.user.id} actualizó su foto de perfil: ${req.file.filename}`);
 
       res.json({
         success: true,
@@ -202,7 +229,21 @@ class ProfileController {
         avatar: avatarPath
       });
     } catch (error) {
+      console.error('ERROR in uploadAvatar:', error);
       logger.error('Error al subir avatar: %o', error);
+      
+      // Eliminar el archivo subido si hubo error en la BD
+      if (req.file && req.file.path) {
+        try {
+          const fs = require('fs');
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (err) {
+          logger.error('Error al limpiar archivo después de error: %o', err);
+        }
+      }
+      
       res.status(500).json({
         success: false,
         message: error.message || 'Error al subir la foto de perfil'
