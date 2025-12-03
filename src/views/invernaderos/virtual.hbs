@@ -55,7 +55,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Temperatura</p>
                 <div class="flex items-baseline gap-2">
-                    <span class="text-4xl font-bold text-gray-900 dark:text-white">{{#if invernadero.temp_actual}}{{invernadero.temp_actual}}{{else}}--{{/if}}</span>
+                    <span id="mainTemp" class="text-4xl font-bold text-gray-900 dark:text-white">{{#if invernadero.temp_actual}}{{invernadero.temp_actual}}{{else}}--{{/if}}</span>
                     <span class="text-gray-500 dark:text-gray-400 text-sm">°C</span>
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Último ajuste registrado</p>
@@ -63,7 +63,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
                 <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Humedad</p>
                 <div class="flex items-baseline gap-2">
-                    <span class="text-4xl font-bold text-gray-900 dark:text-white">{{#if invernadero.hum_actual}}{{invernadero.hum_actual}}{{else}}--{{/if}}</span>
+                    <span id="mainHum" class="text-4xl font-bold text-gray-900 dark:text-white">{{#if invernadero.hum_actual}}{{invernadero.hum_actual}}{{else}}--{{/if}}</span>
                     <span class="text-gray-500 dark:text-gray-400 text-sm">%</span>
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Sensores ambientales</p>
@@ -793,6 +793,13 @@
                     const result = await response.json();
                     if (result.success && result.data) {
                         const { weather, sensors } = result.data;
+                        
+                        // Actualizar valores en pantalla
+                        const tempEl = document.getElementById('mainTemp');
+                        const humEl = document.getElementById('mainHum');
+                        if (tempEl) tempEl.textContent = sensors.temperature;
+                        if (humEl) humEl.textContent = sensors.humidity;
+
                         applyEnvironment({
                             isRaining: weather.isRaining,
                             isDaytime: weather.isDaytime,
@@ -802,6 +809,33 @@
                     }
                 } catch (error) {
                     console.warn('Error al cargar datos de entorno:', error);
+                }
+            }
+
+            function updateMainStats() {
+                let totalTemp = 0, countTemp = 0;
+                let totalHum = 0, countHum = 0;
+
+                sensorState.forEach(sensor => {
+                    if (sensor.ultimaLectura != null) {
+                        if (sensor.tipo === 'temperatura') {
+                            totalTemp += sensor.ultimaLectura;
+                            countTemp++;
+                        } else if (sensor.tipo === 'humedad_ambiente') {
+                            totalHum += sensor.ultimaLectura;
+                            countHum++;
+                        }
+                    }
+                });
+
+                const tempEl = document.getElementById('mainTemp');
+                const humEl = document.getElementById('mainHum');
+
+                if (tempEl && countTemp > 0) {
+                    tempEl.textContent = (totalTemp / countTemp).toFixed(2);
+                }
+                if (humEl && countHum > 0) {
+                    humEl.textContent = (totalHum / countHum).toFixed(2);
                 }
             }
 
@@ -821,6 +855,7 @@
                     if (requiresRefresh) {
                         refreshMarkers();
                         refreshSensorCards();
+                        updateMainStats();
                     }
                 });
 

@@ -1,4 +1,5 @@
 const { Usuarios, Dispositivos, Sensores, Lecturas } = require('../models');
+const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 const logger = require('../config/logger');
 
@@ -6,6 +7,10 @@ class ProfileController {
   // Mostrar perfil del usuario
   static async index(req, res) {
     try {
+      if (!req.user || !req.user.id) {
+         return res.redirect('/auth/login');
+      }
+
       const user = await Usuarios.findByPk(req.user.id, {
         attributes: { exclude: ['password'] }
       });
@@ -16,25 +21,31 @@ class ProfileController {
         });
       }
 
-      // Obtener estadísticas del usuario
+      // Obtener estadísticas de forma eficiente
       const devices = await Dispositivos.findAll({
-        where: { usuario_id: req.user.id }
+        where: { usuario_id: req.user.id },
+        attributes: ['id']
       });
-
+      
+      const deviceIds = devices.map(d => d.id);
       let totalSensors = 0;
       let totalReadings = 0;
 
-      for (const device of devices) {
+      if (deviceIds.length > 0) {
+        // Contar sensores
         const sensors = await Sensores.findAll({
-          where: { dispositivo_id: device.id }
+            where: { dispositivo_id: { [Op.in]: deviceIds } },
+            attributes: ['id']
         });
-        totalSensors += sensors.length;
-
-        for (const sensor of sensors) {
-          const readings = await Lecturas.count({
-            where: { sensor_id: sensor.id }
-          });
-          totalReadings += readings;
+        totalSensors = sensors.length;
+        
+        const sensorIds = sensors.map(s => s.id);
+        
+        // Contar lecturas (solo si hay sensores)
+        if (sensorIds.length > 0) {
+            totalReadings = await Lecturas.count({
+                where: { sensor_id: { [Op.in]: sensorIds } }
+            });
         }
       }
 

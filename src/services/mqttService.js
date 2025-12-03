@@ -419,7 +419,10 @@ class MQTTService {
       if (!invernadero || !invernadero.planta) return;
 
       const planta = invernadero.planta;
-      const usuario = await Usuarios.findByPk(device.usuario_id);
+      // Fetch only necessary fields to avoid errors with missing columns (like reset_token)
+      const usuario = await Usuarios.findByPk(device.usuario_id, {
+        attributes: ['id', 'email', 'nombre']
+      });
 
       // 2. Verificar Humedad Suelo
       if (sensor.tipo === 'humedad_suelo' && planta.rango_humedad) {

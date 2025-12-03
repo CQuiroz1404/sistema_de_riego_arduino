@@ -92,7 +92,23 @@ class InvernaderoController {
           {
             model: Dispositivos,
             as: 'dispositivos',
-            attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado', 'ultima_conexion']
+            include: [
+              {
+                model: Sensores,
+                required: false,
+                include: [
+                  {
+                    model: Lecturas,
+                    limit: 1,
+                    order: [['fecha_lectura', 'DESC']]
+                  }
+                ]
+              },
+              {
+                model: Actuadores,
+                required: false
+              }
+            ]
           }
         ]
       });
@@ -102,6 +118,41 @@ class InvernaderoController {
       }
 
       const invernaderoJson = invernadero.toJSON();
+
+      // Calcular promedios de sensores (Temperatura y Humedad Ambiente)
+      let totalTemp = 0;
+      let countTemp = 0;
+      let totalHum = 0;
+      let countHum = 0;
+
+      if (invernaderoJson.dispositivos) {
+        invernaderoJson.dispositivos.forEach(device => {
+          if (device.sensores) {
+            device.sensores.forEach(sensor => {
+              if (sensor.lecturas && sensor.lecturas.length > 0) {
+                const valor = parseFloat(sensor.lecturas[0].valor);
+                
+                if (sensor.tipo === 'temperatura') {
+                  totalTemp += valor;
+                  countTemp++;
+                } else if (sensor.tipo === 'humedad_ambiente') {
+                  totalHum += valor;
+                  countHum++;
+                }
+              }
+            });
+          }
+        });
+      }
+
+      // Si hay lecturas, usar el promedio. Si no, mantener el valor de la BD (o 0)
+      if (countTemp > 0) {
+        invernaderoJson.temp_actual = (totalTemp / countTemp).toFixed(2);
+      }
+      
+      if (countHum > 0) {
+        invernaderoJson.hum_actual = (totalHum / countHum).toFixed(2);
+      }
 
       res.render('invernaderos/show', { 
         invernadero: invernaderoJson,
@@ -177,6 +228,33 @@ class InvernaderoController {
             dispositivo: deviceMap[sensorPlain.dispositivo_id] || null
           };
         });
+
+        // Calcular promedios para la vista inicial
+        let totalTemp = 0;
+        let countTemp = 0;
+        let totalHum = 0;
+        let countHum = 0;
+
+        sensores.forEach(sensor => {
+            const lectura = lastReadingBySensor[sensor.id];
+            if (lectura) {
+                const valor = parseFloat(lectura.valor);
+                if (sensor.tipo === 'temperatura') {
+                    totalTemp += valor;
+                    countTemp++;
+                } else if (sensor.tipo === 'humedad_ambiente') {
+                    totalHum += valor;
+                    countHum++;
+                }
+            }
+        });
+
+        if (countTemp > 0) {
+            invernaderoJson.temp_actual = (totalTemp / countTemp).toFixed(2);
+        }
+        if (countHum > 0) {
+            invernaderoJson.hum_actual = (totalHum / countHum).toFixed(2);
+        }
       }
 
       res.render('invernaderos/virtual', {
@@ -344,9 +422,62 @@ class InvernaderoController {
       const { id } = req.params;
       const weatherService = require('../services/weatherService');
 
-      const invernadero = await Invernaderos.findByPk(id);
+      // 1. Buscar invernadero con dispositivos, sensores y Ãºltima lectura
+      const invernadero = await Invernaderos.findByPk(id, {
+        include: [{
+          model: Dispositivos,
+          as: 'dispositivos',
+          include: [{
+            model: Sensores,
+            required: false,
+            include: [{
+              model: Lecturas,
+              limit: 1,
+              order: [['fecha_lectura', 'DESC']]
+            }]
+          }]
+        }]
+      });
+
       if (!invernadero) {
         return res.status(404).json({ success: false, message: 'Invernadero no encontrado' });
+      }
+
+      // 2. Calcular promedios
+      let totalTemp = 0;
+      let countTemp = 0;
+      let totalHum = 0;
+      let countHum = 0;
+
+      if (invernadero.dispositivos) {
+        invernadero.dispositivos.forEach(device => {
+          if (device.sensores) {
+            device.sensores.forEach(sensor => {
+              if (sensor.lecturas && sensor.lecturas.length > 0) {
+                const valor = parseFloat(sensor.lecturas[0].valor);
+                
+                if (sensor.tipo === 'temperatura') {
+                  totalTemp += valor;
+                  countTemp++;
+                } else if (sensor.tipo === 'humedad_ambiente') {
+                  totalHum += valor;
+                  countHum++;
+                }
+              }
+            });
+          }
+        });
+      }
+
+      let currentTemp = invernadero.temp_actual || 20;
+      let currentHum = invernadero.hum_actual || 50;
+
+      if (countTemp > 0) {
+        currentTemp = parseFloat((totalTemp / countTemp).toFixed(2));
+      }
+      
+      if (countHum > 0) {
+        currentHum = parseFloat((totalHum / countHum).toFixed(2));
       }
 
       // Obtener pronÃ³stico del clima (por defecto Santiago, Chile)
@@ -357,7 +488,6 @@ class InvernaderoController {
       let isRaining = false;
       let rainIntensity = 0;
       let cloudCover = 0;
-      let currentTemp = invernadero.temp_actual || 20;
 
       if (forecast && forecast.list && forecast.list.length > 0) {
         const current = forecast.list[0];
@@ -390,7 +520,7 @@ class InvernaderoController {
           },
           sensors: {
             temperature: currentTemp,
-            humidity: invernadero.hum_actual || 50,
+            humidity: currentHum,
             heatLevel
           },
           timestamp: new Date().toISOString()

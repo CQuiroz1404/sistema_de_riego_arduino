@@ -127,9 +127,9 @@ const ScheduleController = {
             const { greenhouseId } = req.params;
             const calendario = await Calendario.findAll({
                 where: { invernadero_id: greenhouseId },
-                include: [
-                    { model: Semanas, as: 'semana' }
-                ],
+                // include: [
+                //     { model: Semanas, as: 'semana' }
+                // ],
                 order: [
                     ['semana_id', 'ASC'],
                     ['hora_inicial', 'ASC']
