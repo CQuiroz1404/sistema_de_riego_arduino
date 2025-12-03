@@ -28,9 +28,12 @@ CREATE TABLE IF NOT EXISTS usuarios (
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ultima_conexion TIMESTAMP NULL,
+    reset_token VARCHAR(255) NULL COMMENT 'Token para recuperación de contraseña',
+    reset_token_expiry DATETIME NULL COMMENT 'Fecha de expiración del token (1 hora)',
     INDEX idx_email (email),
     INDEX idx_rol (rol),
-    INDEX idx_rut (rut)
+    INDEX idx_rut (rut),
+    INDEX idx_reset_token (reset_token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
