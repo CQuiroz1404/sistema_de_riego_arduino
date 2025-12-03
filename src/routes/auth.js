@@ -6,6 +6,8 @@ const { verifyToken } = require('../middleware/auth');
 // Rutas públicas
 router.get('/login', AuthController.showLogin);
 router.get('/register', AuthController.showRegister);
+router.get('/forgot-password', AuthController.showForgotPassword);
+router.get('/reset-password', AuthController.showResetPassword);
 
 // Rutas con rate limiting para prevenir bruteforce
 const rateLimit = require('express-rate-limit');
@@ -18,6 +20,8 @@ const authLimiter = rateLimit({
 
 router.post('/login', authLimiter, AuthController.login);
 router.post('/register', authLimiter, AuthController.register);
+router.post('/forgot-password', authLimiter, AuthController.forgotPassword);
+router.post('/reset-password', authLimiter, AuthController.resetPassword);
 
 // Rutas protegidas
 router.post('/logout', verifyToken, AuthController.logout);
