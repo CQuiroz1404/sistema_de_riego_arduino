@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { Calendario, Invernaderos, Usuarios, Dispositivos } = require('../models');
+const { Calendario, Invernaderos, Usuarios, Dispositivos, Alertas } = require('../models');
 const emailService = require('./emailService');
 const logger = require('../config/logger');
 
@@ -34,6 +34,7 @@ class SchedulerService {
     // Ejecutar cada minuto (cron: minuto hora día mes día_semana)
     this.task = cron.schedule('* * * * *', async () => {
       await this.checkSchedule();
+      await this.checkDeviceHealth();
     });
 
     logger.info('✅ Scheduler de riego iniciado - Verificando calendario cada minuto');
@@ -232,6 +233,77 @@ class SchedulerService {
       if (timestamp.getTime() < twoHoursAgo) {
         this.lastNotifications.delete(key);
       }
+    }
+  }
+
+  /**
+   * Verifica la salud de los dispositivos (Heartbeat)
+   * Si un dispositivo no se ha conectado en 5 minutos, se marca como offline
+   */
+  async checkDeviceHealth() {
+    try {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const { Op } = require('sequelize');
+
+      // Buscar dispositivos activos que no se han conectado recientemente
+      const offlineDevices = await Dispositivos.findAll({
+        where: {
+          estado: 'activo',
+          ultima_conexion: {
+            [Op.lt]: fiveMinutesAgo
+          }
+        },
+        include: [{ model: Usuarios, as: 'usuario' }] // Asegúrate de que el alias 'usuario' sea correcto en tu modelo
+      });
+
+      for (const device of offlineDevices) {
+        logger.warn(`⚠️ Dispositivo ${device.nombre} (ID: ${device.id}) parece estar OFFLINE. Última conexión: ${device.ultima_conexion}`);
+
+        // 1. Crear Alerta en BD
+        // Verificar si ya existe una alerta reciente no leída para no spammear (ej: en la última hora)
+        const existingAlert = await Alertas.findOne({
+            where: {
+                dispositivo_id: device.id,
+                tipo: 'dispositivo_offline',
+                leida: false,
+                fecha_creacion: { [Op.gt]: new Date(Date.now() - 60 * 60 * 1000) } 
+            }
+        });
+
+        if (!existingAlert) {
+            await Alertas.create({
+                dispositivo_id: device.id,
+                tipo: 'dispositivo_offline',
+                severidad: 'alta',
+                mensaje: `El dispositivo ${device.nombre} ha perdido conexión. Última actividad: ${device.ultima_conexion ? device.ultima_conexion.toLocaleString() : 'Nunca'}`,
+                leida: false
+            });
+
+            // 2. Notificar por Email
+            if (device.usuario && device.usuario.email) {
+                await emailService.sendAlert(
+                    device.usuario.email,
+                    `⚠️ Dispositivo Desconectado: ${device.nombre}`,
+                    `El sistema ha detectado que el dispositivo <strong>${device.nombre}</strong> ha dejado de comunicarse.<br>
+                     <strong>Última conexión:</strong> ${device.ultima_conexion ? device.ultima_conexion.toLocaleString() : 'Desconocida'}<br>
+                     Por favor verifique que el dispositivo esté encendido y conectado a la red WiFi.`,
+                    'critical'
+                );
+            }
+
+            // 3. Notificar por WebSocket
+            if (this.io) {
+                this.io.emit('device:offline', {
+                    id: device.id,
+                    nombre: device.nombre,
+                    mensaje: `Dispositivo ${device.nombre} desconectado`
+                });
+            }
+        }
+      }
+
+    } catch (error) {
+      logger.error('Error en checkDeviceHealth:', error);
     }
   }
 
