@@ -8,10 +8,10 @@ const {
   Dispositivos,
   Sensores,
   Lecturas,
-  Actuadores,
-  LogsSistema
+  Actuadores
 } = require('../models');
-const mqttService = require('../services/mqttService');
+const logger = require('../config/logger');
+
 
 class InvernaderoController {
   // Listar todos los invernaderos
@@ -92,23 +92,14 @@ class InvernaderoController {
           {
             model: Dispositivos,
             as: 'dispositivos',
-            include: [
-              {
-                model: Sensores,
-                required: false,
-                include: [
-                  {
-                    model: Lecturas,
-                    limit: 1,
-                    order: [['fecha_lectura', 'DESC']]
-                  }
-                ]
-              },
-              {
-                model: Actuadores,
-                required: false
-              }
-            ]
+
+            attributes: ['id', 'nombre', 'ubicacion', 'descripcion', 'estado', 'ultima_conexion'],
+            include: [{
+              model: Actuadores,
+              attributes: ['id', 'nombre', 'tipo', 'estado', 'pin'],
+              where: { tipo: 'bomba' },
+              required: false
+            }]
           }
         ]
       });
@@ -118,6 +109,22 @@ class InvernaderoController {
       }
 
       const invernaderoJson = invernadero.toJSON();
+      
+      // Buscar el primer actuador tipo bomba para el botón de riego manual
+      let bombaActual = null;
+      if (invernaderoJson.dispositivos && invernaderoJson.dispositivos.length > 0) {
+        for (const dispositivo of invernaderoJson.dispositivos) {
+          if (dispositivo.actuadores && dispositivo.actuadores.length > 0) {
+            bombaActual = dispositivo.actuadores[0];
+            logger.info(`Bomba encontrada para invernadero ${id}: ID=${bombaActual.id}, Estado=${bombaActual.estado}`);
+            break;
+          }
+        }
+      }
+      
+      if (!bombaActual) {
+        logger.warn(`No se encontró bomba para invernadero ${id}. Dispositivos: ${invernaderoJson.dispositivos?.length || 0}`);
+      }
 
       // Calcular promedios de sensores (Temperatura y Humedad Ambiente)
       let totalTemp = 0;
@@ -156,6 +163,7 @@ class InvernaderoController {
 
       res.render('invernaderos/show', { 
         invernadero: invernaderoJson,
+        bombaActual: bombaActual,
         user: req.user 
       });
     } catch (error) {
@@ -529,6 +537,44 @@ class InvernaderoController {
     } catch (error) {
       console.error('Error al obtener datos de entorno:', error);
       res.status(500).json({ success: false, message: 'Error al consultar entorno' });
+    }
+  }
+
+  // Obtener actuadores de un invernadero (para riego manual)
+  static async getActuators(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const invernadero = await Invernaderos.findByPk(id, {
+        include: [{
+          model: Dispositivos,
+          as: 'dispositivos',
+          include: [{
+            model: Actuadores,
+            where: { activo: true },
+            required: false
+          }]
+        }]
+      });
+
+      if (!invernadero) {
+        return res.status(404).json({ error: 'Invernadero no encontrado' });
+      }
+
+      // Extraer todos los actuadores de todos los dispositivos
+      const actuadores = [];
+      if (invernadero.dispositivos) {
+        invernadero.dispositivos.forEach(dispositivo => {
+          if (dispositivo.actuadores) {
+            actuadores.push(...dispositivo.actuadores);
+          }
+        });
+      }
+
+      return res.json(actuadores);
+    } catch (error) {
+      logger.error('Error al obtener actuadores del invernadero: %o', error);
+      return res.status(500).json({ error: 'Error al obtener actuadores' });
     }
   }
 }

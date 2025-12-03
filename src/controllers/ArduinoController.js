@@ -235,6 +235,28 @@ class ArduinoController {
         });
       }
 
+      // Verificar si el dispositivo está online (última conexión en los últimos 5 minutos)
+      const TIMEOUT_MINUTES = 5;
+      const now = new Date();
+      const lastConnection = device.ultima_conexion ? new Date(device.ultima_conexion) : null;
+      const minutesSinceLastConnection = lastConnection 
+        ? Math.floor((now - lastConnection) / 1000 / 60) 
+        : 9999;
+
+      if (!lastConnection || minutesSinceLastConnection > TIMEOUT_MINUTES) {
+        return res.status(503).json({
+          success: false,
+          message: `⚠️ Dispositivo "${device.nombre}" no está conectado`,
+          details: lastConnection 
+            ? `Última conexión hace ${minutesSinceLastConnection} minutos`
+            : 'Nunca se ha conectado',
+          offline: true,
+          last_connection: lastConnection,
+          device_name: device.nombre,
+          suggestion: 'Verifica que el Arduino esté encendido y conectado a WiFi'
+        });
+      }
+
       const nuevoEstado = accion === 'encender' ? 'encendido' : 'apagado';
 
       // Si se enciende manualmente, desactivar calendario activo para ese invernadero
@@ -268,28 +290,38 @@ class ArduinoController {
       }
 
       // Usar servicio MQTT para controlar el actuador
-      await mqttService.controlActuator(
-        actuator.dispositivo_id,
-        actuator_id,
-        nuevoEstado,
-        'manual',
-        req.user.id
-      );
+      try {
+        await mqttService.controlActuator(
+          actuator.dispositivo_id,
+          actuator_id,
+          nuevoEstado,
+          'manual',
+          req.user.id
+        );
 
-      logger.info(`[irrigation] Control manual: ${actuator.nombre} ${accion} (Disp: ${actuator.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
+        logger.info(`[irrigation] Control manual: ${actuator.nombre} ${accion} (Disp: ${actuator.dispositivo_id}, User: ${req.user.id}, IP: ${req.ip})`);
 
-      res.json({
-        success: true,
-        message: `Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} exitosamente`,
-        estado: nuevoEstado,
-        calendario_desactivado: accion === 'encender' && device.invernadero_id
-      });
+        res.json({
+          success: true,
+          message: `Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} exitosamente`,
+          estado: nuevoEstado,
+          calendario_desactivado: accion === 'encender' && device.invernadero_id
+        });
+      } catch (mqttError) {
+        logger.error(`Error en mqttService.controlActuator: %o`, mqttError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error al enviar comando MQTT al dispositivo',
+          details: mqttError.message
+        });
+      }
 
     } catch (error) {
-      console.error('Error al controlar actuador:', error);
+      logger.error('Error al controlar actuador: %o', error);
       res.status(500).json({
         success: false,
-        message: 'Error al controlar actuador'
+        message: 'Error al controlar actuador',
+        details: error.message
       });
     }
   }
@@ -483,6 +515,100 @@ class ArduinoController {
       res.status(500).json({
         success: false,
         message: 'Error al actualizar umbrales'
+      });
+    }
+  }
+
+  // Endpoint de AUTO-SINCRONIZACIÓN
+  static async syncDevice(req, res) {
+    try {
+      const apiKey = req.apiKey;
+
+      const device = await Dispositivos.findOne({ 
+        where: { api_key: apiKey },
+        include: [
+          { model: Sensores, where: { activo: true }, required: false },
+          { model: Actuadores, where: { activo: true }, required: false }
+        ]
+      });
+
+      if (!device) {
+        return res.status(401).json({
+          success: false,
+          message: 'API Key inválida'
+        });
+      }
+
+      // Actualizar última conexión
+      await device.update({ ultima_conexion: new Date() });
+
+      // Obtener configuración de riego para umbrales
+      const config = await ConfiguracionesRiego.findOne({
+        where: { dispositivo_id: device.id, activo: true }
+      });
+
+      // Mapear sensores por tipo y pin (para que Arduino los identifique)
+      const sensoresMap = {};
+      if (device.Sensores) {
+        device.Sensores.forEach(sensor => {
+          const key = `${sensor.pin}_${sensor.tipo}`;
+          sensoresMap[key] = {
+            sensor_id: sensor.id,
+            nombre: sensor.nombre,
+            pin: sensor.pin,
+            tipo: sensor.tipo,
+            unidad: sensor.unidad,
+            valor_minimo: sensor.valor_minimo,
+            valor_maximo: sensor.valor_maximo
+          };
+        });
+      }
+
+      // Mapear actuadores por pin
+      const actuadoresMap = {};
+      if (device.Actuadores) {
+        device.Actuadores.forEach(actuador => {
+          actuadoresMap[actuador.pin] = {
+            actuador_id: actuador.id,
+            nombre: actuador.nombre,
+            pin: actuador.pin,
+            tipo: actuador.tipo,
+            estado: actuador.estado
+          };
+        });
+      }
+
+      // Configuración de riego automático
+      const configuracion = config ? {
+        humedad_min: config.umbral_inferior,
+        humedad_max: config.umbral_superior,
+        modo: config.modo
+      } : {
+        humedad_min: 55.0,  // Defaults
+        humedad_max: 70.0,
+        modo: 'automatico'
+      };
+
+      logger.info(`🔄 Sincronización de ${device.nombre}: ${Object.keys(sensoresMap).length} sensores, ${Object.keys(actuadoresMap).length} actuadores`);
+
+      res.json({
+        success: true,
+        device: {
+          id: device.id,
+          nombre: device.nombre,
+          estado: device.estado
+        },
+        sensores: sensoresMap,
+        actuadores: actuadoresMap,
+        configuracion: configuracion,
+        timestamp: new Date()
+      });
+
+    } catch (error) {
+      logger.error('Error en sincronización: %o', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al sincronizar dispositivo'
       });
     }
   }

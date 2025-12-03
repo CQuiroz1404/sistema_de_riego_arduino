@@ -138,8 +138,10 @@ CREATE TABLE IF NOT EXISTS eventos_riego (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     dispositivo_id INT NOT NULL,
     actuador_id INT NOT NULL,
+    tipo_evento VARCHAR(50) NOT NULL COMMENT 'inicio_riego, fin_riego, error, etc',
     accion ENUM('inicio', 'fin') NOT NULL,
     modo ENUM('manual', 'automatico', 'programado') NOT NULL,
+    detalle TEXT NULL COMMENT 'Información adicional del evento',
     duracion_segundos INT,
     usuario_id INT NULL COMMENT 'NULL si fue automático',
     fecha_evento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -148,7 +150,8 @@ CREATE TABLE IF NOT EXISTS eventos_riego (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
     INDEX idx_dispositivo_id (dispositivo_id),
     INDEX idx_fecha_evento (fecha_evento),
-    INDEX idx_modo (modo)
+    INDEX idx_modo (modo),
+    INDEX idx_tipo_evento (tipo_evento)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Logs del sistema

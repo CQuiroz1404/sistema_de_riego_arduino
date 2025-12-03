@@ -196,6 +196,42 @@ Extensive docs in `docs/` - refer users to:
 
 ## 🔧 Estado de Funcionalidades Implementadas vs. Pendientes
 
+### 🎯 **NUEVA FUNCIONALIDAD: AUTO-SINCRONIZACIÓN (v2.0)**
+
+#### **Sistema de Configuración Automática**
+- **Estado**: ✅ **IMPLEMENTADO Y FUNCIONAL**
+- **Archivo**: `arduino/sistema_riego_mqtt_autosync.ino`
+- **Documentación**: `docs/AUTO_SYNC.md`
+
+**Características:**
+- ✅ Arduino solo necesita API_KEY y WiFi (sin IDs manuales)
+- ✅ Endpoint `/api/arduino/sync` devuelve mapeo completo de sensores/actuadores
+- ✅ Umbrales se actualizan desde web sin re-flashear
+- ✅ Re-sincronización automática cada 5 minutos
+- ✅ Auto-provisioning mejorado (crea sensores si no existen)
+- ✅ Sin duplicados en base de datos (usa pin+tipo como clave única)
+- ✅ Confirmación visual en LCD y Serial Monitor
+
+**Flujo de sincronización:**
+```
+1. Arduino conecta → GET /api/arduino/sync + API_KEY
+2. Servidor busca dispositivo y sus sensores/actuadores
+3. Si sensores no existen → Auto-provisioning los crea
+4. Respuesta JSON con mapeo: {"D2_temperatura": {"sensor_id": 123}, ...}
+5. Arduino guarda IDs en memoria: sensor_temp_id = 123
+6. Envío de datos incluye IDs: {"sensor_id": 123, "valor": 24}
+7. Servidor guarda lectura sin crear duplicados
+8. Re-sincronización cada 5 min actualiza umbrales desde web
+```
+
+**Ventajas para usuarios:**
+- Configuración inicial: 5 minutos (vs. 30 minutos antes)
+- Cambio de umbrales: Desde web (vs. re-flashear código)
+- Sin errores de IDs incorrectos o duplicados
+- Experiencia no-técnica (solo copiar API_KEY)
+
+---
+
 ### ✅ **FUNCIONALIDADES IMPLEMENTADAS Y FUNCIONANDO**
 
 #### 1. **Riego Manual desde Web → Arduino**
@@ -271,6 +307,20 @@ Extensive docs in `docs/` - refer users to:
 - **Falta implementar**: Interfaz web para cambiar entre modos explícitamente
 
 ### ⚠️ **FUNCIONALIDADES PENDIENTES / INCOMPLETAS**
+
+#### 0. **RESUELTO: IDs de Sensores Automáticos** ✅ **IMPLEMENTADO**
+- **Solución aplicada**: Sistema de auto-sincronización (v2.0)
+- **Archivo**: `sistema_riego_mqtt_autosync.ino` + endpoint `/api/arduino/sync`
+- **Cómo funciona**:
+  - Arduino llama a `/api/arduino/sync` al iniciar
+  - Servidor devuelve IDs de sensores/actuadores mapeados por pin+tipo
+  - Arduino guarda IDs en memoria y los usa en todos los envíos
+  - Re-sincronización cada 5 min para obtener cambios de configuración
+- **Ventajas**:
+  - ✅ Usuario solo configura API_KEY y WiFi
+  - ✅ Sin duplicados en BD (clave única: pin+tipo)
+  - ✅ Umbrales actualizables desde web sin re-flashear
+  - ✅ Auto-provisioning crea sensores si no existen
 
 #### 1. **Calendario de Riego → Arduino** ❌ **NO FUNCIONA**
 - **Estado actual**:

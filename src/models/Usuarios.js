@@ -12,8 +12,9 @@ const Usuarios = sequelize.define('usuarios', {
   activo: { type: DataTypes.BOOLEAN, defaultValue: true },
   fecha_creacion: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   ultima_conexion: { type: DataTypes.DATE, allowNull: true }
-  // reset_token: { type: DataTypes.STRING(255), allowNull: true },
-  // reset_token_expiry: { type: DataTypes.DATE, allowNull: true }
+  // ⚠️ reset_token y reset_token_expiry: Solo necesarios si implementas recuperación de contraseña
+  // Descomentarlos cuando necesites esa funcionalidad
+
 }, { timestamps: false, freezeTableName: true });
 
 module.exports = Usuarios;

@@ -18,5 +18,6 @@ router.delete('/:id', DeviceController.delete);
 // API JSON
 router.get('/api/list', DeviceController.apiList);
 router.get('/:id/status', DeviceController.checkStatus);
+router.get('/api/:id/actuators', DeviceController.getActuators);
 
 module.exports = router;

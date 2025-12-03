@@ -38,25 +38,59 @@ function editDevice(deviceId) {
 // Control de actuador
 async function controlActuator(actuatorId, action) {
     try {
-        const result = await apiRequest('/api/arduino/control', {
+        const response = await fetch('/api/arduino/control', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
                 actuator_id: actuatorId,
                 accion: action
             })
         });
 
+        const result = await response.json();
+
         if (result.success) {
-            showNotification(`Actuador ${action === 'encender' ? 'encendido' : 'apagado'} exitosamente`, 'success');
+            showNotification(`✅ Actuador ${action === 'encender' ? 'encendido' : 'apagado'} exitosamente`, 'success');
+            
+            // Si el calendario fue desactivado, notificar
+            if (result.calendario_desactivado) {
+                setTimeout(() => {
+                    showNotification('📅 Calendario de riego automático desactivado', 'info');
+                }, 1500);
+            }
+            
             setTimeout(() => {
                 window.location.reload();
-            }, 1000);
+            }, 2000);
+        } else if (result.offline) {
+            // Dispositivo offline
+            showNotification(`⚠️ ${result.message}`, 'warning');
+            if (result.details) {
+                setTimeout(() => {
+                    showNotification(`ℹ️ ${result.details}`, 'info');
+                }, 1000);
+            }
+            if (result.suggestion) {
+                setTimeout(() => {
+                    showNotification(`💡 ${result.suggestion}`, 'info');
+                }, 2000);
+            }
         } else {
-            showNotification((result.data && result.data.message) || 'Error al controlar actuador', 'error');
+            // Otros errores
+            const errorMsg = result.message || 'Error al controlar actuador';
+            showNotification(`❌ ${errorMsg}`, 'error');
+            
+            if (result.details) {
+                setTimeout(() => {
+                    showNotification(`ℹ️ ${result.details}`, 'info');
+                }, 1000);
+            }
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Error al controlar actuador', 'error');
+        showNotification('❌ Error de conexión. Verifica tu red e intenta nuevamente.', 'error');
     }
 }
 

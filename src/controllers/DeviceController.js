@@ -354,6 +354,36 @@ class DeviceController {
       });
     }
   }
+  
+  /**
+   * API: Obtener actuadores de un dispositivo
+   */
+  static async getActuators(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const device = await Dispositivos.findByPk(id);
+      if (!device) {
+        return res.status(404).json({ error: 'Dispositivo no encontrado' });
+      }
+      
+      // Verificar permisos
+      if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
+        return res.status(403).json({ error: 'No tienes permisos para ver este dispositivo' });
+      }
+      
+      const actuadores = await Actuadores.findAll({
+        where: { dispositivo_id: id },
+        attributes: ['id', 'nombre', 'tipo', 'pin', 'estado', 'descripcion'],
+        order: [['nombre', 'ASC']]
+      });
+      
+      return res.json(actuadores);
+    } catch (error) {
+      logger.error('Error al obtener actuadores: %o', error);
+      return res.status(500).json({ error: 'Error al obtener actuadores' });
+    }
+  }
 }
 
 module.exports = DeviceController;

@@ -601,11 +601,13 @@ class MQTTService {
       // Actualizar estado en base de datos
       await Actuadores.update({ estado: estado }, { where: { id: actuatorId } });
 
-      // Registrar evento
+      // Registrar evento con todos los campos obligatorios
       await EventosRiego.create({
         dispositivo_id: deviceId,
         actuador_id: actuatorId,
         tipo_evento: estado === 'encendido' ? 'inicio_riego' : 'fin_riego',
+        accion: estado === 'encendido' ? 'inicio' : 'fin',  // ENUM: 'inicio' o 'fin'
+        modo: modo,      // Campo obligatorio
         detalle: `Riego ${modo} ${estado}`,
         usuario_id: userId
       });
@@ -633,12 +635,14 @@ class MQTTService {
         this.client.publish(topic, payload, { qos: 1 }, (err) => {
           if (err) {
             logger.error('Error al publicar comando: %o', err);
+            throw new Error('Error al enviar comando MQTT al dispositivo');
           } else {
             logger.info(`🎛️  Comando enviado a ${device.nombre}: Actuador ${actuator.nombre} -> ${estado}`);
           }
         });
       } else {
         logger.warn('⚠️  Cliente MQTT no conectado, no se pudo enviar comando');
+        throw new Error('🔌 Broker MQTT no está conectado. Intente nuevamente en unos segundos.');
       }
 
     } catch (error) {
