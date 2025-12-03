@@ -11,6 +11,7 @@ const Calendario = sequelize.define('calendario', {
   hora_inicial: { type: DataTypes.TIME },
   usuario_id: { type: DataTypes.INTEGER },
   hora_final: { type: DataTypes.TIME },
+  duracion_minutos: { type: DataTypes.INTEGER, defaultValue: 10, comment: 'Duración del riego en minutos' },
   estado: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, { timestamps: false, freezeTableName: true });
 

@@ -162,6 +162,11 @@ const hbsEngine = expressHbs.create({
   defaultLayout: 'main',
   layoutsDir: path.join(__dirname, 'src', 'views', 'layouts'),
   partialsDir: path.join(__dirname, 'src', 'views', 'partials'),
+  // Permitir acceso a propiedades no-own (necesario para modelos Sequelize)
+  runtimeOptions: {
+    allowProtoPropertiesByDefault: true,
+    allowProtoMethodsByDefault: true
+  },
   helpers: {
     eq: function(a, b) { return a === b; },
     gt: function(a, b) { return a > b; },

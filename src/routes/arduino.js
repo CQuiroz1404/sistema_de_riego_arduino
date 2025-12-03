@@ -11,6 +11,12 @@ router.get('/ping', verifyApiKey, ArduinoController.ping);
 // Rutas para control manual (requieren autenticación de usuario)
 router.post('/control', verifyToken, ArduinoController.controlActuator);
 
+// Ruta de EMERGENCIA - Detener todos los actuadores
+router.post('/emergency-stop', verifyToken, ArduinoController.emergencyStop);
+
+// Ruta para actualizar umbrales de humedad remotamente
+router.post('/update-thresholds', verifyToken, ArduinoController.updateThresholds);
+
 // Ruta para obtener sensores actualizados (para dashboard en tiempo real)
 router.get('/devices/:dispositivo_id/sensores', verifyToken, ArduinoController.getSensoresActualizados);
 

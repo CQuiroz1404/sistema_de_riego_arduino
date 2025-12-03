@@ -237,6 +237,36 @@ class ArduinoController {
 
       const nuevoEstado = accion === 'encender' ? 'encendido' : 'apagado';
 
+      // Si se enciende manualmente, desactivar calendario activo para ese invernadero
+      if (accion === 'encender' && device.invernadero_id) {
+        const { Calendario } = require('../models');
+        const eventosDesactivados = await Calendario.update(
+          { estado: false },
+          { 
+            where: { 
+              invernadero_id: device.invernadero_id, 
+              estado: true 
+            } 
+          }
+        );
+        
+        if (eventosDesactivados[0] > 0) {
+          logger.info(`📅 Calendario desactivado para invernadero ${device.invernadero_id} por riego manual (${eventosDesactivados[0]} eventos)`);
+          
+          // Notificar al usuario vía Socket.IO
+          const socketService = require('../services/mqttService');
+          if (socketService.io) {
+            socketService.io.emit('calendar:disabled', {
+              invernadero_id: device.invernadero_id,
+              device_id: device.id,
+              mensaje: 'Calendario desactivado por riego manual',
+              eventos_desactivados: eventosDesactivados[0],
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+
       // Usar servicio MQTT para controlar el actuador
       await mqttService.controlActuator(
         actuator.dispositivo_id,
@@ -251,7 +281,8 @@ class ArduinoController {
       res.json({
         success: true,
         message: `Actuador ${accion === 'encender' ? 'encendido' : 'apagado'} exitosamente`,
-        estado: nuevoEstado
+        estado: nuevoEstado,
+        calendario_desactivado: accion === 'encender' && device.invernadero_id
       });
 
     } catch (error) {
@@ -259,6 +290,199 @@ class ArduinoController {
       res.status(500).json({
         success: false,
         message: 'Error al controlar actuador'
+      });
+    }
+  }
+
+  // Endpoint de EMERGENCIA - Detener TODOS los actuadores
+  static async emergencyStop(req, res) {
+    try {
+      const { device_id } = req.body;
+
+      if (!device_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de dispositivo requerido'
+        });
+      }
+
+      // Verificar permisos
+      const device = await Dispositivos.findByPk(device_id);
+      if (!device) {
+        return res.status(404).json({
+          success: false,
+          message: 'Dispositivo no encontrado'
+        });
+      }
+
+      if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permisos para este dispositivo'
+        });
+      }
+
+      // Obtener todos los actuadores activos
+      const actuadores = await Actuadores.findAll({
+        where: { 
+          dispositivo_id: device_id,
+          activo: true 
+        }
+      });
+
+      if (actuadores.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No hay actuadores activos para detener'
+        });
+      }
+
+      // Apagar todos los actuadores
+      const resultados = [];
+      for (const actuador of actuadores) {
+        try {
+          await mqttService.controlActuator(
+            device_id,
+            actuador.id,
+            'apagado',
+            'emergencia',
+            req.user.id
+          );
+          resultados.push({ id: actuador.id, nombre: actuador.nombre, resultado: 'apagado' });
+        } catch (error) {
+          logger.error(`Error apagando actuador ${actuador.id}: %o`, error);
+          resultados.push({ id: actuador.id, nombre: actuador.nombre, resultado: 'error' });
+        }
+      }
+
+      logger.warn(`🚨 EMERGENCIA: Todos los actuadores apagados en ${device.nombre} (User: ${req.user.id})`);
+
+      // Desactivar calendario también
+      if (device.invernadero_id) {
+        const { Calendario } = require('../models');
+        await Calendario.update(
+          { estado: false },
+          { where: { invernadero_id: device.invernadero_id } }
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Parada de emergencia ejecutada',
+        actuadores_detenidos: resultados.length,
+        detalles: resultados
+      });
+
+    } catch (error) {
+      logger.error('Error en parada de emergencia: %o', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error en parada de emergencia'
+      });
+    }
+  }
+
+  // Endpoint para actualizar umbrales de humedad remotamente
+  static async updateThresholds(req, res) {
+    try {
+      const { device_id, humedad_min, humedad_max } = req.body;
+
+      if (!device_id || humedad_min === undefined || humedad_max === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'Parámetros insuficientes (device_id, humedad_min, humedad_max)'
+        });
+      }
+
+      // Validar rangos
+      if (humedad_min < 0 || humedad_min > 100 || humedad_max < 0 || humedad_max > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Los umbrales deben estar entre 0 y 100'
+        });
+      }
+
+      if (humedad_min >= humedad_max) {
+        return res.status(400).json({
+          success: false,
+          message: 'El umbral mínimo debe ser menor que el máximo'
+        });
+      }
+
+      // Verificar permisos
+      const device = await Dispositivos.findByPk(device_id);
+      if (!device) {
+        return res.status(404).json({
+          success: false,
+          message: 'Dispositivo no encontrado'
+        });
+      }
+
+      if (req.user.rol !== 'admin' && device.usuario_id !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permisos para configurar este dispositivo'
+        });
+      }
+
+      // Actualizar configuración en BD
+      const [config, created] = await ConfiguracionesRiego.findOrCreate({
+        where: { dispositivo_id: device_id },
+        defaults: {
+          nombre: 'Configuración Automática',
+          sensor_id: 1, // Temporal
+          actuador_id: 1, // Temporal
+          umbral_inferior: humedad_min,
+          umbral_superior: humedad_max,
+          activo: true
+        }
+      });
+
+      if (!created) {
+        await ConfiguracionesRiego.update(
+          { 
+            umbral_inferior: humedad_min,
+            umbral_superior: humedad_max 
+          },
+          { where: { dispositivo_id: device_id } }
+        );
+      }
+
+      // Enviar comando MQTT al Arduino para actualizar umbrales
+      const topic = `riego/${device.api_key}/comandos`;
+      const payload = JSON.stringify({
+        configuracion: {
+          humedad_min: parseFloat(humedad_min),
+          humedad_max: parseFloat(humedad_max)
+        },
+        timestamp: Date.now()
+      });
+
+      if (mqttService.isConnected()) {
+        mqttService.client.publish(topic, payload, { qos: 1 }, (err) => {
+          if (err) {
+            logger.error('Error al publicar configuración: %o', err);
+          } else {
+            logger.info(`⚙️ Umbrales actualizados en ${device.nombre}: ${humedad_min}% - ${humedad_max}%`);
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Umbrales actualizados exitosamente',
+        configuracion: {
+          humedad_min,
+          humedad_max,
+          enviado_arduino: mqttService.isConnected()
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error al actualizar umbrales: %o', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al actualizar umbrales'
       });
     }
   }
