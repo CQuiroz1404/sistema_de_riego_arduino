@@ -14,6 +14,7 @@ const ScheduleController = {
             const semanas = await Semanas.findAll();
             res.render('calendar/index', {
                 title: 'Calendario de Riego',
+                activePage: 'calendario',
                 useFullCalendar: true,
                 user: req.user,
                 semanas

@@ -27,6 +27,7 @@ class InvernaderoController {
       }
 
       res.render('invernaderos/index', { 
+        activePage: 'invernaderos',
         invernaderos: invernaderos.map(i => i.toJSON()),
         user: req.user 
       });

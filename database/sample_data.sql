@@ -6,9 +6,6 @@ USE sistema_riego;
 
 -- 1. Usuarios
 -- Password es '123456' (hash bcrypt aproximado para ejemplo, en producción usar hash real)
-INSERT INTO usuarios (nombre, email, password, rol, rut, activo) VALUES 
-('Administrador', 'admin@sistema.com', '$2b$10$X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j', 'admin', '11111111-1', 1),
-('Usuario Demo', 'user@sistema.com', '$2b$10$X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j.X7V.j', 'usuario', '22222222-2', 1);
 
 -- 2. Tipos de Planta
 INSERT INTO tipo_planta (nombre, estado) VALUES 
@@ -42,9 +39,7 @@ INSERT INTO plantas (nombre, tipo_planta_id, rango_temperatura_id, rango_humedad
 ('Cactus', 5, 3, 1, 1);
 
 -- 6. Invernaderos
-INSERT INTO invernaderos (descripcion, ubicacion, planta_id, riego, temp_actual, hum_actual, estado) VALUES 
-('Invernadero Principal', 'Patio Trasero', 1, 0, 24.5, 65.0, 1),
-('Semillero Interior', 'Laboratorio', 2, 0, 20.0, 80.0, 1);
+
 
 -- 7. Semanas (Ciclo de Cultivo)
 INSERT INTO semanas (nombre) VALUES 
@@ -56,7 +51,7 @@ INSERT INTO semanas (nombre) VALUES
 ('Semana 6 - Maduración'),
 ('Semana 7 - Cosecha');
 
--- 8. Acciones
+-- 8. Accionesdispositivos
 INSERT INTO acciones (nombre) VALUES 
 ('Regar'),
 ('Fertilizar'),
@@ -64,10 +59,6 @@ INSERT INTO acciones (nombre) VALUES
 ('Transplantar'),
 ('Aplicar Insecticida'),
 ('Cosechar');
-
--- 9. Dispositivos IoT
-INSERT INTO dispositivos (nombre, ubicacion, descripcion, api_key, estado, usuario_id, invernadero_id) VALUES 
-('Arduino Uno R4 WiFi', 'Invernadero Principal', 'Controlador central de riego', 'api_key_demo_12345', 'activo', 1, 1);
 
 -- 10. Sensores
 -- IDs asumidos: Dispositivo 1
@@ -79,17 +70,3 @@ INSERT INTO sensores (dispositivo_id, nombre, tipo, pin, unidad, valor_minimo, v
 -- 11. Actuadores
 INSERT INTO actuadores (dispositivo_id, nombre, tipo, pin, estado, activo) VALUES 
 (1, 'Bomba de Agua Principal', 'bomba', 'D8', 'apagado', 1),
-(1, 'Ventilador', 'valvula', 'D9', 'apagado', 1);
-
--- 12. Configuraciones de Riego
-INSERT INTO configuraciones_riego (dispositivo_id, nombre, sensor_id, actuador_id, umbral_inferior, umbral_superior, duracion_minutos, modo, activo) VALUES 
-(1, 'Riego Automático Tomates', 1, 1, 30.00, 70.00, 5, 'automatico', 1);
-
--- 13. Calendario (Ejemplo)
--- Invernadero 1, Semana 1, Lunes, 8am
-INSERT INTO calendario (invernadero_id, semana_id, dia_semana, hora_inicial, hora_final, usuario_id, estado) VALUES 
-(1, 1, 'Lunes', '08:00:00', '08:30:00', 1, 1),
-(1, 1, 'Miércoles', '08:00:00', '08:30:00', 1, 1),
-(1, 1, 'Viernes', '08:00:00', '08:30:00', 1, 1);
-
-SELECT '✅ Datos de ejemplo insertados correctamente' AS status;
