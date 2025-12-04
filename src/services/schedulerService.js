@@ -59,6 +59,8 @@ class SchedulerService {
       const now = new Date();
       const currentDay = this.getDayName(now);
       const currentTime = this.formatTime(now);
+      
+      logger.info(`📅 [SCHEDULER] Ejecutando a las ${currentTime} - Día: ${currentDay}`);
 
       // Obtener eventos activos del día actual
       const eventos = await Calendario.findAll({
@@ -73,7 +75,8 @@ class SchedulerService {
             include: [
               {
                 model: Dispositivos,
-                as: 'dispositivos'
+                as: 'dispositivos',
+                attributes: ['id', 'nombre', 'api_key', 'estado', 'ultima_conexion']
               }
             ]
           },
@@ -84,6 +87,8 @@ class SchedulerService {
           }
         ]
       });
+      
+      logger.info(`📋 Eventos encontrados para ${currentDay}: ${eventos.length}`);
 
       if (eventos.length === 0) {
         // No hay eventos programados para hoy
@@ -174,8 +179,19 @@ class SchedulerService {
       }
 
       // 3. Activar riego automático si hay dispositivo asociado
+      logger.debug(`📋 Verificando dispositivos del invernadero ${invernadero.id}`);
+      logger.debug(`   Dispositivos encontrados: ${invernadero.dispositivos ? invernadero.dispositivos.length : 0}`);
+      
       if (invernadero.dispositivos && invernadero.dispositivos.length > 0) {
         const dispositivo = invernadero.dispositivos[0];
+        logger.info(`🔍 Dispositivo encontrado: ${dispositivo.nombre} (ID: ${dispositivo.id})`);
+        logger.info(`   API_KEY: ${dispositivo.api_key ? dispositivo.api_key.substring(0, 8) + '...' : 'NO CONFIGURADO'}`);
+        logger.info(`   Estado: ${dispositivo.estado}`);
+        
+        if (!dispositivo.api_key) {
+          logger.error(`❌ Dispositivo ${dispositivo.id} no tiene API_KEY configurado`);
+          return;
+        }
         
         // Obtener bomba asociada al dispositivo
         const { Actuadores } = require('../models');
@@ -183,31 +199,42 @@ class SchedulerService {
           where: { 
             dispositivo_id: dispositivo.id, 
             tipo: 'bomba',
-            activo: true
+            activo: true  // Cambiado de estado: 'activo' a activo: true
           } 
         });
         
+        logger.debug(`   Bombas encontradas: ${actuadores.length}`);
+        
         if (actuadores.length > 0) {
           const bomba = actuadores[0];
+          logger.info(`💧 Bomba encontrada: ${bomba.nombre} (ID: ${bomba.id}, Pin: ${bomba.pin})`);
+          
           const mqttService = require('./mqttService');
           
           try {
-            // Activar bomba vía MQTT
-            await mqttService.controlActuator(
+            logger.info(`🚀 Intentando activar riego programado vía MQTT...`);
+            
+            // Calcular duración del riego
+            const duracionMinutos = evento.duracion_minutos || 10; // Default 10 minutos
+            logger.info(`⏱️  Duración configurada: ${duracionMinutos} minutos`);
+            
+            // Activar riego programado (el Arduino se encargará del apagado automático)
+            await mqttService.iniciarRiegoProgramado(
               dispositivo.id,
               bomba.id,
-              'encendido',
-              'calendario',
+              duracionMinutos,
               usuario ? usuario.id : null
             );
             
-            logger.info(`🚿 Riego automático activado: ${bomba.nombre} (Disp: ${dispositivo.id}, Evento: ${evento.id})`);
+            logger.info(`🚿 Riego programado activado: ${bomba.nombre} (Disp: ${dispositivo.id}, Evento: ${evento.id})`);
+            logger.info(`📡 Comando MQTT enviado a tópico: riego/${dispositivo.api_key}/comandos`);
+            logger.info(`🎯 Comando: {"comando":"riego_programado","duracion_ms":${duracionMinutos * 60000}}`);
             
             // Log de auditoría para ejecución desde calendario
             await LogsSistema.create({
               nivel: 'info',
               modulo: 'calendario',
-              mensaje: `Riego programado ejecutado: ${invernadero.descripcion} - ${bomba.nombre} activado automáticamente`,
+              mensaje: `Riego programado ejecutado: ${invernadero.descripcion} - ${bomba.nombre} activado automáticamente por ${duracionMinutos} minutos`,
               dispositivo_id: dispositivo.id,
               usuario_id: usuario ? usuario.id : null,
               fecha_log: new Date()
@@ -222,64 +249,31 @@ class SchedulerService {
                 actuator_id: bomba.id,
                 actuator_name: bomba.nombre,
                 evento_id: evento.id,
-                mensaje: `Riego iniciado automáticamente en ${invernadero.descripcion}`,
+                duracion_minutos: duracionMinutos,
+                mensaje: `Riego iniciado automáticamente en ${invernadero.descripcion} (${duracionMinutos} min)`,
                 timestamp: now.toISOString()
               });
             }
             
-            // Programar apagado automático según duración del evento
-            const duracionMinutos = evento.duracion_minutos || 10; // Default 10 minutos
-            
-            setTimeout(async () => {
-              try {
-                await mqttService.controlActuator(
-                  dispositivo.id,
-                  bomba.id,
-                  'apagado',
-                  'calendario',
-                  usuario ? usuario.id : null
-                );
-                
-                logger.info(`⏱️ Riego automático finalizado: ${bomba.nombre} (Duración: ${duracionMinutos} min)`);
-                
-                if (this.io) {
-                  this.io.emit('irrigation:finished', {
-                    tipo: 'calendario',
-                    device_id: dispositivo.id,
-                    actuator_id: bomba.id,
-                    duracion_minutos: duracionMinutos,
-                    mensaje: `Riego finalizado en ${invernadero.descripcion}`,
-                    timestamp: new Date().toISOString()
-                  });
-                }
-              } catch (error) {
-                logger.error(`❌ Error al apagar bomba automáticamente: %o`, error);
-              }
-            }, duracionMinutos * 60 * 1000);
+            // Nota: El Arduino se encargará de apagar la bomba automáticamente
+            // después de duracion_ms. No necesitamos setTimeout aquí.
             
           } catch (error) {
-            logger.error(`❌ Error activando riego automático: %o`, error);
+            logger.error(`❌ Error activando riego programado (Dispositivo: ${dispositivo.id}, Bomba: ${bomba.id}): %o`, error);
+            logger.error(`   Dispositivo ID: ${dispositivo.id}`);
+            logger.error(`   Bomba ID: ${bomba.id}`);
+            logger.error(`   Error detallado: ${error.message}`);
           }
         } else {
           logger.warn(`⚠️ No se encontró bomba activa para dispositivo ${dispositivo.id}`);
+          logger.warn(`   Se buscó: tipo='bomba', activo=true, dispositivo_id=${dispositivo.id}`);
         }
-      } else if (invernadero.dispositivo) {
-        // Compatibilidad con código anterior (notificación solo)
-        const dispositivo = invernadero.dispositivo;
-        
-        if (this.io) {
-          this.io.emit('device:schedule-reminder', {
-            device_id: dispositivo.id,
-            device_name: dispositivo.nombre,
-            action: 'watering_reminder',
-            mensaje,
-            timestamp: now.toISOString()
-          });
-        }
-
-        logger.info(`📱 Notificación enviada para dispositivo ${dispositivo.nombre} (ID: ${dispositivo.id})`);
+      } else {
+        logger.warn(`⚠️ Invernadero ${invernadero.id} no tiene dispositivos asociados`);
+        logger.warn(`   Evento ${evento.id} NO ejecutará riego automático`);
       }
-
+      
+      // Código de compatibilidad anterior eliminado - solo se usa el nuevo sistema
     } catch (error) {
       logger.error(`❌ Error procesando evento ${evento.id}: %o`, error);
     }

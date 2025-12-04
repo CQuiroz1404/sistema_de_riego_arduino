@@ -700,6 +700,89 @@ class MQTTService {
   }
 
   /**
+   * Envía comando de riego programado al Arduino
+   * @param {number} deviceId - ID del dispositivo
+   * @param {number} actuatorId - ID del actuador (bomba)
+   * @param {number} duracionMinutos - Duración del riego en minutos
+   * @param {number} userId - ID del usuario que inició el riego
+   * @returns {Promise<void>}
+   */
+  async iniciarRiegoProgramado(deviceId, actuatorId, duracionMinutos, userId = null) {
+    try {
+      logger.info(`🎯 Iniciando riego programado: ${duracionMinutos} minutos`);
+
+      const device = await Dispositivos.findByPk(deviceId);
+      if (!device) {
+        throw new Error('Dispositivo no encontrado');
+      }
+
+      const actuator = await Actuadores.findByPk(actuatorId);
+      if (!actuator) {
+        throw new Error('Actuador no encontrado');
+      }
+
+      // Actualizar estado en base de datos
+      await Actuadores.update({ estado: 'encendido' }, { where: { id: actuatorId } });
+
+      // Registrar evento de inicio
+      await EventosRiego.create({
+        dispositivo_id: deviceId,
+        actuador_id: actuatorId,
+        tipo_evento: 'inicio_riego',
+        accion: 'inicio',
+        modo: 'programado',  // Cambiado de 'calendario' a 'programado'
+        detalle: `Riego programado iniciado (${duracionMinutos} min)`,
+        usuario_id: userId
+      });
+
+      // Notificar vía Socket.io
+      if (this.io) {
+        this.io.emit('alert:riego_activo', {
+          deviceId: deviceId,
+          actuatorName: actuator.nombre,
+          modo: 'programado',  // Cambiado de 'calendario' a 'programado'
+          duracionMinutos: duracionMinutos,
+          message: `Riego programado iniciado: ${duracionMinutos} minutos`
+        });
+      }
+
+      // Publicar comando MQTT específico para riego programado
+      const topic = `riego/${device.api_key}/comandos`;
+      const duracionMs = duracionMinutos * 60 * 1000;
+      
+      const payload = JSON.stringify({
+        comando: 'riego_programado',
+        duracion_ms: duracionMs,
+        actuador_id: actuatorId,
+        pin: actuator.pin,
+        timestamp: Date.now()
+      });
+
+      if (this.client && this.connected) {
+        this.client.publish(topic, payload, { qos: 1 }, (err) => {
+          if (err) {
+            logger.error('❌ Error al publicar comando riego programado: %o', err);
+            throw new Error('Error al enviar comando MQTT al dispositivo');
+          } else {
+            logger.info(`📡 Comando MQTT enviado a tópico: riego/${device.api_key}/comandos`);
+            logger.info(`   Payload: ${payload}`);
+            logger.info(`✅ Riego programado activado: ${duracionMinutos} min en ${actuator.nombre}`);
+          }
+        });
+      } else {
+        logger.error('⚠️ Cliente MQTT no conectado');
+        throw new Error('🔌 Broker MQTT no está conectado');
+      }
+
+      return { success: true, duracionMinutos, duracionMs };
+
+    } catch (error) {
+      logger.error('❌ Error al iniciar riego programado: %o', error);
+      throw error;
+    }
+  }
+
+  /**
    * Cierra la conexión MQTT
    */
   async disconnect() {
